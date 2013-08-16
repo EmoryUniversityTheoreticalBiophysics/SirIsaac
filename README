@@ -1,0 +1,17 @@
+SirIsaac
+========
+
+Automated dynamical systems inference 
+
+
+Dependencies
+============
+
+SloppyCell (http://sloppycell.sourceforge.net)
+
+
+Optional dependencies
+=====================
+
+SBML
+BioNetGen

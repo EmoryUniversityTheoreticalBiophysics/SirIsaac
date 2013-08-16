@@ -1,0 +1,16 @@
+# Python compiled code
+*.pyc
+
+# data files
+*.data
+*.dat
+
+# SloppyCell files
+.SloppyCell
+
+# SloppyCell compiled code
+*.c
+*.pyf
+
+# temporary files
+temporary*
