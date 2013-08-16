@@ -6,7 +6,7 @@
 
 
 from FittingProblem import *
-from analyzeYeastFittingProblemDict import orderedFitNames
+from analyzeFittingProblemDict import orderedFitNames
 import sys
 
 def die():
@@ -33,7 +33,7 @@ for k in fpd.keys():
     print ""
     print "Log-likelihoods"
     for name in names:
-        print name,fp.logLikelihoodDict[name]
+        print name,fp.newLogLikelihoodDict[name]
     print ""
     
     print ""
