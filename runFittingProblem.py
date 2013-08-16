@@ -19,9 +19,9 @@ print "This computer's name is",os.uname()[1]
 if (os.uname()[1][:4] == 'node'): # 4.4.2012 emory machines
     print "The current directory is",os.getcwd()
     if os.getcwd().startswith('/star'):
-        os.chdir('/star/physics/nemenman/daniels/SloppySimplification')
+        os.chdir('/star/physics/nemenman/daniels/SirIsaac')
     elif os.getcwd().startswith('/spark'):
-        os.chdir('/spark/physics/nemenman/daniels/SloppySimplification')
+        os.chdir('/spark/physics/nemenman/daniels/SirIsaac')
     print "Now the current directory is",os.getcwd()
     
 def paramsDict(fittingProblem):
