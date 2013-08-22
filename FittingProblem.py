@@ -927,25 +927,38 @@ class FittingProblem:
             return None
         
     # 4.19.2012
-    def plotBestModelResults(self,filename=None,**kwargs):
+    def plotBestModelResults(self,filename=None,indices=None,**kwargs):
+        """
+        indices (None)          : If a list of indepParamsList indices, plots
+                                  only these indices.  Otherwise plots
+                                  all conditions in indepParamsList.
+        """
+        # choose the indices we want
+        if indices is None:
+            indices = range(len(self.indepParamsList))
+        fittingData = [ self.fittingData[i] for i in indices ]
+        indepParamsList = [ self.indepParamsList[i] for i in indices ]
+        
         m = self.getBestModel(**kwargs)
         
-        plots = m.plotResults(                                                  \
-                    self.fittingData,self.indepParamsList)
+        # plot model results
+        plots = m.plotResults(fittingData,indepParamsList)
+        
+        # plot perfectModel results if relevant
         if self.perfectModel is not None:
             ni,no = m.numInputs,m.numOutputs
             speciesToPlot = m.speciesNames[ni:(ni+no)]
-            self.perfectModel.plotResults(self.fittingData,                     \
-                self.indepParamsList,fmt=[[0.65,0.65,0.65],'','-'],             \
+            self.perfectModel.plotResults(fittingData,                          \
+                indepParamsList,fmt=[[0.65,0.65,0.65],'','-'],                  \
                 numRows=len(m.speciesNames),linewidth=0.5,                      \
                 dataToPlot=speciesToPlot,newFigure=False,rowOffset=ni)
         
         # 7.12.2012 worm data
         # speedDict must have been imported using importWormData_George
         if self.saveFilename.find('wormData') >= 0:
-            for i,indepParams in enumerate(self.indepParamsList):
-                Plotting.subplot(len(m.speciesNames),len(self.indepParamsList), \
-                                 m.numInputs*len(self.indepParamsList) + i+1)
+            for i,indepParams in enumerate(indepParamsList):
+                Plotting.subplot(len(m.speciesNames),len(indepParamsList),      \
+                                 m.numInputs*len(indepParamsList) + i+1)
                 data = speedDict[indepParams]
                 times = scipy.sort(data.keys())
                 speeds = [ data[time][0] for time in times ]
@@ -1134,7 +1147,10 @@ class PowerLawFittingProblem(FittingProblem):
             for neighborIndex in netList[nodeIndex][1].keys():
                 pG = params.getByKey('g_'+str(nodeIndex)+'_'+str(neighborIndex))
                 pH = params.getByKey('h_'+str(nodeIndex)+'_'+str(neighborIndex))
-                netList[nodeIndex][1][neighborIndex] = (pG,pH)
+                if pH is not None:
+                    netList[nodeIndex][1][neighborIndex] = (pG,pH)
+                else:
+                    netList[nodeIndex][1][neighborIndex] = (pG)
         #print netList
         
         return networkList2DOT(netList,bestModel.speciesNames,                  \
@@ -3972,13 +3988,23 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         
 class PowerLawFittingModel_Complexity(PowerLawFittingModel):
     """
-    complexity      : integer specifying the "complexity" of the model
+    complexity          : integer specifying the "complexity" of the model
+    inputNames (None)   : Optional explicit list of names to be used as
+                          input variables.  All inputNames must be found in
+                          indepParamNames.  Defaults to all indepParamNames
+                          that don't end in "_init".
     """
     
-    def __init__(self,complexity,indepParamNames=[],outputNames=[],**kwargs):
+    def __init__(self,complexity,indepParamNames=[],outputNames=[],             \
+        inputNames=None,**kwargs):
         
-        # 2.22.2012 don't include indepParams ending in "_init" as inputs
-        inputNames = filter(lambda name: name[-5:]!="_init",indepParamNames)
+        if inputNames is None:
+            # 2.22.2012 don't include indepParams ending in "_init" as inputs
+            inputNames = filter(lambda name: name[-5:]!="_init",indepParamNames)
+        else:
+            for inputName in inputNames:
+              if inputName not in indepParamNames:
+                raise Exception, "inputName %s not in indepParamNames"%inputName
         
         self.complexity = complexity
         self.numInputs = len(inputNames)
@@ -4012,18 +4038,27 @@ class PowerLawFittingModel_FullyConnected(PowerLawFittingModel_Complexity):
     indepParamNames     : names of independent parameters.  Any that end
                           in "_init" are treated as initial conditions.
     outputNames         : names of output (visible) species
+    inputNames (None)   : Optional explicit list of names to be used as
+                          input variables.  All inputNames must be found in
+                          indepParamNames.  Defaults to all indepParamNames
+                          that don't end in "_init".
     """
     
     def __init__(self,numSpecies,fracParams=1.,indepParamNames=[],              \
-        outputNames=[],**kwargs):
+        outputNames=[],inputNames=None,**kwargs):
         
         if len(outputNames) > numSpecies:
             raise Exception, "len(outputNames) > numSpecies"
         if (fracParams>1.) or (fracParams<0.):
             raise Exception, "fracParams must be between 0 and 1."
         
-        # 2.22.2012 don't include indepParams ending in "_init" as inputs
-        inputNames = filter(lambda name: not name.endswith("_init"),indepParamNames)
+        if inputNames is None:
+            # 2.22.2012 don't include indepParams ending in "_init" as inputs
+            inputNames = filter(lambda name: name[-5:]!="_init",indepParamNames)
+        else:
+            for inputName in inputNames:
+              if inputName not in indepParamNames:
+                raise Exception, "inputName %s not in indepParamNames"%inputName
         
         numSpecies = numSpecies
         numInputs = len(inputNames)
@@ -4420,16 +4455,25 @@ class PhosphorylationFittingModel(SloppyCellFittingModel):
 
 class CTSNFittingModel(SloppyCellFittingModel):
     """
-    complexity      : integer specifying the "complexity" of the model
+    complexity          : integer specifying the "complexity" of the model
+    inputNames (None)   : Optional explicit list of names to be used as
+                          input variables.  All inputNames must be found in
+                          indepParamNames.  Defaults to all indepParamNames
+                          that don't end in "_init".
     
     Parts copied from PowerLawFittingModel, PowerLawFittingModel_Complexity
     """
     
     def __init__(self,complexity,indepParamNames=[],outputNames=[],                  \
-        switchSigmoid=False,**kwargs):
+        switchSigmoid=False,inputNames=None,**kwargs):
         
-        # 2.22.2012 don't include indepParams ending in "_init" as inputs
-        inputNames = filter(lambda name: name[-5:]!="_init",indepParamNames)
+        if inputNames is None:
+            # 2.22.2012 don't include indepParams ending in "_init" as inputs
+            inputNames = filter(lambda name: name[-5:]!="_init",indepParamNames)
+        else:
+            for inputName in inputNames:
+              if inputName not in indepParamNames:
+                raise Exception, "inputName %s not in indepParamNames"%inputName
         
         self.complexity = complexity
         self.numInputs = len(inputNames)

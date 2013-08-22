@@ -14,3 +14,13 @@
 
 # temporary files
 temporary*
+
+# latex files
+*.tex
+*.pdf
+*.log
+*.aux
+
+# other output files
+*.dot
+*.png
