@@ -14,7 +14,7 @@ import GaussianPrior
     
 def PowerLaw_Network_List(networkList,speciesNames=None,                        \
     logParams=True,netid='PowerLaw_Network',logParamsInit=False,                \
-    includeRegularizer=True,regStrength=0.,useDeltaGamma=False):
+    includeRegularizer=False,regStrength=0.,useDeltaGamma=False):
     """
     Defines a power-law network based on a connection list.
     

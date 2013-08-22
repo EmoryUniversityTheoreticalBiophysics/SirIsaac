@@ -53,6 +53,7 @@ numprocs = 11
 useDerivs = False
 restartPhos = False # default
 includeEndpoints = False
+inputNames = None # default to non-init variables
 
 # for ensemble generation
 useEnsemble = True #False 
@@ -92,6 +93,7 @@ if True:
     timeInterval = [0.,100.] # units GM/(v0^3)
     includeDerivs = False
     
+    inputNames = ['r_init']
     outputVars = ['r','theta'] #['r']
     
     originalFittingModel = FittingProblem.PlanetaryFittingModel(                    \
@@ -464,7 +466,8 @@ for numIndepParams in numIndepParamsList:
             useClampedPreminimization=useClampedPreminimization,                \
             numprocs=numprocs,smallerBestParamsDict=smallerBestParamsDict,      \
             saveKey=key,fittingDataDerivs=fittingDataDerivs,                    \
-            useFullyConnected=useFullyConnected,maxSVDeig=maxSVDeig)
+            useFullyConnected=useFullyConnected,maxSVDeig=maxSVDeig,            \
+            inputNames=inputNames)
         elif fittingType is 'CTSN':
           p = FittingProblem.CTSNFittingProblem(complexityList,fakeData,        \
             outputNames=outputVars,avegtol=avegtol,maxiter=maxiter,             \
@@ -475,7 +478,7 @@ for numIndepParams in numIndepParamsList:
             saveFilename=saveFilename,includeDerivs=includeDerivs,              \
             useClampedPreminimization=useClampedPreminimization,                \
             numprocs=numprocs,smallerBestParamsDict=smallerBestParamsDict,      \
-            saveKey=key,switchSigmoid=switchSigmoid)
+            saveKey=key,switchSigmoid=switchSigmoid,inputNames=inputNames)
         else:
             raise Exception, 'No valid fittingType specified.'
         
