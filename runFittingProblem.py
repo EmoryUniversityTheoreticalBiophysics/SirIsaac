@@ -258,8 +258,8 @@ polynomialDegreeListListPoly = [ (degree/2)*scipy.ones(degree+1,dtype=int)  \
 # pick fitting model class
 #fittingType = 'Polynomial'
 #fittingType = 'Laguerre'
-fittingType = 'PowerLaw'
-#fittingType = 'CTSN'
+#fittingType = 'PowerLaw'
+fittingType = 'CTSN'
 
 # 4.29.2013 set priors
 if (fittingType is 'Polynomial') or (fittingType is 'Laguerre'):
