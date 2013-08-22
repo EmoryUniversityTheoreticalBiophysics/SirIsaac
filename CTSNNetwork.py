@@ -104,7 +104,9 @@ def CTSN_List(networkList,speciesNames=None,                                    
       if nodeType != 0: # if it's not an input node
         net.addSpecies( speciesNames[i], 'Comp', speciesNames[i]+'_init' )
       else: # it is an input node
-        net.addParameter( speciesNames[i], 0., isOptimizable=False )
+        # add as a parameter if it's not already there
+        if speciesNames[i] not in net.parameters.keys():
+          net.addParameter( speciesNames[i], 0., isOptimizable=False )
     
     # reaction rate rules
     for i in range(n):
