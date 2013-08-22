@@ -82,6 +82,13 @@ if True:
     scipy.random.seed(ICseed)
     
     inputVars = ['r_init','theta_init']
+    inputNames = ['r_init']
+    outputVars = ['r','theta']
+    
+    #inputVars = ['r_init']
+    #inputNames = ['r_init']
+    #outputVars = ['r']
+
     inputMin,inputMax = 1.,2.5 #1.,3. # units GM/(v0^2) (1->circle,2->parabola)
     inputList = inputMin + (inputMax-inputMin)*scipy.random.random(maxNumInputs)
     # 5.3.2013 set first two inputs to the two extremes
@@ -92,10 +99,7 @@ if True:
     
     timeInterval = [0.,100.] # units GM/(v0^3)
     includeDerivs = False
-    
-    inputNames = ['r_init']
-    outputVars = ['r','theta'] #['r']
-    
+        
     originalFittingModel = FittingProblem.PlanetaryFittingModel(                    \
         indepParamNames=inputVars,verbose=True,avegtol=avegtol,maxiter=maxiter,     \
         ensGen=ensGen)
@@ -110,7 +114,7 @@ if True:
     ratePriorSigma = 1e3
     nonratePriorSigma = 10.
     
-    fakeDataAbs = True # Avoid negative data
+    fakeDataAbs = False # Avoid negative data
 
 
 
@@ -260,8 +264,8 @@ polynomialDegreeListListPoly = [ (degree/2)*scipy.ones(degree+1,dtype=int)  \
 # pick fitting model class
 #fittingType = 'Polynomial'
 #fittingType = 'Laguerre'
-#fittingType = 'PowerLaw'
-fittingType = 'CTSN'
+fittingType = 'PowerLaw'
+#fittingType = 'CTSN'
 
 # 4.29.2013 set priors
 if (fittingType is 'Polynomial') or (fittingType is 'Laguerre'):
