@@ -1,7 +1,11 @@
 SirIsaac
 ========
 
-Automated dynamical systems inference 
+Automated dynamical systems inference.
+
+Main goal:
+given experimental dynamical ssytems trajectories, find the dynamical system that has generated them.
+
 
 
 Dependencies
@@ -15,3 +19,14 @@ Optional dependencies
 
 SBML
 BioNetGen
+Vision
+
+
+Contributors:
+=============
+Bryan Daniels, Ilya Nemenman
+
+
+
+
+
