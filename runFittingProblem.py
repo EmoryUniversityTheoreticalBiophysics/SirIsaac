@@ -49,11 +49,12 @@ randomX = True #False #True
 avegtol = 1e-2 #1. #1e-2
 maxiter = 100 # 200
 verbose = False
-numprocs = 11 
+numprocs = 11
 useDerivs = False
 restartPhos = False # default
 includeEndpoints = False
 inputNames = None # default to non-init variables
+stopFittingN = 3
 
 # for ensemble generation
 useEnsemble = True #False 
@@ -113,6 +114,10 @@ if True:
 
     ratePriorSigma = 1e3
     nonratePriorSigma = 10.
+    
+    # 9.5.2013 since we're interested in testing whether we can find the
+    # perfect representation, we'll remove the stopping criterion
+    stopFittingN = scipy.inf
     
     fakeDataAbs = False # Avoid negative data
 
@@ -218,7 +223,7 @@ if False: # yeast oscillator (see RuoChrWol03)
   noiseSeed = 13 #1
   ICseed = 14 #2
   
-  fakeDataAbs = False # <--- may want to change to True if rerunning everything
+  fakeDataAbs = False 
   
   maxSVDeig = None
   
@@ -291,7 +296,7 @@ fitProbDict = {}
 
 # () optionally restart calculations from a loaded fittingProblemDict
 restartDictName = None
-#restartDictName = 'k0001_fitProb_varying_numInputs_PhosphorylationNet_CTSN_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_maxiter100_avegtol0.01_noClamp_newErrorBars0.1_removeLogForPriors_ratePriorSigma1000.0_seeds0_1.dat'
+restartDictName = 'k0004_fitProb_varying_numInputs_PlanetaryNet_PowerLaw_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_maxiter100_avegtol0.01_noClamp_newErrorBars0.1_removeLogForPriors_ratePriorSigma1000.0_seeds0_1.dat'
 if restartDictName is not None:
     fitProbDict = Utility.load(restartDictName)
     i = restartDictName.find('_fitProb_')
@@ -301,11 +306,17 @@ if restartDictName is not None:
     if restartDictName.find(originalString) < 0: raise Exception
     if originalString is "yeastOscillator":
         seedsStr = '_seeds'+str(timesSeed)+'_'+str(noiseSeed)+'_'+str(ICseed)
-    elif originalString is "PhosphorylationNet":
+    elif (originalString is "PhosphorylationNet") or (originalString is "PlanetaryNet"):
         seedsStr = '_seeds'+str(timeAndNoiseSeed)+'_'+str(ICseed)
     else:
         raise Exception
     if restartDictName.find(seedsStr) < 0: raise Exception
+    # ***
+    # 9.5.2013 temporary change to stopFittingN for planetary fits
+    for key in fitProbDict.keys():
+        fp = fitProbDict[key]
+        fp.stopFittingN = stopFittingN
+    # ***
 
 # () set up filename for output
 fileNumString = prefix
@@ -333,7 +344,7 @@ else:
 if restartDictName is not None:
     configString += restartStr
 
-Utility.save({},fileNumString+configString+'.dat')
+Utility.save(fitProbDict,fileNumString+configString+'.dat')
 saveFilename = fileNumString+configString+'.dat'#+'_partial.dat'
 
 # 5.8.2013 for running on Emory machines that don't have BioNetGen
@@ -445,7 +456,7 @@ for numIndepParams in numIndepParamsList:
            saveFilename=saveFilename,includeDerivs=includeDerivs,               \
            useClampedPreminimization=useClampedPreminimization,                 \
            numprocs=numprocs,smallerBestParamsDict=smallerBestParamsDict,       \
-           saveKey=key)
+           saveKey=key,stopFittingN=stopFittingN)
         # below: Polynomial networks, with input variables
         elif fittingType is 'Polynomial':
           p = FittingProblem.PolynomialFittingProblem(degreeListPoly,fakeData,  \
@@ -457,7 +468,7 @@ for numIndepParams in numIndepParamsList:
            saveFilename=saveFilename,includeDerivs=includeDerivs,               \
            useClampedPreminimization=useClampedPreminimization,                 \
            numprocs=numprocs,smallerBestParamsDict=smallerBestParamsDict,       \
-           saveKey=key)
+           saveKey=key,stopFittingN=stopFittingN)
         # below: PowerLaw Networks, with input variables
         elif fittingType is 'PowerLaw':
           p = FittingProblem.PowerLawFittingProblem(complexityList,fakeData,    \
@@ -471,7 +482,7 @@ for numIndepParams in numIndepParamsList:
             numprocs=numprocs,smallerBestParamsDict=smallerBestParamsDict,      \
             saveKey=key,fittingDataDerivs=fittingDataDerivs,                    \
             useFullyConnected=useFullyConnected,maxSVDeig=maxSVDeig,            \
-            inputNames=inputNames)
+            inputNames=inputNames,stopFittingN=stopFittingN)
         elif fittingType is 'CTSN':
           p = FittingProblem.CTSNFittingProblem(complexityList,fakeData,        \
             outputNames=outputVars,avegtol=avegtol,maxiter=maxiter,             \
@@ -482,7 +493,8 @@ for numIndepParams in numIndepParamsList:
             saveFilename=saveFilename,includeDerivs=includeDerivs,              \
             useClampedPreminimization=useClampedPreminimization,                \
             numprocs=numprocs,smallerBestParamsDict=smallerBestParamsDict,      \
-            saveKey=key,switchSigmoid=switchSigmoid,inputNames=inputNames)
+            saveKey=key,switchSigmoid=switchSigmoid,inputNames=inputNames,      \
+            stopFittingN=stopFittingN)
         else:
             raise Exception, 'No valid fittingType specified.'
         

@@ -24,3 +24,8 @@ temporary*
 # other output files
 *.dot
 *.png
+stdout_stderr_*
+
+# ipython notebook files
+*.ipynb
+.ipynb_checkpoints

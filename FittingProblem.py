@@ -173,18 +173,19 @@ class FittingProblem:
     def __init__(self,fittingData,fittingModelList,fittingModelNames=None,      \
         indepParamsList=[[]],indepParamNames=[],singValCutoff=cutoffDefault,    \
         verbose=verboseDefault,perfectModel=None,saveFilename=None,             \
-        bestSeenParamsDict={},smallerBestParamsDict={},saveKey=-1):
+        bestSeenParamsDict={},smallerBestParamsDict={},saveKey=-1,              \
+        stopFittingN=3):
         # all daughter classes should call generalSetup
         self.generalSetup(fittingData,indepParamsList,indepParamNames,          \
             fittingModelList,singValCutoff,fittingModelNames,verbose,           \
             perfectModel,saveFilename,bestSeenParamsDict,                       \
-            smallerBestParamsDict)
+            smallerBestParamsDict,stopFittingN)
         # (should the singValCutoff necessarily be the same for all models?)
     
     def generalSetup(self,fittingData,indepParamsList,indepParamNames,          \
         fittingModelList,singValCutoff,fittingModelNames,verbose,perfectModel,  \
         saveFilename,bestSeenParamsDict,smallerBestParamsDict,                  \
-        saveKey):
+        saveKey,stopFittingN=3):
         
         if fittingModelNames is None:
             fittingModelNames =                                                 \
@@ -226,7 +227,7 @@ class FittingProblem:
         self.pid = os.getpid()
         
         # 6.1.2012
-        self.stopFittingN = 3
+        self.stopFittingN = stopFittingN
     
     def fitAll(self,usePreviousParams=True,fitPerfectModel=False,resume=True,**kwargs):
         """
@@ -1083,7 +1084,7 @@ class PowerLawFittingProblem(FittingProblem):
         bestSeenParamsDict={},                                                  \
         includeDerivs=False,useClampedPreminimization=False,                    \
         smallerBestParamsDict=None,saveKey=-1,fittingDataDerivs=None,           \
-        useFullyConnected=False,**kwargs):
+        useFullyConnected=False,stopFittingN=3,**kwargs):
         """
         useFullyConnected (False)       : Treat complexityList as numSpeciesList
                                           and make fully connected models.
@@ -1118,7 +1119,7 @@ class PowerLawFittingProblem(FittingProblem):
         self.generalSetup(fittingData,indepParamsListList,indepParamNames,      \
             fittingModelList,singValCutoff,graphListNames,verbose,perfectModel, \
             saveFilename,bestSeenParamsDict,                                    \
-            smallerBestParamsDict,saveKey)
+            smallerBestParamsDict,saveKey,stopFittingN)
             
         self.priorSigma = priorSigma
         self.convFlagDict = {}
@@ -1231,7 +1232,8 @@ class CTSNFittingProblem(FittingProblem):
         ensGen=None,verbose=verboseDefault,perfectModel=None,saveFilename=None, \
         bestSeenParamsDict={},                                                  \
         includeDerivs=False,useClampedPreminimization=False,                    \
-        smallerBestParamsDict=None,saveKey=-1,switchSigmoid=False,**kwargs):
+        smallerBestParamsDict=None,saveKey=-1,switchSigmoid=False,              \
+        stopFittingN=3,**kwargs):
         
         if graphListImages is None:
             graphListImages = [ None for complexity in complexityList ]
@@ -1250,7 +1252,7 @@ class CTSNFittingProblem(FittingProblem):
         self.generalSetup(fittingData,indepParamsListList,indepParamNames,      \
             fittingModelList,singValCutoff,graphListNames,verbose,perfectModel, \
             saveFilename,bestSeenParamsDict,                                    \
-            smallerBestParamsDict,saveKey)
+            smallerBestParamsDict,saveKey,stopFittingN)
             
         self.priorSigma = priorSigma
         self.convFlagDict = {}
@@ -1303,7 +1305,7 @@ class LaguerreFittingProblem(FittingProblem):
         ensGen=None,verbose=verboseDefault,perfectModel=None,saveFilename=None, \
         bestSeenParamsDict={},                                                  \
         includeDerivs=False,useClampedPreminimization=False,                    \
-        smallerBestParamsDict=None,saveKey=-1):
+        smallerBestParamsDict=None,saveKey=-1,stopFittingN=3):
         
         if degreeListImages is None:
             degreeListImages = [ None for degree in degreeList ]
@@ -1330,7 +1332,7 @@ class LaguerreFittingProblem(FittingProblem):
         self.generalSetup(fittingData,indepParamsList,indepParamNames,          \
             fittingModelList,singValCutoff,degreeListNames,verbose,perfectModel,\
             saveFilename,bestSeenParamsDict,                                    \
-            smallerBestParamsDict,saveKey)
+            smallerBestParamsDict,saveKey,stopFittingN)
             
         self.convFlagDict = {}
     
@@ -1355,7 +1357,7 @@ class PolynomialFittingProblem(FittingProblem):
         ensGen=None,verbose=verboseDefault,perfectModel=None,saveFilename=None, \
         bestSeenParamsDict={},                                                  \
         includeDerivs=False,useClampedPreminimization=False,                    \
-        smallerBestParamsDict=None,saveKey=-1):
+        smallerBestParamsDict=None,saveKey=-1,stopFittingN=3):
         
         if degreeListImages is None:
             degreeListImages = [ None for degree in degreeList ]
@@ -1381,7 +1383,7 @@ class PolynomialFittingProblem(FittingProblem):
         self.generalSetup(fittingData,indepParamsList,indepParamNames,          \
             fittingModelList,singValCutoff,degreeListNames,verbose,perfectModel,\
             saveFilename,bestSeenParamsDict,                                    \
-            smallerBestParamsDict,saveKey)
+            smallerBestParamsDict,saveKey,stopFittingN)
             
         self.convFlagDict = {}
     
@@ -2897,8 +2899,8 @@ class PowerLawFittingModel(SloppyCellFittingModel):
     indepParamNames     : list of names of independent parameters
     """
     
-    def __init__(self,networkList,speciesNames=None,indepParamNames=[],             \
-        includeRegularizer=True,logParams=True,useDeltaGamma=False,                 \
+    def __init__(self,networkList,speciesNames=None,indepParamNames=[],         \
+        includeRegularizer=False,logParams=True,useDeltaGamma=False,            \
         maxSVDeig=1e5,minSVDeig=0.,**kwargs):
         """
         maxSVDeig (1e5)        : Maximum singular value allowed in svdInverse
@@ -2914,7 +2916,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         #speciesNames[1:numInputs+1] = indepParamNames
         self.useDeltaGamma = useDeltaGamma
         self.includeRegularizer = includeRegularizer
-        SloppyCellNet = PowerLawNetwork.PowerLaw_Network_List(                 \
+        SloppyCellNet = PowerLawNetwork.PowerLaw_Network_List(                  \
             networkList,speciesNames,includeRegularizer=includeRegularizer,     \
             logParams=logParams,useDeltaGamma=useDeltaGamma)
             
@@ -4144,7 +4146,41 @@ class PowerLawFittingModel_FullyConnected(PowerLawFittingModel_Complexity):
         for param in scipy.unique(removedParameters):
             net.remove_component(param)
 
-        
+class PowerLawFittingModel_planetary(PowerLawFittingModel_FullyConnected):
+    """
+    Planetary network set up as a PowerLawNetwork.
+    """
+    
+    definitionDict = {} # not used here; used in PowerLawFittingModel_yeastOscillator
+
+    def __init__(self,prune=True,**kwargs):
+        """
+        Planetary network set up as a PowerLawNetwork.
+        """
+        self.speciesNames = scipy.array(['r','drdt','theta'])
+        self.ICnames = [ name+"init" for name in self.speciesNames ]
+
+        # () set up a fully-connected 19-dimensional model
+        PowerLawFittingModel_FullyConnected.__init__(self,3,                    \
+            indepParamNames=self.ICnames,outputNames=self.speciesNames,         \
+            includeRegularizer=False,logParams=False,useDeltaGamma=False,       \
+            **kwargs)
+
+        net = self.net
+
+        # () set the nonzero structural parameters
+        self._setTerm('r', +1,'1',[('drdt',1)])
+        self._setTerm('r', -1,'0',[])
+
+        self._setTerm('drdt',+1,'r_init**2',[('r',-3)])
+        self._setTerm('drdt',-1,'1.',[('r',-2)])
+
+        self._setTerm('theta',+1,'r_init',[('r',-2)])
+        self._setTerm('theta',-1,'0',[])
+
+        if prune: self.prune()
+
+
 def _createNetworkList(complexity,numInputs,numOutputs,                         \
     defaultType,defaultOutputType,maxType,maxConnection):
         """
