@@ -2798,7 +2798,7 @@ class EnsembleGenerator():
             else:
                 initialHess = dataModel.GetJandJtJ(initialParameters)[1]
             u, sing_vals, vh = scipy.linalg.svd(0.5 * initialHess)
-        except Utility.SloppyCellException, ValueError, LinAlgError:
+        except (Utility.SloppyCellException, ValueError, LinAlgError):
             print "generateEnsemble: Exception in evaluating JtJ "              \
                   "for initial parameters.  Returning empty ensemble."
             if returnCosts: return [[]],None,[None]
