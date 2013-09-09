@@ -1078,7 +1078,7 @@ class PowerLawFittingProblem(FittingProblem):
     smaller in magnitude. (set priorSigma=None for no priors)
     """
     
-    def __init__(self,complexityList,fittingData,indepParamsListList=[[]],      \
+    def __init__(self,complexityList,fittingData,indepParamsList=[[]],          \
         indepParamNames=[],outputNames=['output'],                              \
         graphListNames=None,graphListImages=None,avegtol=avegtolDefault,        \
         maxiter=maxiterDefault,singValCutoff=cutoffDefault,priorSigma=None,     \
@@ -1118,7 +1118,7 @@ class PowerLawFittingProblem(FittingProblem):
               for complexity,image in zip(complexityList,graphListImages) ]
         
         # all daughter classes should call generalSetup
-        self.generalSetup(fittingData,indepParamsListList,indepParamNames,      \
+        self.generalSetup(fittingData,indepParamsList,indepParamNames,          \
             fittingModelList,singValCutoff,graphListNames,verbose,perfectModel, \
             saveFilename,bestSeenParamsDict,                                    \
             smallerBestParamsDict,saveKey,stopFittingN)
@@ -1227,7 +1227,7 @@ class CTSNFittingProblem(FittingProblem):
     smaller in magnitude. (set priorSigma=None for no priors)
     """
     
-    def __init__(self,complexityList,fittingData,indepParamsListList=[[]],      \
+    def __init__(self,complexityList,fittingData,indepParamsList=[[]],          \
         indepParamNames=[],outputNames=['output'],                              \
         graphListNames=None,graphListImages=None,avegtol=avegtolDefault,        \
         maxiter=maxiterDefault,singValCutoff=cutoffDefault,priorSigma=None,     \
@@ -1251,7 +1251,7 @@ class CTSNFittingProblem(FittingProblem):
           for complexity,image in zip(complexityList,graphListImages) ]
         
         # all daughter classes should call generalSetup
-        self.generalSetup(fittingData,indepParamsListList,indepParamNames,      \
+        self.generalSetup(fittingData,indepParamsList,indepParamNames,          \
             fittingModelList,singValCutoff,graphListNames,verbose,perfectModel, \
             saveFilename,bestSeenParamsDict,                                    \
             smallerBestParamsDict,saveKey,stopFittingN)
