@@ -103,8 +103,14 @@ class netModel():
         return modelOutput
         
     def _runBNGLfile(self,filename):
-        os.system(self.BNGpath+"Perl2/BNG2.pl "+filename+".bngl > "             \
+        error = os.system(self.BNGpath+"Perl2/BNG2.pl "+filename+".bngl &> "        \
             +filename+"_messages.txt")
+        if error:
+            stdoutFile = open(filename+"_messages.txt")
+            stdout = stdoutFile.read()
+            print "PhosphorylationFit_netModel._runBNGLfile: Error calling BioNetGen."
+            print stdout
+            raise Exception, "Error calling BioNetGen."
         
     def modelOutput(self,params):
         """

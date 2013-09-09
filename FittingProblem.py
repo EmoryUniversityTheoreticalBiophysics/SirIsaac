@@ -25,6 +25,8 @@ import CTSNNetwork
 reload(CTSNNetwork)
 import PlanetaryNetwork
 reload(PlanetaryNetwork)
+import SimplePhosphorylationNetwork
+reload(SimplePhosphorylationNetwork)
 import VaryingParamsWrapper
 reload(VaryingParamsWrapper)
 import GaussianPrior
@@ -1305,7 +1307,7 @@ class LaguerreFittingProblem(FittingProblem):
         ensGen=None,verbose=verboseDefault,perfectModel=None,saveFilename=None, \
         bestSeenParamsDict={},                                                  \
         includeDerivs=False,useClampedPreminimization=False,                    \
-        smallerBestParamsDict=None,saveKey=-1,stopFittingN=3):
+        smallerBestParamsDict=None,saveKey=-1,stopFittingN=3,**kwargs):
         
         if degreeListImages is None:
             degreeListImages = [ None for degree in degreeList ]
@@ -1324,7 +1326,7 @@ class LaguerreFittingProblem(FittingProblem):
             avegtol=avegtol,maxiter=maxiter,ensGen=ensGen,                      \
             verbose=verbose,                                                    \
             includeDerivs=includeDerivs,                                        \
-            useClampedPreminimization=useClampedPreminimization)                \
+            useClampedPreminimization=useClampedPreminimization,**kwargs)       \
           for degree,image,polynomialDegreeList in                              \
             zip(degreeList,degreeListImages,polynomialDegreeListList) ]
         
@@ -1357,7 +1359,7 @@ class PolynomialFittingProblem(FittingProblem):
         ensGen=None,verbose=verboseDefault,perfectModel=None,saveFilename=None, \
         bestSeenParamsDict={},                                                  \
         includeDerivs=False,useClampedPreminimization=False,                    \
-        smallerBestParamsDict=None,saveKey=-1,stopFittingN=3):
+        smallerBestParamsDict=None,saveKey=-1,stopFittingN=3,**kwargs):
         
         if degreeListImages is None:
             degreeListImages = [ None for degree in degreeList ]
@@ -1375,7 +1377,7 @@ class PolynomialFittingProblem(FittingProblem):
             indepParamNames=indepParamNames,image=image,                        \
             avegtol=avegtol,maxiter=maxiter,ensGen=ensGen,                      \
             verbose=verbose,includeDerivs=includeDerivs,                        \
-            useClampedPreminimization=useClampedPreminimization)                \
+            useClampedPreminimization=useClampedPreminimization,**kwargs)       \
           for degree,image,polynomialDegreeList in                              \
             zip(degreeList,degreeListImages,polynomialDegreeListList) ]
         
@@ -1394,6 +1396,43 @@ class PolynomialFittingProblem(FittingProblem):
         for name in self.fittingModelNames:
             self.convFlagDict[name] = self.fittingModelDict[name].convFlag   
 
+# 9.6.2013
+class SimplePhosphorylationFittingProblem(FittingProblem):
+    """
+    Branched from LaguerreFittingProblem
+    """
+    def __init__(self,fittingData,                                              \
+        indepParamsList=[[]],indepParamNames=[],outputName='totalPhos',         \
+        avegtol=avegtolDefault,                                                 \
+        maxiter=maxiterDefault,singValCutoff=cutoffDefault,priorSigma=None,     \
+        ensGen=None,verbose=verboseDefault,perfectModel=None,saveFilename=None, \
+        bestSeenParamsDict={},                                                  \
+        smallerBestParamsDict=None,saveKey=-1,**kwargs):
+        
+        # there's only one model, so we don't have to know when to stop
+        stopFittingN = scipy.inf
+        
+        fittingModelList = [                                                    \
+            SimplePhosphorylationFittingModel(outputName=outputName,            \
+                indepParamNames=indepParamNames,                                \
+                avegtol=avegtol,maxiter=maxiter,ensGen=ensGen,                  \
+                verbose=verbose,**kwargs) ]
+        fittingModelNames = ['SimplePhosphorylationModel']
+        
+        # all daughter classes should call generalSetup
+        self.generalSetup(fittingData,indepParamsList,indepParamNames,          \
+            fittingModelList,singValCutoff,fittingModelNames,verbose,           \
+            perfectModel,saveFilename,bestSeenParamsDict,                       \
+            smallerBestParamsDict,saveKey,stopFittingN)
+        
+        self.convFlagDict = {}
+    
+    def fitAll(self,**kwargs):
+        FittingProblem.fitAll(self,**kwargs)
+        # we also want to save the convergence information in a
+        # convenient location:
+        for name in self.fittingModelNames:
+            self.convFlagDict[name] = self.fittingModelDict[name].convFlag
 
 class FittingModel:
     """
@@ -4442,6 +4481,33 @@ class PolynomialFittingModel(SloppyCellFittingModel):
         # generalSetup should be run by all daughter classes
         self.generalSetup(SloppyCellNet,indepParamNames,**kwargs)
 
+# 9.6.2013
+class SimplePhosphorylationFittingModel(SloppyCellFittingModel):
+    """
+    A simple model for the phosphorylation example.
+    
+    output(t) = 
+        offset + [ a + b/2(1+tanh( (log(input)-d)/c )) ] * [ 1 - exp(-t/t0) ]
+        
+    with default parameters
+    a = 2, b = 0.3, c = 1, d = 1, t0 = 0.5
+    """
+    def __init__(self,outputName='totalPhos',inputName='k23p',                  \
+        indepParamNames=['k23p'],offset=1.,offsetName='totalPhos_init',         \
+        **kwargs):
+        
+        net = SimplePhosphorylationNetwork.SimplePhosphorylationNetwork(        \
+            outputName=outputName,inputName=inputName,offset=offset,            \
+            offsetName=offsetName)
+        priorSigma = None # assuming we won't want priors?
+        
+        self.speciesNames = [outputName]
+        self.numInputs = 1
+        self.numOutputs = 1
+        
+        # generalSetup should be run by all daughter classes
+        self.generalSetup(net,indepParamNames,**kwargs)
+
 
 # 7.22.2009
 class PhosphorylationFittingModel(SloppyCellFittingModel):
@@ -4474,9 +4540,11 @@ class PhosphorylationFittingModel(SloppyCellFittingModel):
         SloppyCellNet.set_id('PhosphorylationNet')
         
         # The output measures the total phosphorylation.
+        offsetName = outputName+'_offset'
         sum = ''.join( [ 'Group_P'+str(i)+' + ' for i in range(1,n+1) ] )
         SloppyCellNet.addSpecies( outputName, SloppyCellNet.compartments.keys()[0] )
-        SloppyCellNet.addAssignmentRule( outputName, str(totalOffset)+'+'+sum[:-3] )
+        SloppyCellNet.addParameter( offsetName, totalOffset, isOptimizable=False)
+        SloppyCellNet.addAssignmentRule( outputName, offsetName+'+'+sum[:-3] )
         
         if polynomialDegreeList is not None:
             # currently supports a single input

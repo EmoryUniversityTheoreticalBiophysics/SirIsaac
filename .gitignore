@@ -29,3 +29,6 @@ stdout_stderr_*
 # ipython notebook files
 *.ipynb
 .ipynb_checkpoints
+
+# SBML files
+.netModel

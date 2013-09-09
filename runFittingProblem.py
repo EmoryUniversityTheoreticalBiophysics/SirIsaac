@@ -45,18 +45,17 @@ else:
 noiseFracSize = 0.1 #0.01
 noiseInLog = False # 3.6.2013
 usePreviousParams = True #False # 3.6.2013
-randomX = True #False #True
+randomX = True
 avegtol = 1e-2 #1. #1e-2
 maxiter = 100 # 200
 verbose = False
 numprocs = 11
 useDerivs = False
-restartPhos = False # default
 includeEndpoints = False
 inputNames = None # default to non-init variables
 stopFittingN = 3
 
-# for ensemble generation
+# parameters for ensemble generation
 useEnsemble = True #False 
 totalSteps = 1e4 #100
 keepSteps = 10 #20 # 5
@@ -68,10 +67,22 @@ if useEnsemble:
         totalSteps,keepSteps,ensTemperature,sing_val_cutoff,seeds)
 else:
     ensGen = None
-useClampedPreminimization = False
+
+# () choose data source
+#originalString = 'PlanetaryNet'
+#originalString = 'yeastOscillator'
+originalString = 'PhosphorylationNet'
+
+# () choose fitting model class
+#fittingType = 'Polynomial'
+#fittingType = 'Laguerre'
+fittingType = 'SimplePhosphorylation'
+#fittingType = 'PowerLaw'
+#fittingType = 'CTSN'
+
 
 # 8.7.2013 use Planetary network to generate perfect data
-if True: 
+if originalString is 'PlanetaryNet':
     
     timeAndNoiseSeed = 0 #0
     ICseed = 1 #1
@@ -105,10 +116,6 @@ if True:
         indepParamNames=inputVars,verbose=True,avegtol=avegtol,maxiter=maxiter,     \
         ensGen=ensGen)
     
-    originalString = 'PlanetaryNet'
-
-    maxSVDeig = None
-    
     rateVars = []
     nonrateVars = []
 
@@ -124,11 +131,11 @@ if True:
 
 
 # 7.23.2009 use Phosphorylation network to generate perfect data
-if False: 
+elif originalString is 'PhosphorylationNet':
 
-    timeAndNoiseSeed = 6 #0
-    ICseed = 7 #1
-    switchSigmoid = False # False <<<<
+    timeAndNoiseSeed = 0 #0
+    ICseed = 1 #1
+    switchSigmoid = False # False
     
     numPoints = 1
     maxNumInputs = 1000 # we'll generate this many random inputs for possible use
@@ -137,7 +144,10 @@ if False:
 
     # 9.19.2012 try to avoid crossing zero so much
     # 6.4.2013 also need to avoid having totalPhos_init = 0
-    offset = 1. #0 #1
+    if fittingType is "PowerLaw":
+        offset = 1.
+    else:
+        offset = 0.
 
     inputVars = ['k23p','totalPhos_init'] # 5.2.2013 added 'totalPhos_init'
     inputLogMin,inputLogMax = -3,3 #-3,4
@@ -152,30 +162,11 @@ if False:
 
     outputVars = ['totalPhos']
 
-    # 5.8.2013
-    # for saving data to use on Emory machines
-    #restartPhos = False
-    #savePhosDict = True
+    # 9.8.2013
+    # for saving original model using BioNetGen
     #makeOriginalModel = True
-    # for running on Emory machines
-    restartPhos = True
-    savePhosDict = False
+    # for machines without BioNetGen
     makeOriginalModel = False
-    # for runs not on Emory machines
-    #restartPhos = False
-    #savePhosDict = False
-    #makeOriginalModel = True # False if on Emory machines with manual restart
-
-    n = 5
-    rules = [(1,2),(2,1),(2,3),(3,2),(3,4),(4,3),(4,5),(5,4)] #[(2,3)]
-    if makeOriginalModel:
-        originalFittingModel = FittingProblem.PhosphorylationFittingModel(n,rules,  \
-        indepParamNames=inputVars[:1],verbose=True,avegtol=avegtol,maxiter=maxiter, \
-        ensGen=ensGen,totalOffset=offset)
-    
-    originalString = 'PhosphorylationNet'
-
-    maxSVDeig = None
 
     rateVars = ['k']
     nonrateVars = ['Km','totalPhos']
@@ -183,7 +174,13 @@ if False:
     ratePriorSigma = 1e3 #10. #1e3
     nonratePriorSigma = 10.
 
+    originalModelFilename = 'examplePhosphorylationFittingModel.model'
     if makeOriginalModel:
+        n = 5
+        rules = [(1,2),(2,1),(2,3),(3,2),(3,4),(4,3),(4,5),(5,4)] #[(2,3)]
+        originalFittingModel = FittingProblem.PhosphorylationFittingModel(n,rules,      \
+            indepParamNames=inputVars[:1],verbose=True,avegtol=avegtol,maxiter=maxiter, \
+            ensGen=ensGen,totalOffset=offset)
         # 4.29.2013 set random parameters
         randomParamsSeed = 12345
         scipy.random.seed(randomParamsSeed)
@@ -194,19 +191,23 @@ if False:
             if var.startswith('Km'):
                 newParams.update({var: abs(scipy.random.normal(scale=nonratePriorSigma))})
         originalFittingModel.initializeParameters(newParams)
+        Utility.save(originalFittingModel,originalModelFilename)
+        die
     else:
-        originalFittingModel = None
+        # try to load from file
+        originalFittingModel = Utility.load(originalModelFilename)
+        # 9.9.2013 using different offset for different models, so set it here
+        originalFittingModel.net.setInitialVariableValue('totalPhos_offset',offset)
 
     fakeDataAbs = True # Avoid negative data
     
 
 
-    
-if False: # yeast oscillator (see RuoChrWol03) 
+# yeast oscillator (see RuoChrWol03)
+elif originalString is 'yeastOscillator':
   
   #to do 3.22.2012
   originalFittingModel = None #yeastOscillatorFittingModel(inputVars) 
-  originalString = 'yeastOscillator'
   
   # *****************
   numPoints = 1 #10 #100
@@ -224,8 +225,6 @@ if False: # yeast oscillator (see RuoChrWol03)
   ICseed = 14 #2
   
   fakeDataAbs = False 
-  
-  maxSVDeig = None
   
   # (no SloppyCell perfectModel, so no prior vars)
   rateVars = []
@@ -253,7 +252,8 @@ if False: # yeast oscillator (see RuoChrWol03)
     
     return fittingData,inputVars,inputList,useDerivs,fittingDataDerivs
     
-    
+else:
+    raise Exception, "Unrecognized originalString"
 
 
 # for Laguerre polynomials
@@ -265,12 +265,6 @@ polynomialDegreeListListLag = [ (degree/2)*scipy.ones(3+degree,dtype=int)   \
 degreeListPoly = scipy.arange(0,8,1) # (0,10,1)
 polynomialDegreeListListPoly = [ (degree/2)*scipy.ones(degree+1,dtype=int)  \
     for degree in degreeListPoly ]
-
-# pick fitting model class
-#fittingType = 'Polynomial'
-#fittingType = 'Laguerre'
-fittingType = 'PowerLaw'
-#fittingType = 'CTSN'
 
 # 4.29.2013 set priors
 if (fittingType is 'Polynomial') or (fittingType is 'Laguerre'):
@@ -285,8 +279,10 @@ elif fittingType is 'CTSN':
     else:
         rateVars.extend( ['w','log_tau'] )
         nonrateVars.extend( ['theta','X'] )
+elif fittingType is 'SimplePhosphorylation':
+    pass
 else:
-    raise Exception
+    raise Exception, "Unrecognized fittingType"
 # make priorSigma list using ratePriorSigma and nonratePriorSigma
 priorSigma = []
 for v in rateVars: priorSigma.append( (v,ratePriorSigma) )
@@ -296,7 +292,7 @@ fitProbDict = {}
 
 # () optionally restart calculations from a loaded fittingProblemDict
 restartDictName = None
-restartDictName = 'k0005_fitProb_varying_numInputs_PlanetaryNet_PowerLaw_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_maxiter100_avegtol0.01_noClamp_newErrorBars0.1_removeLogForPriors_ratePriorSigma1000.0_seeds0_1_restart0004.dat'
+#restartDictName = 'k0005_fitProb_varying_numInputs_PlanetaryNet_PowerLaw_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_maxiter100_avegtol0.01_noClamp_newErrorBars0.1_removeLogForPriors_ratePriorSigma1000.0_seeds0_1_restart0004.dat'
 if restartDictName is not None:
     fitProbDict = Utility.load(restartDictName)
     i = restartDictName.find('_fitProb_')
@@ -313,9 +309,9 @@ if restartDictName is not None:
     if restartDictName.find(seedsStr) < 0: raise Exception
     # ***
     # 9.5.2013 temporary change to stopFittingN for planetary fits
-    for key in fitProbDict.keys():
-        fp = fitProbDict[key]
-        fp.stopFittingN = stopFittingN
+    #for key in fitProbDict.keys():
+    #    fp = fitProbDict[key]
+    #    fp.stopFittingN = stopFittingN
     # ***
 
 # () set up filename for output
@@ -347,24 +343,17 @@ if restartDictName is not None:
 Utility.save(fitProbDict,fileNumString+configString+'.dat')
 saveFilename = fileNumString+configString+'.dat'#+'_partial.dat'
 
-# 5.8.2013 for running on Emory machines that don't have BioNetGen
-if restartPhos:
-    if switchSigmoid:
-        restartPhosDictFilename = 'restartPhosDict_switchSigmoid.data'
-    else:
-        restartPhosDictFilename = 'restartPhosDict.data'
-    restartPhosDict = Utility.load(restartPhosDictFilename)
-    phosStr = configString
-    if phosStr not in restartPhosDict.keys():
-        raise Exception, "restartPhosDict does not have key"+str(phosStr)
-    fitProbDict = restartPhosDict[phosStr]
-
 # () set up complexityList, specifying which models to test in the model class
 smallerBestParamsDict = {}
-deltaNumIndepParams = 10 #2 #1000 #50 #5 #20 #5 #2 
-if originalString is "PhosphorylationNet": maxNumIndepParams = 54 #42
-elif originalString is "yeastOscillator": maxNumIndepParams = 25
-elif originalString is "PlanetaryNet": maxNumIndepParams = 200
+if originalString is "PhosphorylationNet":
+    deltaNumIndepParams = 2
+    maxNumIndepParams = 54
+elif originalString is "yeastOscillator":
+    deltaNumIndepParams = 2
+    maxNumIndepParams = 25
+elif originalString is "PlanetaryNet":
+    deltaNumIndepParams = 10
+    maxNumIndepParams = 200
 else: raise Exception
 numIndepParamsList = range(deltaNumIndepParams,maxNumIndepParams,deltaNumIndepParams) 
 useFullyConnected = False #True 
@@ -445,56 +434,42 @@ for numIndepParams in numIndepParamsList:
         p = fitProbDict[key]
         p.saveFilename = saveFilename # in case it has changed
     else: # we haven't started 
-        # below: Laguerre networks, with input variables
+        
+        kwargs = {  'avegtol': avegtol,
+                    'maxiter': maxiter,
+                    'ensGen': ensGen,
+                    'verbose': verbose,
+                    'indepParamNames': inputVars,
+                    'indepParamsList': inputList,
+                    'perfectModel': copy.deepcopy(originalFittingModel),
+                    'saveFilename': saveFilename,
+                    'includeDerivs': includeDerivs,
+                    'numprocs': numprocs,
+                    'smallerBestParamsDict': smallerBestParamsDict,
+                    'saveKey': key,
+                    'stopFittingN': stopFittingN,
+                 }
         if fittingType is 'Laguerre':
-          p = FittingProblem.LaguerreFittingProblem(degreeListLag,fakeData,     \
-            outputName=outputVars[0],avegtol=avegtol,maxiter=maxiter,           \
-            ensGen=ensGen,                                                      \
-           verbose=verbose,indepParamNames=inputVars,indepParamsList=inputList, \
-           perfectModel=copy.deepcopy(originalFittingModel),                    \
-           polynomialDegreeListList=polynomialDegreeListListLag,                \
-           saveFilename=saveFilename,includeDerivs=includeDerivs,               \
-           useClampedPreminimization=useClampedPreminimization,                 \
-           numprocs=numprocs,smallerBestParamsDict=smallerBestParamsDict,       \
-           saveKey=key,stopFittingN=stopFittingN)
-        # below: Polynomial networks, with input variables
+          p = FittingProblem.LaguerreFittingProblem(degreeListLag,fakeData,
+            outputName=outputVars[0],
+            polynomialDegreeListList=polynomialDegreeListListLag,**kwargs)
         elif fittingType is 'Polynomial':
-          p = FittingProblem.PolynomialFittingProblem(degreeListPoly,fakeData,  \
-            outputName=outputVars[0],avegtol=avegtol,maxiter=maxiter,           \
-            ensGen=ensGen,\
-           verbose=verbose,indepParamNames=inputVars,indepParamsList=inputList, \
-           perfectModel=copy.deepcopy(originalFittingModel),                    \
-           polynomialDegreeListList=polynomialDegreeListListPoly,               \
-           saveFilename=saveFilename,includeDerivs=includeDerivs,               \
-           useClampedPreminimization=useClampedPreminimization,                 \
-           numprocs=numprocs,smallerBestParamsDict=smallerBestParamsDict,       \
-           saveKey=key,stopFittingN=stopFittingN)
-        # below: PowerLaw Networks, with input variables
+          p = FittingProblem.PolynomialFittingProblem(degreeListPoly,fakeData,
+            outputName=outputVars[0],
+            polynomialDegreeListList=polynomialDegreeListListPoly,**kwargs)
+        elif fittingType is 'SimplePhosphorylation':
+          kwargs.pop('stopFittingN') # only 1 model to fit
+          p = FittingProblem.SimplePhosphorylationFittingProblem(fakeData,
+            offset=offset,**kwargs)
         elif fittingType is 'PowerLaw':
-          p = FittingProblem.PowerLawFittingProblem(complexityList,fakeData,    \
-            outputNames=outputVars,avegtol=avegtol,maxiter=maxiter,             \
-            priorSigma=priorSigma,ensGen=ensGen,                                \
-            verbose=verbose,indepParamNames=inputVars,                          \
-            indepParamsListList=inputList,                                      \
-            perfectModel=copy.deepcopy(originalFittingModel),                   \
-            saveFilename=saveFilename,includeDerivs=includeDerivs,              \
-            useClampedPreminimization=useClampedPreminimization,                \
-            numprocs=numprocs,smallerBestParamsDict=smallerBestParamsDict,      \
-            saveKey=key,fittingDataDerivs=fittingDataDerivs,                    \
-            useFullyConnected=useFullyConnected,maxSVDeig=maxSVDeig,            \
-            inputNames=inputNames,stopFittingN=stopFittingN)
+          p = FittingProblem.PowerLawFittingProblem(complexityList,fakeData,
+            outputNames=outputVars,priorSigma=priorSigma,
+            fittingDataDerivs=fittingDataDerivs,
+            useFullyConnected=useFullyConnected,inputNames=inputNames,**kwargs)
         elif fittingType is 'CTSN':
-          p = FittingProblem.CTSNFittingProblem(complexityList,fakeData,        \
-            outputNames=outputVars,avegtol=avegtol,maxiter=maxiter,             \
-            priorSigma=priorSigma,ensGen=ensGen,                                \
-            verbose=verbose,indepParamNames=inputVars,                          \
-            indepParamsListList=inputList,                                      \
-            perfectModel=copy.deepcopy(originalFittingModel),                   \
-            saveFilename=saveFilename,includeDerivs=includeDerivs,              \
-            useClampedPreminimization=useClampedPreminimization,                \
-            numprocs=numprocs,smallerBestParamsDict=smallerBestParamsDict,      \
-            saveKey=key,switchSigmoid=switchSigmoid,inputNames=inputNames,      \
-            stopFittingN=stopFittingN)
+          p = FittingProblem.CTSNFittingProblem(complexityList,fakeData,
+            outputNames=outputVars,priorSigma=priorSigma,                       
+            switchSigmoid=switchSigmoid,inputNames=inputNames,**kwargs)
         else:
             raise Exception, 'No valid fittingType specified.'
         
@@ -529,18 +504,6 @@ for numIndepParams in numIndepParamsList:
     smallerBestParamsDict = paramsDict(p)
         
     print "runFittingProblem: Done with key", key
-
-
-# 5.8.2013 creating a file for use on Emory machines
-if savePhosDict:
-    if switchSigmoid:
-        restartPhosDictFilename = 'restartPhosDict_switchSigmoid.data'
-    else:
-        restartPhosDictFilename = 'restartPhosDict.data'
-    restartPhosDict = Utility.load(restartPhosDictFilename)
-    phosStr = configString
-    restartPhosDict[phosStr] = fitProbDict
-    Utility.save(restartPhosDict,restartPhosDictFilename)
 
 
 
