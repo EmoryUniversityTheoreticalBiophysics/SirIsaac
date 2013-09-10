@@ -76,9 +76,9 @@ originalString = 'PhosphorylationNet'
 # () choose fitting model class
 #fittingType = 'Polynomial'
 #fittingType = 'Laguerre'
-fittingType = 'SimplePhosphorylation'
+#fittingType = 'SimplePhosphorylation'
 #fittingType = 'PowerLaw'
-#fittingType = 'CTSN'
+fittingType = 'CTSN'
 
 
 # 8.7.2013 use Planetary network to generate perfect data
@@ -343,20 +343,25 @@ if restartDictName is not None:
 Utility.save(fitProbDict,fileNumString+configString+'.dat')
 saveFilename = fileNumString+configString+'.dat'#+'_partial.dat'
 
-# () set up complexityList, specifying which models to test in the model class
+# () set up numIndepParamsList, specifying the lengths of datasets to test
 smallerBestParamsDict = {}
 if originalString is "PhosphorylationNet":
     deltaNumIndepParams = 2
     maxNumIndepParams = 54
+    numIndepParamsList = range(deltaNumIndepParams,maxNumIndepParams,deltaNumIndepParams)
+    numIndepParamsList.extend([100,200,300,400,500])
 elif originalString is "yeastOscillator":
     deltaNumIndepParams = 2
     maxNumIndepParams = 25
+    numIndepParamsList = range(deltaNumIndepParams,maxNumIndepParams,deltaNumIndepParams)
 elif originalString is "PlanetaryNet":
     deltaNumIndepParams = 10
     maxNumIndepParams = 200
+    numIndepParamsList = range(deltaNumIndepParams,maxNumIndepParams,deltaNumIndepParams)
 else: raise Exception
-numIndepParamsList = range(deltaNumIndepParams,maxNumIndepParams,deltaNumIndepParams) 
-useFullyConnected = False #True 
+
+# () set up complexityList, specifying which models to test in the model class
+useFullyConnected = False #True
 if useFullyConnected:
     numModels = 10
     complexityList = scipy.linspace(0,1,numModels) # fraction of possible parameters
@@ -434,7 +439,6 @@ for numIndepParams in numIndepParamsList:
         p = fitProbDict[key]
         p.saveFilename = saveFilename # in case it has changed
     else: # we haven't started 
-        
         kwargs = {  'avegtol': avegtol,
                     'maxiter': maxiter,
                     'ensGen': ensGen,
