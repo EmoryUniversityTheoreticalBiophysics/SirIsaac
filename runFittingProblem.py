@@ -46,14 +46,15 @@ noiseFracSize = 0.1 #0.01
 noiseInLog = False # 3.6.2013
 usePreviousParams = True #False # 3.6.2013
 randomX = True
-avegtol = 1e-2 #1. #1e-2
-maxiter = 100 # 200
+avegtol = 1e-2 #1. #1e-2 
+maxiter = 100 # 200 
 verbose = False
 numprocs = 11
 useDerivs = False
 includeEndpoints = False
 inputNames = None # default to non-init variables
 stopFittingN = 3
+numPoints = 1 # take one data point per independent parameter set
 
 # parameters for ensemble generation
 useEnsemble = True #False 
@@ -77,8 +78,9 @@ originalString = 'PhosphorylationNet'
 #fittingType = 'Polynomial'
 #fittingType = 'Laguerre'
 #fittingType = 'SimplePhosphorylation'
+fittingType = 'PerfectPhosphorylation'
 #fittingType = 'PowerLaw'
-fittingType = 'CTSN'
+#fittingType = 'CTSN'
 
 
 # 8.7.2013 use Planetary network to generate perfect data
@@ -88,7 +90,6 @@ if originalString is 'PlanetaryNet':
     ICseed = 1 #1
     switchSigmoid = False 
     
-    numPoints = 1
     maxNumInputs = 1000 # we'll generate this many random inputs for possible use
     
     scipy.random.seed(ICseed)
@@ -137,7 +138,6 @@ elif originalString is 'PhosphorylationNet':
     ICseed = 1 #1
     switchSigmoid = False # False
     
-    numPoints = 1
     maxNumInputs = 1000 # we'll generate this many random inputs for possible use
     
     scipy.random.seed(ICseed)
@@ -171,7 +171,7 @@ elif originalString is 'PhosphorylationNet':
     rateVars = ['k']
     nonrateVars = ['Km','totalPhos']
 
-    ratePriorSigma = 1e3 #10. #1e3
+    ratePriorSigma = 10 #1e3 #10. #1e3
     nonratePriorSigma = 10.
 
     originalModelFilename = 'examplePhosphorylationFittingModel.model'
@@ -210,7 +210,6 @@ elif originalString is 'yeastOscillator':
   originalFittingModel = None #yeastOscillatorFittingModel(inputVars) 
   
   # *****************
-  numPoints = 1 #10 #100
   upperRangeMultiple = 1. #1.
   nonzeroMin = True # True
   # *****************
@@ -279,7 +278,8 @@ elif fittingType is 'CTSN':
     else:
         rateVars.extend( ['w','log_tau'] )
         nonrateVars.extend( ['theta','X'] )
-elif fittingType is 'SimplePhosphorylation':
+elif (fittingType is 'SimplePhosphorylation')                               \
+  or (fittingType is 'PerfectPhosphorylation'):
     pass
 else:
     raise Exception, "Unrecognized fittingType"
@@ -291,8 +291,8 @@ for v in nonrateVars: priorSigma.append( (v,nonratePriorSigma) )
 fitProbDict = {}
 
 # () optionally restart calculations from a loaded fittingProblemDict
-#restartDictName = None
-restartDictName = 'k0013_fitProb_varying_numInputs_PhosphorylationNet_CTSN_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_maxiter100_avegtol0.01_noClamp_newErrorBars0.1_removeLogForPriors_ratePriorSigma1000.0_seeds0_1.dat'
+restartDictName = None
+#restartDictName = 'k0013_fitProb_varying_numInputs_PhosphorylationNet_CTSN_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_maxiter100_avegtol0.01_noClamp_newErrorBars0.1_removeLogForPriors_ratePriorSigma1000.0_seeds0_1.dat'
 if restartDictName is not None:
     fitProbDict = Utility.load(restartDictName)
     i = restartDictName.find('_fitProb_')
@@ -322,11 +322,9 @@ configString = '_fitProb_varying_numInputs'                                 \
    +'_'+fittingType                                                         \
    +'_withEnsembleT'+str(int(ensTemperature))                               \
    +'_steps'+str(totalSteps)+'_'+str(keepSteps)                             \
-   +'_useBest'                                                              \
-   +'_numPoints'+str(int(numPoints))                                        \
    +'_maxiter'+str(maxiter)                                                 \
    +'_avegtol'+str(avegtol)                                                 \
-   +'_noClamp_newErrorBars'+str(noiseFracSize)+'_removeLogForPriors'        \
+   +'_noiseFracSize'+str(noiseFracSize)        \
    +'_ratePriorSigma'+str(ratePriorSigma)
 if originalString is "yeastOscillator":
     configString += '_seeds'+str(timesSeed)+'_'+str(noiseSeed)+'_'+str(ICseed)
@@ -346,10 +344,10 @@ saveFilename = fileNumString+configString+'.dat'#+'_partial.dat'
 # () set up numIndepParamsList, specifying the lengths of datasets to test
 smallerBestParamsDict = {}
 if originalString is "PhosphorylationNet":
-    deltaNumIndepParams = 2
+    deltaNumIndepParams = 5 #2
     maxNumIndepParams = 54
     numIndepParamsList = range(deltaNumIndepParams,maxNumIndepParams,deltaNumIndepParams)
-    numIndepParamsList.extend([100,200,300,400,500])
+    numIndepParamsList.extend([52,100,200,300,400,500])
 elif originalString is "yeastOscillator":
     deltaNumIndepParams = 2
     maxNumIndepParams = 25
@@ -461,7 +459,8 @@ for numIndepParams in numIndepParamsList:
           p = FittingProblem.PolynomialFittingProblem(degreeListPoly,fakeData,
             outputName=outputVars[0],
             polynomialDegreeListList=polynomialDegreeListListPoly,**kwargs)
-        elif fittingType is 'SimplePhosphorylation':
+        elif (fittingType is 'SimplePhosphorylation')                               \
+          or (fittingType is 'PerfectPhosphorylation'):
           kwargs.pop('stopFittingN') # only 1 model to fit
           p = FittingProblem.SimplePhosphorylationFittingProblem(fakeData,
             offset=offset,**kwargs)
@@ -480,20 +479,20 @@ for numIndepParams in numIndepParamsList:
         fitProbDict[key] = p
 
     # () Fit the models in the fittingProblem p
-    try:
-        # fit models
-        p.fitAll(usePreviousParams=usePreviousParams)
-        pass
-    except KeyboardInterrupt:
-        raise
+    if fittingType is not 'PerfectPhosphorylation':
+        try:
+            # fit models
+            p.fitAll(usePreviousParams=usePreviousParams)
+        except KeyboardInterrupt:
+            raise
     Utility.save(fitProbDict,fileNumString+configString+'.dat')
 
-    if False and (originalString is "PhosphorylationNet"):
+    if fittingType is 'PerfectPhosphorylation':
       if not hasattr(p,'perfectCost'):
         # 4.29.2013 fit perfect model for phosphorylation
         # (see runFitPerfectModelPhos.py)
         p.perfectModel.numprocs = numprocs
-        p.perfectModel.priorSigma = p.priorSigma
+        p.perfectModel.priorSigma = priorSigma
         p.perfectModel.speciesNames = ['totalPhos']
         p.perfectModel.ensGen.logParams = True
         p.perfectModel.ensGen.temperature = 10. # 5.1.2013
