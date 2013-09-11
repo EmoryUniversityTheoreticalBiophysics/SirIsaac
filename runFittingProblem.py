@@ -291,8 +291,8 @@ for v in nonrateVars: priorSigma.append( (v,nonratePriorSigma) )
 fitProbDict = {}
 
 # () optionally restart calculations from a loaded fittingProblemDict
-restartDictName = None
-#restartDictName = 'k0005_fitProb_varying_numInputs_PlanetaryNet_PowerLaw_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_maxiter100_avegtol0.01_noClamp_newErrorBars0.1_removeLogForPriors_ratePriorSigma1000.0_seeds0_1_restart0004.dat'
+#restartDictName = None
+restartDictName = 'k0013_fitProb_varying_numInputs_PhosphorylationNet_CTSN_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_maxiter100_avegtol0.01_noClamp_newErrorBars0.1_removeLogForPriors_ratePriorSigma1000.0_seeds0_1.dat'
 if restartDictName is not None:
     fitProbDict = Utility.load(restartDictName)
     i = restartDictName.find('_fitProb_')

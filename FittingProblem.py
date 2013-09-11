@@ -486,7 +486,19 @@ class FittingProblem:
         return filter(lambda s: s>cutoff, singVals)
     
     def plotResults(self,subplotConfig=None,showTitles=True,showInfo=True,      \
-        errorBars=True,exptsToPlot=None,plotDerivs=False,**kwargs):
+        errorBars=True,exptsToPlot=None,plotDerivs=False,indices=None,**kwargs):
+        """
+        indices (None)          : If a list of indepParamsList indices, plots
+                                  only these indices.  Otherwise plots
+                                  all conditions in indepParamsList.
+                                  
+        TO DO: Update implementation to more simply call self.plotModelResults.
+        """
+        # choose the indices we want
+        if indices is None:
+            indices = range(len(self.indepParamsList))
+        fittingData = [ self.fittingData[i] for i in indices ]
+        indepParamsList = [ self.indepParamsList[i] for i in indices ]
         
         if not self.fitAllDone:
             print "FittingProblem.plotResults warning: "                        \
@@ -500,10 +512,10 @@ class FittingProblem:
         for i,name in enumerate(self.fittingModelNames):
             fittingModel = self.fittingModelDict[name]
             curPosition = i%(subplotRows*subplotCols) + 1
-            if curPosition == 1:
+            if (curPosition == 1) and (subplotConfig is not None):
                 Plotting.figure()
             Plotting.subplot(subplotRows,subplotCols,curPosition)
-            fittingModel.plotResults(self.fittingData,self.indepParamsList,     \
+            fittingModel.plotResults(fittingData,indepParamsList,     \
                 errorBars=errorBars,exptsToPlot=exptsToPlot,plotDerivs=plotDerivs,\
                 **kwargs)
             if showTitles:
@@ -929,8 +941,8 @@ class FittingProblem:
         else:
             return None
         
-    # 4.19.2012
-    def plotBestModelResults(self,filename=None,indices=None,**kwargs):
+    # 9.11.2013, 4.19.2012
+    def plotModelResults(self,model,filename=None,indices=None,**kwargs):
         """
         indices (None)          : If a list of indepParamsList indices, plots
                                   only these indices.  Otherwise plots
@@ -942,7 +954,7 @@ class FittingProblem:
         fittingData = [ self.fittingData[i] for i in indices ]
         indepParamsList = [ self.indepParamsList[i] for i in indices ]
         
-        m = self.getBestModel(**kwargs)
+        m = model
         
         # plot model results
         plots = m.plotResults(fittingData,indepParamsList)
@@ -970,6 +982,14 @@ class FittingProblem:
         if filename is not None: Plotting.savefig(filename)
         
         return plots
+    
+    # 9.11.2013
+    def plotBestModelResults(self,**kwargs):
+        """
+        See plotModelResults
+        """
+        m = self.getBestModel(**kwargs)
+        return self.plotModelResults(m,**kwargs)
     
     # 4.19.2012
     def saveBestModelAnalysis(self,filenamePrefix=None,openFiles=True,          \
@@ -4501,7 +4521,7 @@ class SimplePhosphorylationFittingModel(SloppyCellFittingModel):
             offsetName=offsetName)
         priorSigma = None # assuming we won't want priors?
         
-        self.speciesNames = [outputName]
+        self.speciesNames = [inputName,outputName]
         self.numInputs = 1
         self.numOutputs = 1
         

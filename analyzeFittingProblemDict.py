@@ -130,7 +130,7 @@ def bestOutOfSampleCorrs(fpdList,type,vars=None,maxIndex=-3,outOfSampleMult=2.,i
       skip = False
     return calcForAllFpds(fpdList,corrsFunc,maxIndex=maxIndex,addYeastPerfectModel=addYeastPerfectModel,**kwargs)
 
-def bestModelCostPerMeasurement(fpdList,testPerfect=False,**kwargs):
+def bestModelCostPerMeasurement(fpdList,testPerfect=False,onlyBest=True,**kwargs):
     """
     testPerfect (False)     : If True, look for fp.perfectCost.
     
@@ -144,8 +144,11 @@ def bestModelCostPerMeasurement(fpdList,testPerfect=False,**kwargs):
                 print "bestModelCostPerMeasurement: No perfectCost.  Returning None."
                 return None
         kwargs['skip'] = False # don't skip if we haven't fit the fittingModels
-    else:
+    elif onlyBest:
         costFunc = lambda mName,fp: 2.*fp.costDict[mName]/len(fp.fittingData)
+    else: # calculate for all models
+        costFunc = lambda mName,fp: \
+            [ 2.*fp.costDict[name]/len(fp.fittingData) for name in orderedFitNames(fp) ]
     return calcForAllFpds(fpdList,costFunc,**kwargs)
 
 def bestModelNumParams(fpdList,**kwargs):
