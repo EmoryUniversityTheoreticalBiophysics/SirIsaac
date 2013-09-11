@@ -396,10 +396,9 @@ class FittingProblem:
         uP,sP,vtP = scipy.linalg.svd( self.perfectPriorHessian )
         self.perfectSingVals = s
         self.perfectPriorSingVals = sP
-        self.perfectOldLogLikelihood = self.oldLogLikelihood(self.perfectCost,s)
         self.perfectNewLogLikelihood =                                          \
             self.newLogLikelihood( self.perfectCost, s, sP )
-        self.perfectPenalty = self.penalty( s )
+        self.perfectPenalty = self.penalty( s, sP )
         self.perfectNumStiffSingVals = self.numStiffSingVals( s )
         self.perfectNumParameters = len( self.perfectFitParams )
         
@@ -413,14 +412,6 @@ class FittingProblem:
             u,s,vt = scipy.linalg.svd( self.HessianDict[name] )
             self.singValsDict[name] = s
             # 5.6.2013
-            if not hasattr(self,'oldLogLikelihoodDict'):
-                self.oldLogLikelihoodDict = self.logLikelihoodDict
-            self.oldLogLikelihoodDict[name] =                                       \
-                self.oldLogLikelihood( self.costDict[name],self.singValsDict[name] )
-            self.penaltyDict[name] = self.penalty( self.singValsDict[name] )
-            self.numStiffSingValsDict[name] =                                       \
-                self.numStiffSingVals( self.singValsDict[name] )
-            # 5.2.2013
             if not hasattr(self,'priorHessianDict'):
                 self.priorHessianDict = {}
                 self.priorSingValsDict = {}
@@ -429,12 +420,16 @@ class FittingProblem:
                 self.fittingData,self.indepParamsList)
             uP,sP,vtP = scipy.linalg.svd( self.priorHessianDict[name] )
             self.priorSingValsDict[name] = sP
+            self.penaltyDict[name] = self.penalty( self.singValsDict[name],         \
+                self.priorSingValsDict[name])
+            self.numStiffSingValsDict[name] =                                       \
+                self.numStiffSingVals( self.singValsDict[name] )
+            # 5.2.2013
             self.newLogLikelihoodDict[name] =                                       \
                 self.newLogLikelihood( self.costDict[name],self.singValsDict[name], \
                                        self.priorSingValsDict[name] )
         except ValueError: # in case Hessian is infinite, etc.
             self.singValsDict[name] = None
-            self.oldLogLikelihoodDict[name] = scipy.inf
             self.penaltyDict[name] = scipy.inf
             self.numStiffSingValsDict[name] = None
             # 5.2.2013
@@ -442,24 +437,6 @@ class FittingProblem:
             self.priorSingValsDict[name] = None
             self.priorHessianDict[name] = None
         self.numParametersDict[name] = len( self.fitParametersDict[name] )
-    
-    def oldLogLikelihood(self,cost,singVals,cutoff=None):
-        """
-        Calculate log-likelihood estimate based on cost (usu. sums of
-        squared residuals) and the singular values of the Hessian, cutting
-        off singular values less than a given cutoff.
-        
-        cutoff      : if None, use self.cutoff
-        """
-        #if cutoff is None:
-        #   cutoff = self.cutoff
-        #prod = 1
-        #for singVal in singVals:
-        #   if singVal > cutoff:
-        #       prod *= singVal
-        #return -(cost + 0.5*scipy.log(prod))
-        
-        return -(cost + self.penalty(singVals,cutoff))
     
     # 5.2.2013
     def newLogLikelihood( self,cost,singVals,priorSingVals ):
@@ -473,9 +450,12 @@ class FittingProblem:
 
     
     # 8.2.2009 updated to include 2pi
-    def penalty(self,singVals,cutoff=None):
-        return 0.5*scipy.sum( scipy.log(                                        \
-            scipy.array(self._StiffSingVals(singVals,cutoff))/(2.*scipy.pi) ) )
+    # 9.11.2013 corrected
+    def penalty(self,singVals,priorSingVals):
+        #return 0.5*scipy.sum( scipy.log(                                        \
+        #    scipy.array(self._StiffSingVals(singVals,cutoff))/(2.*scipy.pi) ) )
+        return + 0.5*scipy.sum( scipy.log(singVals) )                           \
+               - 0.5*scipy.sum( scipy.log(priorSingVals) )
     
     def numStiffSingVals(self,singVals,cutoff=None):
         return len( self._StiffSingVals(singVals,cutoff) )
