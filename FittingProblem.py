@@ -1902,7 +1902,17 @@ class SloppyCellFittingModel(FittingModel):
               includePriors=False,fittingDataDerivs=fittingDataDerivs,**kwargs)
 
         return dataModel.cost(self.getParameters())
+    
+    # 9.18.2013
+    def currentResiduals(self,fittingData,indepParamsList=[[]],                 \
+        includePriors=True,fittingDataDerivs=None,**kwargs):
         
+        dataModel = self._SloppyCellDataModel(fittingData,indepParamsList,
+            includePriors=includePriors,fittingDataDerivs=fittingDataDerivs,
+            **kwargs)
+        
+        return dataModel.res(self.getParameters())
+    
     def currentHessian(self,fittingData,indepParamsList=[[]],                   \
         fittingDataDerivs=None,**kwargs):
         """
