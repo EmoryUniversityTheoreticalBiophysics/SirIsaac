@@ -42,7 +42,6 @@ elif (sys.argv[1].find('&') != -1) or (sys.argv[1].find('>') != -1)         \
 else:
     prefix = sys.argv[1]
 
-noiseFracSize = 0.1 #0.01
 noiseInLog = False # 3.6.2013
 usePreviousParams = True #False # 3.6.2013
 randomX = True
@@ -70,16 +69,16 @@ else:
     ensGen = None
 
 # () choose data source
-#originalString = 'PlanetaryNet'
+originalString = 'PlanetaryNet'
 #originalString = 'yeastOscillator'
-originalString = 'PhosphorylationNet'
+#originalString = 'PhosphorylationNet'
 
 # () choose fitting model class
 #fittingType = 'Polynomial'
 #fittingType = 'Laguerre'
 #fittingType = 'SimplePhosphorylation'
-fittingType = 'PerfectPhosphorylation'
-#fittingType = 'PowerLaw'
+#fittingType = 'PerfectPhosphorylation'
+fittingType = 'PowerLaw'
 #fittingType = 'CTSN'
 
 
@@ -88,27 +87,36 @@ if originalString is 'PlanetaryNet':
     
     timeAndNoiseSeed = 0 #0
     ICseed = 1 #1
-    switchSigmoid = False 
+    switchSigmoid = False
+    noiseFracSize = 0.05 #0.01
     
     maxNumInputs = 1000 # we'll generate this many random inputs for possible use
     
     scipy.random.seed(ICseed)
     
-    inputVars = ['r_init','theta_init']
-    inputNames = ['r_init']
-    outputVars = ['r','theta']
+    varsType = 'rOnly'
+    varsType = 'rAndTheta'
     
-    #inputVars = ['r_init']
-    #inputNames = ['r_init']
-    #outputVars = ['r']
+    if varsType is 'rAndTheta':
+        inputVars = ['r_init','theta_init']
+        inputNames = ['r_init']
+        outputVars = ['r','theta']
+    elif varsType is 'rOnly':
+        inputVars = ['r_init']
+        inputNames = ['r_init']
+        outputVars = ['r']
 
     inputMin,inputMax = 1.,2.5 #1.,3. # units GM/(v0^2) (1->circle,2->parabola)
     inputList = inputMin + (inputMax-inputMin)*scipy.random.random(maxNumInputs)
     # 5.3.2013 set first two inputs to the two extremes
     inputList[0] = inputMin
     inputList[1] = inputMax
-    theta_init = 2.*scipy.pi # nonzero to avoid problems with power law models
-    inputListFull = [ [input,theta_init] for input in inputList ]
+
+    if varsType is 'rAndTheta':
+        theta_init = 2.*scipy.pi # nonzero to avoid problems with power law models
+        inputListFull = [ [input,theta_init] for input in inputList ]
+    elif varsType is 'rOnly':
+        inputListFull = [ [input] for input in inputList ]
     
     timeInterval = [0.,100.] # units GM/(v0^3)
     includeDerivs = False
@@ -120,7 +128,7 @@ if originalString is 'PlanetaryNet':
     rateVars = []
     nonrateVars = []
 
-    ratePriorSigma = 1e3
+    ratePriorSigma = 10. #1e3
     nonratePriorSigma = 10.
     
     # 9.5.2013 since we're interested in testing whether we can find the
@@ -137,6 +145,7 @@ elif originalString is 'PhosphorylationNet':
     timeAndNoiseSeed = 0 #0
     ICseed = 1 #1
     switchSigmoid = False # False
+    noiseFracSize = 0.1
     
     maxNumInputs = 1000 # we'll generate this many random inputs for possible use
     
@@ -222,6 +231,7 @@ elif originalString is 'yeastOscillator':
   timesSeed = 12 #0
   noiseSeed = 13 #1
   ICseed = 14 #2
+  noiseFracSize = 0.1
   
   fakeDataAbs = False 
   
@@ -418,13 +428,14 @@ for numIndepParams in numIndepParamsList:
           else:
             pass # 5.3.2013 runVal will still be passed on to the fittingModels
         fakeDataSingleRun = {}
-        for var in outputVars:
+        for j,var in enumerate(outputVars):
             # do individually so every var is measured at the same (random) time
             fakeDataSingleRun.update( FakeData.noisyFakeData(newNet,numPoints,      \
                 timeInterval,                                                       \
                 seed=int(timeAndNoiseSeed*1e5+i),vars=[var],                        \
                 noiseFracSize=noiseFracSize,randomX=randomX,                        \
-                includeEndpoints=includeEndpoints,takeAbs=fakeDataAbs) )
+                includeEndpoints=includeEndpoints,takeAbs=fakeDataAbs,              \
+                noiseSeed=int(timeAndNoiseSeed*1e5+(i+1)*1e3+j)) )
         fakeData.append( fakeDataSingleRun )
     
     elif originalString == 'yeastOscillator':

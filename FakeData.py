@@ -11,7 +11,7 @@ import scipy
 # (originally from runTranscriptionNetwork.py)
 def noisyFakeData(net,numPoints,timeInterval,                                   \
         vars=None,noiseFracSize=0.1,seed=None,params=None,randomX=True,         \
-        includeEndpoints=True,takeAbs=False):
+        includeEndpoints=True,takeAbs=False,noiseSeed=None):
     """
     Adds Gaussian noise to data: 
         mean 0, stdev noiseFracSize*("typical value" of variable)
@@ -24,6 +24,8 @@ def noisyFakeData(net,numPoints,timeInterval,                                   
                           (not sure if this works right with randomX=False)
     takeAbs (False)     : 5.1.2013 If True, take the absolute value of the 
                           data (to avoid having negative data).
+    seed (None)         : Random seed for selection of timepoints.
+    noiseSeed (None)    : Random seed for addition of Gaussian noise.
     """
     scipy.random.seed(seed)
     
@@ -45,7 +47,9 @@ def noisyFakeData(net,numPoints,timeInterval,                                   
         for var in vars:
           for time in timeInterval:
             data[var][time] = ( traj.get_var_val(var,time), 0. )
-    
+
+    scipy.random.seed(noiseSeed)
+
     for var in data.keys():
         noiseSize = noiseFracSize * net.get_var_typical_val(var)
         for key in data[var].keys():
