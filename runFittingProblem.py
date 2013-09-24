@@ -14,6 +14,7 @@ import FakeData
 reload(FakeData)
 import os,sys,copy
 from outputTag import nextFileNumString
+import SloppyCellTest
 
 print "This computer's name is",os.uname()[1]
 if (os.uname()[1][:4] == 'node'): # 4.4.2012 emory machines
@@ -30,6 +31,10 @@ def paramsDict(fittingProblem):
         params = fittingProblem.fittingModelDict[name].getParameters()
         d[name] = params
     return d
+
+# 9.24.2013 make sure SloppyCell C compiling is working
+if not SloppyCellTest.testCcompiling():
+    raise Exception, "SloppyCell C compiling not working."
 
 outputDirectory = '.'
 
