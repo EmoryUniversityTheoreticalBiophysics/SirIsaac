@@ -431,7 +431,7 @@ for numIndepParams in numIndepParamsList:
         for j,var in enumerate(outputVars):
             
             # 9.24.2013 to match with what I was doing before when len(outputVars)=1
-            if len(outputVars) > 1: noiseSeed = int(timeAndNoiseSeed*1e5+(i+1)*1e3+j))
+            if len(outputVars) > 1: noiseSeed = int(timeAndNoiseSeed*1e5+(i+1)*1e3+j)
             else: noiseSeed = None
             
             # do individually so every var is measured at the same (random) time
@@ -440,7 +440,7 @@ for numIndepParams in numIndepParamsList:
                 seed=int(timeAndNoiseSeed*1e5+i),vars=[var],                        \
                 noiseFracSize=noiseFracSize,randomX=randomX,                        \
                 includeEndpoints=includeEndpoints,takeAbs=fakeDataAbs,              \
-                noiseSeed=noiseSeed )
+                noiseSeed=noiseSeed ))
         fakeData.append( fakeDataSingleRun )
     
     elif originalString == 'yeastOscillator':
