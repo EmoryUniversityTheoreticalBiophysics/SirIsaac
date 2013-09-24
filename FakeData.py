@@ -27,7 +27,7 @@ def noisyFakeData(net,numPoints,timeInterval,                                   
     seed (None)         : Random seed for selection of timepoints.
     noiseSeed (None)    : Random seed for addition of Gaussian noise.
     """
-    scipy.random.seed(seed)
+    if seed is not None: scipy.random.seed(seed)
     
     if vars is None:
         vars = net.dynamicVars.keys()
@@ -48,7 +48,7 @@ def noisyFakeData(net,numPoints,timeInterval,                                   
           for time in timeInterval:
             data[var][time] = ( traj.get_var_val(var,time), 0. )
 
-    scipy.random.seed(noiseSeed)
+    if noiseSeed is not None: scipy.random.seed(noiseSeed)
 
     for var in data.keys():
         noiseSize = noiseFracSize * net.get_var_typical_val(var)

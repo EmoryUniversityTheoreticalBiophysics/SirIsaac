@@ -69,9 +69,9 @@ else:
     ensGen = None
 
 # () choose data source
-originalString = 'PlanetaryNet'
+#originalString = 'PlanetaryNet'
 #originalString = 'yeastOscillator'
-#originalString = 'PhosphorylationNet'
+originalString = 'PhosphorylationNet'
 
 # () choose fitting model class
 #fittingType = 'Polynomial'
@@ -95,7 +95,7 @@ if originalString is 'PlanetaryNet':
     scipy.random.seed(ICseed)
     
     varsType = 'rOnly'
-    varsType = 'rAndTheta'
+    #varsType = 'rAndTheta'
     
     if varsType is 'rAndTheta':
         inputVars = ['r_init','theta_init']
@@ -429,13 +429,18 @@ for numIndepParams in numIndepParamsList:
             pass # 5.3.2013 runVal will still be passed on to the fittingModels
         fakeDataSingleRun = {}
         for j,var in enumerate(outputVars):
+            
+            # 9.24.2013 to match with what I was doing before when len(outputVars)=1
+            if len(outputVars) > 1: noiseSeed = int(timeAndNoiseSeed*1e5+(i+1)*1e3+j))
+            else: noiseSeed = None
+            
             # do individually so every var is measured at the same (random) time
             fakeDataSingleRun.update( FakeData.noisyFakeData(newNet,numPoints,      \
                 timeInterval,                                                       \
                 seed=int(timeAndNoiseSeed*1e5+i),vars=[var],                        \
                 noiseFracSize=noiseFracSize,randomX=randomX,                        \
                 includeEndpoints=includeEndpoints,takeAbs=fakeDataAbs,              \
-                noiseSeed=int(timeAndNoiseSeed*1e5+(i+1)*1e3+j)) )
+                noiseSeed=noiseSeed )
         fakeData.append( fakeDataSingleRun )
     
     elif originalString == 'yeastOscillator':
