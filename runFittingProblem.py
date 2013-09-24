@@ -32,10 +32,6 @@ def paramsDict(fittingProblem):
         d[name] = params
     return d
 
-# 9.24.2013 make sure SloppyCell C compiling is working
-if not SloppyCellTest.testCcompiling():
-    raise Exception, "SloppyCell C compiling not working."
-
 outputDirectory = '.'
 
 # set tag to command-line argument unless there isn't a valid one
@@ -46,6 +42,10 @@ elif (sys.argv[1].find('&') != -1) or (sys.argv[1].find('>') != -1)         \
     prefix = nextFileNumString(outputDirectory)
 else:
     prefix = sys.argv[1]
+
+# 9.24.2013 make sure SloppyCell C compiling is working
+if not SloppyCellTest.testCcompiling():
+    raise Exception, "SloppyCell C compiling not working."
 
 noiseInLog = False # 3.6.2013
 usePreviousParams = True #False # 3.6.2013
