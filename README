@@ -4,12 +4,17 @@ SirIsaac
 Automated dynamical systems inference.
 
 Main goal:
-given experimental dynamical ssytems trajectories, find the dynamical system that has generated them.
+Given experimental dynamical systems trajectories, find a dynamical system that can predict future trajectories.
 
 
 
 Dependencies
 ============
+
+Python 2.6 or later (not Python 3)
+Scipy
+Matplotlib
+(One way to install the above is with Sage: http://www.sagemath.org)
 
 SloppyCell (http://sloppycell.sourceforge.net)
 
@@ -17,7 +22,8 @@ SloppyCell (http://sloppycell.sourceforge.net)
 Optional dependencies
 =====================
 
-SBML
+Pypar (for running on multiple processors)
+SBML (systems biology markup language)
 BioNetGen
 Vision
 
