@@ -502,8 +502,7 @@ for numIndepParams in numIndepParamsList:
         fitProbDict[key] = p
 
     Utility.save(fitProbDict,fileNumString+configString+'.dat')
-    die
-
+    
     # () Fit the models in the fittingProblem p
     if fittingType is not 'PerfectPhosphorylation':
         try:
