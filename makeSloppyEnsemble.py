@@ -39,7 +39,7 @@ def makeEnsemble(fpdFilename,numDataPoints,modelName=None,numSteps=1000,        
 
     # set up output
     outputFilename = fpdFilename[:5] + '_' + str(numDataPoints) +               \
-        '_' + modelName + '_ensemble.dat'
+        '_' + modelName + '_ensemble' + str(numStepsKept) + '.dat'
 
     if verbose:
         print "makeSloppyEnsemble: Generating ensemble for "+outputFilename
@@ -69,7 +69,7 @@ def makeEnsemble(fpdFilename,numDataPoints,modelName=None,numSteps=1000,        
 if __name__ == '__main__':
 
     # Specify the model(s) for which to generate ensemble(s)
-    numDataPoints = 52
+    numDataPoints = 200 #100 #52
     filenameList,modelNameList = [],[]
     
     if True: # perfect phosphorylation model
@@ -91,9 +91,9 @@ if __name__ == '__main__':
         modelNameList.append( 'SimplePhosphorylationModel' )
 
     # set up ensemble generator
-    numprocs = 6
-    numSteps = 1000 # 1000 takes roughly 60 minutes on 8 processors for perfect 200
-    numStepsKept = 100
+    numprocs = 10
+    numSteps = 10000 # 1000 takes roughly 60 minutes on 8 processors for perfect 200
+    numStepsKept = 1000
     sing_val_cutoff = 0.1 #1e-4 #1
 
     # create each ensemble
