@@ -1957,7 +1957,7 @@ class SloppyCellFittingModel(FittingModel):
         separateIndepParams=True,figHeight=8,figWidth=None,newFigure=True,      \
         rowOffset=0,                                                            \
         plotDerivs=False,linestyle=None,plotInitialConditions=False,            \
-        marker=None,numCols=None,xmax=None,color=None,**kwargs):
+        marker=None,numCols=None,xmax=None,color=None,numYTicks=3,**kwargs):
         """
         Note: exptsToPlot isn't currently used when numCols != 1.
         
@@ -1966,6 +1966,8 @@ class SloppyCellFittingModel(FittingModel):
                                           separate subplot
         numCols (None)                  : 4.17.2013 if set to 1, use a single
                                           column for all independent parameters
+        numYTicks (3)                   : Force a given number of ticks on
+                                          each y-axis (use None for default)
         """
         
         
@@ -2065,15 +2067,16 @@ class SloppyCellFittingModel(FittingModel):
                     else:
                         subplotIndex = (j+1)+(i+rowOffset)*numCols
                     ax = Plotting.subplot(numRows,numCols,subplotIndex)
-                    
+                  
                     # Mess with ticks
-                    # wider tick spacing
-                    numticks = 3
-                    ax.yaxis.set_major_locator(Plotting.matplotlib.ticker.LinearLocator(numticks=numticks))
-                    # remove middle y axes labels
+                    if numYTicks is not None:
+                        # wider tick spacing
+                        numticks = numYTicks
+                        ax.yaxis.set_major_locator(Plotting.matplotlib.ticker.LinearLocator(numticks=numticks))
+                    # remove y axes labels except for leftmost column
                     if (j != 0) and (numCols>1): 
                         ax.get_yaxis().set_ticklabels([])
-                    # remove middle x axes labels
+                    # remove x axes labels except for bottom row
                     if i != len(dataToPlotSorted)-1: 
                         ax.get_xaxis().set_ticklabels([])
                     
@@ -2096,14 +2099,11 @@ class SloppyCellFittingModel(FittingModel):
                 ranges = Plotting.axis()
                 ymins.append(ranges[2])
                 ymaxs.append(ranges[3])
-                
-                if i == len(dataToPlotSorted)-1:
-                    # remove last x tick label to prevent overlap
-                    # this doesn't work because the labels don't yet exist
-                    #xtl = [ t.get_text() for t in ax.xaxis.get_ticklabels() ]
-                    #if xtl[-1] == '': xtl[-2] = ''
-                    #else: xtl[-1] = ''
-                    #ax.xaxis.set_ticklabels(xtl)
+    
+                # if there is more than one column of subplots,
+                #    remove the last x tick label to prevent overlap
+                if (len(dataToPlotSorted) > 1)                                  \
+                  and (i == len(dataToPlotSorted)-1):
                     xticks = ax.xaxis.get_ticklocs()
                     ax.xaxis.set_ticks(xticks[:-1])
                 
@@ -2114,14 +2114,14 @@ class SloppyCellFittingModel(FittingModel):
                 # make y axes have same range
                 [ ax.axis(ymin=min(ymins),ymax=max(ymaxs)) for ax in axList ]
                 
-                # remove last y tick label to prevent overlap
-                # this doesn't work because the labels don't yet exist
-                ax0 = axList[0]
-                
-                yticks = ax0.yaxis.get_ticklocs()
-                #print "yticks =",yticks
-                ax0.yaxis.set_ticks(yticks[:-1])
-                #print "ytl =", ytl
+                # if there is more than one row of subplots,
+                #    remove last y tick label to prevent overlap
+                if len(axList)>1:
+                    ax0 = axList[0]
+                    yticks = ax0.yaxis.get_ticklocs()
+                    #print "yticks =",yticks
+                    ax0.yaxis.set_ticks(yticks[:-1])
+                    #print "ytl =", ytl
                 
             return returnList
     
