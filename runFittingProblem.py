@@ -59,6 +59,7 @@ includeEndpoints = False
 inputNames = None # default to non-init variables
 stopFittingN = 3
 numPoints = 1 # take one data point per independent parameter set
+valOffsets = None # default; changed for PowerLaw fit to Phosphorylation
 
 # parameters for ensemble generation
 useEnsemble = True #False 
@@ -160,6 +161,7 @@ elif originalString is 'PhosphorylationNet':
     # 6.4.2013 also need to avoid having totalPhos_init = 0
     if fittingType is "PowerLaw":
         offset = 1.
+        valOffsets = [offset]
     else:
         offset = 0.
 
@@ -445,7 +447,7 @@ for numIndepParams in numIndepParamsList:
                 seed=int(timeAndNoiseSeed*1e5+i),vars=[var],                        \
                 noiseFracSize=noiseFracSize,randomX=randomX,                        \
                 includeEndpoints=includeEndpoints,takeAbs=fakeDataAbs,              \
-                noiseSeed=noiseSeed ))
+                noiseSeed=noiseSeed,typValOffsets=valOffsets ))
         fakeData.append( fakeDataSingleRun )
     
     elif originalString == 'yeastOscillator':
@@ -498,6 +500,9 @@ for numIndepParams in numIndepParamsList:
             raise Exception, 'No valid fittingType specified.'
         
         fitProbDict[key] = p
+
+    Utility.save(fitProbDict,fileNumString+configString+'.dat')
+    die
 
     # () Fit the models in the fittingProblem p
     if fittingType is not 'PerfectPhosphorylation':

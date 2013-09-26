@@ -11,7 +11,7 @@ import scipy
 # (originally from runTranscriptionNetwork.py)
 def noisyFakeData(net,numPoints,timeInterval,                                   \
         vars=None,noiseFracSize=0.1,seed=None,params=None,randomX=True,         \
-        includeEndpoints=True,takeAbs=False,noiseSeed=None):
+        includeEndpoints=True,takeAbs=False,noiseSeed=None,typValOffsets=None):
     """
     Adds Gaussian noise to data: 
         mean 0, stdev noiseFracSize*("typical value" of variable)
@@ -26,6 +26,10 @@ def noisyFakeData(net,numPoints,timeInterval,                                   
                           data (to avoid having negative data).
     seed (None)         : Random seed for selection of timepoints.
     noiseSeed (None)    : Random seed for addition of Gaussian noise.
+    typValOffsets (None): List (of the same length as vars) consisting of offsets
+                          to be subtracted from var_typical_val before
+                          calculating noiseSize (useful when using an offset to
+                          fit powerLaw models).  Defaults to zeros.
     """
     if seed is not None: scipy.random.seed(seed)
     
@@ -50,8 +54,10 @@ def noisyFakeData(net,numPoints,timeInterval,                                   
 
     if noiseSeed is not None: scipy.random.seed(noiseSeed)
 
-    for var in data.keys():
-        noiseSize = noiseFracSize * net.get_var_typical_val(var)
+    if typValOffsets is None: typValOffsets = scipy.zeros(len(vars))
+
+    for var,offset in zip(data.keys(),typValOffsets):
+        noiseSize = noiseFracSize * ( net.get_var_typical_val(var) - offset )
         for key in data[var].keys():
             old = data[var][key]
             if noiseSize > 0:
