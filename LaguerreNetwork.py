@@ -16,7 +16,8 @@ import scipy.special
 # in SloppyCell that doeesn't call this model a ReactionNetwork.
 # Maybe ask Ryan about this...
 
-def LaguerreNetwork(degree,outputName='output',netid='PolynomialNet'):
+def LaguerreNetwork(degree,outputName='output',netid='PolynomialNet',
+    initOptimizable=False):
     """
     SloppyCell ('network') model that does not have any ODEs, but simply
     consists of an nth degree Laguerre polynomial [times e^(-t/2)], which
@@ -25,7 +26,7 @@ def LaguerreNetwork(degree,outputName='output',netid='PolynomialNet'):
     
     Currently produces one output, with degree+3 parameters:
         
-    output(t) = C + sum_{i=0}^{degree} g_i L_i(2t/alpha) exp(-x/alpha)
+    output(t) = output_init + sum_{i=0}^{degree} g_i L_i(2t/alpha) exp(-x/alpha)
     
     (The optimizable time constant parameter is squared to 
      avoid problems with negative alpha.)
@@ -41,7 +42,8 @@ def LaguerreNetwork(degree,outputName='output',netid='PolynomialNet'):
     net.addRateRule('dummy','0.')
     
     # add optimizable parameters
-    net.addParameter( 'C', 0., isOptimizable=True )
+    initName = outputName+'_init'
+    net.addParameter( initName, 0., isOptimizable=initOptimizable )
     net.addParameter( 'alpha', 1., isOptimizable=False )
     net.addParameter( 'sqrt_abs_alpha', 1., isOptimizable=True )
     for i in range(degree+1):
@@ -57,7 +59,7 @@ def LaguerreNetwork(degree,outputName='output',netid='PolynomialNet'):
         polynomial += 'g'+str(i)                                                \
           +'*( '+poly2str(scipy.special.laguerre(i),'2.*time/alpha')+' ) + ' 
     
-    net.addAssignmentRule( outputName, 'C + exp(-time/alpha)*'                  \
+    net.addAssignmentRule( outputName, initName+' + exp(-time/alpha)*'          \
         +'( '+polynomial[:-2]+')' )
         
     return net

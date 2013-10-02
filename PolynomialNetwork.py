@@ -11,7 +11,8 @@
 from SloppyCell.ReactionNetworks import *
 import scipy.special
 
-def PolynomialNetwork(degree,outputName='output',netid='PolynomialNet'):
+def PolynomialNetwork(degree,outputName='output',netid='PolynomialNet',
+    initOptimizable=False):
     """
     SloppyCell ('network') model that does not have any ODEs, but simply
     consists of an nth degree polynomial.
@@ -19,6 +20,8 @@ def PolynomialNetwork(degree,outputName='output',netid='PolynomialNet'):
     Currently produces one output, with number of parameters = degree+1:
         
     output(t) = sum_{i=0}^{degree} g_i x^i
+    
+    (g0 is renamed to outputName+'_init')
     """
     
     net = Network(netid, name='Polynomial (network) model')
@@ -31,7 +34,10 @@ def PolynomialNetwork(degree,outputName='output',netid='PolynomialNet'):
     net.addRateRule('dummy','0.')
     
     # add optimizable parameters
-    for i in range(degree+1):
+    net.addParameter('g0', 0., isOptimizable=False)
+    net.addParameter(outputName+'_init', 0., isOptimizable=initOptimizable)
+    net.addAssignmentRule('g0',outputName+'_init')
+    for i in range(1,degree+1):
         net.addParameter( 'g'+str(i), 0., isOptimizable=True )
         
     net.addSpecies( outputName, 'Comp', 0. )

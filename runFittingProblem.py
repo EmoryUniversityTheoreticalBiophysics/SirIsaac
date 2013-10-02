@@ -80,11 +80,11 @@ else:
 originalString = 'PhosphorylationNet'
 
 # () choose fitting model class
-#fittingType = 'Polynomial'
+fittingType = 'Polynomial'
 #fittingType = 'Laguerre'
 #fittingType = 'SimplePhosphorylation'
 #fittingType = 'PerfectPhosphorylation'
-fittingType = 'PowerLaw'
+#fittingType = 'PowerLaw'
 #fittingType = 'CTSN'
 
 
@@ -274,17 +274,21 @@ else:
 
 # for Laguerre polynomials
 degreeListLag = scipy.arange(0,8,1) # (0,10,1)
-polynomialDegreeListListLag = [ (degree/2)*scipy.ones(3+degree,dtype=int)   \
+# polynomials describing parameter dependence have degree half
+# that of the degree of the polynomial describing time dependence
+polynomialDegreeListListLag = [ (degree/2)*scipy.ones(2+degree,dtype=int)   \
     for degree in degreeListLag ]
 
 # for plain polynomials
 degreeListPoly = scipy.arange(0,8,1) # (0,10,1)
-polynomialDegreeListListPoly = [ (degree/2)*scipy.ones(degree+1,dtype=int)  \
+# polynomials describing parameter dependence have degree half
+# that of the degree of the polynomial describing time dependence
+polynomialDegreeListListPoly = [ (degree/2)*scipy.ones(degree,dtype=int)  \
     for degree in degreeListPoly ]
 
 # 4.29.2013 set priors
 if (fittingType is 'Polynomial') or (fittingType is 'Laguerre'):
-    raise Exception, "4.29.2013 Need to set priors for "+fittingType
+    nonrateVars.extend( ['C','sqrt_abs_alpha','g'] )
 elif fittingType is 'PowerLaw':
     rateVars.extend( ['log_alpha','log_beta'] )
     nonrateVars.extend( ['g','h','X'] )
@@ -297,7 +301,7 @@ elif fittingType is 'CTSN':
         nonrateVars.extend( ['theta','X'] )
 elif (fittingType is 'SimplePhosphorylation')                               \
   or (fittingType is 'PerfectPhosphorylation'):
-    pass
+    pass # we don't include priors for these models
 else:
     raise Exception, "Unrecognized fittingType"
 # make priorSigma list using ratePriorSigma and nonratePriorSigma
