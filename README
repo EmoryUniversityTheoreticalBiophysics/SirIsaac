@@ -26,6 +26,7 @@ Pypar (for running on multiple processors)
 SBML (systems biology markup language)
 BioNetGen
 Vision
+Pygraphviz (for creating network diagrams)
 
 
 Contributors:

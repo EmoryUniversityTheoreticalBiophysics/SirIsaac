@@ -2066,7 +2066,12 @@ class SloppyCellFittingModel(FittingModel):
                         subplotIndex = 1+(i+rowOffset)*numCols
                     else:
                         subplotIndex = (j+1)+(i+rowOffset)*numCols
-                    ax = Plotting.subplot(numRows,numCols,subplotIndex)
+                  
+                    if ((numRows==1) and (numCols==1)) and (not newFigure):
+                        # avoid assuming that we want subplot(1,1,1)
+                        ax = Plotting.gca()
+                    else:
+                        ax = Plotting.subplot(numRows,numCols,subplotIndex)
                   
                     # Mess with ticks
                     if numYTicks is not None:

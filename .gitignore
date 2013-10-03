@@ -14,6 +14,7 @@
 
 # temporary files
 temporary*
+MATLAB_tmp*
 
 # latex files
 *.tex
@@ -32,3 +33,6 @@ stdout_stderr_*
 
 # SBML files
 .netModel
+
+# OSX files
+.DS_Stor*
