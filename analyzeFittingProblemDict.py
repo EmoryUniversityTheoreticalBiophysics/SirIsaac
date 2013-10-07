@@ -323,9 +323,7 @@ def orderedFitNames(fp):
       for name in fp.fittingModelNames:
         if fp.newLogLikelihoodDict.has_key(name):
             names.append(name)
-    # *******************************************************************
-    print "orderedFitNames: debug: ",names
-    # *******************************************************************
+    #print "orderedFitNames: debug: ",names
     return names
 
 # 7.25.2013

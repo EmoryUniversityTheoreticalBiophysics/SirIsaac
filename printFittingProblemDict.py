@@ -23,7 +23,7 @@ print ""
 print fpdFilename
 print ""
 
-for k in fpd.keys():
+for k in scipy.sort(fpd.keys()):
     
     print ""
     print "-------------- Key",k,"--------------"
