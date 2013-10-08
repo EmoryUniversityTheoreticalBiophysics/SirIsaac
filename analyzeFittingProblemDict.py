@@ -170,15 +170,18 @@ def totalNumFunctionCalls(fpdList,**kwargs):
     totalFuncCallsFunc = lambda mName,fp: scipy.sum( [ scipy.sum(fp.fittingModelDict[name].numCostCallsList) + scipy.sum(fp.fittingModelDict[name].numGradCallsList) for name in fp.newLogLikelihoodDict.keys() ] )
     return calcForAllFpds(fpdList,totalFuncCallsFunc,skip=False,**kwargs)
 
-def totalNumEvaluations(fpdList,**kwargs):
+def totalNumEvaluations(fpdList,stopFittingN=scipy.inf,**kwargs):
     """
     (Sum of all cost calls plus grad calls plus ensemble steps)
     times (number of measurements)
     over ALL models tested.
+    
+    stopFittingN (inf)          : Only include models up to stopFittingN
+                                  past the maxLogLikelihoodName
     """
     def totalFuncCallsFunc(mName,fp):
         if hasattr(fp,'newLogLikelihoodDict'):
-            keyList = fp.newLogLikelihoodDict.keys()
+            keyList = orderedFitNames(fp,stopFittingN=stopFittingN)
         else:
             keyList = []
         return scipy.sum( [ \
@@ -317,14 +320,30 @@ def plotAllFpdsDict(dataDict,marker='o',ls='',color='b',label=None,     \
         return kList,meanList,stdList
         
 # 7.25.2012
-def orderedFitNames(fp):
+def orderedFitNames(fp,stopFittingN=scipy.inf):
+    """
+    stopFittingN (inf)      : Only include names of models up to
+                              stopFittingN past the maxLogLikelihoodName
+    """
+    # make list of names
     names = []
     if hasattr(fp,'newLogLikelihoodDict'):
       for name in fp.fittingModelNames:
         if fp.newLogLikelihoodDict.has_key(name):
             names.append(name)
     #print "orderedFitNames: debug: ",names
-    return names
+
+    # determine how many we should return based on stopFittingN
+    if stopFittingN < scipy.inf:
+        maxName = fp.maxLogLikelihoodName()
+    else:
+        maxName = None
+    try:
+        n = names.index(maxName) + stopFittingN + 1
+    except ValueError: # maxName wasn't in the list
+        n = len(names)
+
+    return names[:n]
 
 # 7.25.2013
 def plotAllFpdsDict2D(dataDict,fpdList=None,newFigure=True,defaultValue=0,\
