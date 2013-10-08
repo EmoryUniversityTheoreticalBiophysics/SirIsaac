@@ -223,7 +223,7 @@ def yeastData(numPoints,timeInterval,                                   \
                         print "initialConditions =",initialConditions
                         raise Exception, "loadedICs != initialConditions"
                 else:
-                    print "yeastData: "+yeastSavedDataFile+" does not"          \
+                    print "yeastData: "+yeastSavedDataFile+" does not "         \
                         "contain the necessary data."
                     runMATLAB = True
         if runMATLAB:

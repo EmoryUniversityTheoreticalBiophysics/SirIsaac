@@ -36,3 +36,6 @@ stdout_stderr_*
 
 # OSX files
 .DS_Stor*
+
+# SloppyCell compiled code
+*.so

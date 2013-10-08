@@ -80,10 +80,10 @@ else:
 originalString = 'PhosphorylationNet'
 
 # () choose fitting model class
-fittingType = 'Polynomial'
+#fittingType = 'Polynomial'
 #fittingType = 'Laguerre'
 #fittingType = 'SimplePhosphorylation'
-#fittingType = 'PerfectPhosphorylation'
+fittingType = 'PerfectPhosphorylation'
 #fittingType = 'PowerLaw'
 #fittingType = 'CTSN'
 
@@ -187,7 +187,7 @@ elif originalString is 'PhosphorylationNet':
     rateVars = ['k']
     nonrateVars = ['Km','totalPhos']
 
-    ratePriorSigma = 10 #1e3 #10. #1e3
+    ratePriorSigma = 1e3 #10 #1e3 #10. #1e3
     nonratePriorSigma = 10.
 
     originalModelFilename = 'examplePhosphorylationFittingModel.model'
@@ -293,12 +293,8 @@ elif fittingType is 'PowerLaw':
     rateVars.extend( ['log_alpha','log_beta'] )
     nonrateVars.extend( ['g','h','X'] )
 elif fittingType is 'CTSN':
-    if switchSigmoid: # 7.24.2013
-        rateVars.extend( ['log_tau'] )
-        nonrateVars.extend( ['theta','X','w'] )
-    else:
-        rateVars.extend( ['w','log_tau'] )
-        nonrateVars.extend( ['theta','X'] )
+    rateVars.extend( ['w','log_tau'] )
+    nonrateVars.extend( ['theta','X'] )
 elif (fittingType is 'SimplePhosphorylation')                               \
   or (fittingType is 'PerfectPhosphorylation'):
     pass # we don't include priors for these models
@@ -312,8 +308,8 @@ for v in nonrateVars: priorSigma.append( (v,nonratePriorSigma) )
 fitProbDict = {}
 
 # () optionally restart calculations from a loaded fittingProblemDict
-restartDictName = None
-#restartDictName = 'k0013_fitProb_varying_numInputs_PhosphorylationNet_CTSN_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_maxiter100_avegtol0.01_noClamp_newErrorBars0.1_removeLogForPriors_ratePriorSigma1000.0_seeds0_1.dat'
+#restartDictName = None
+restartDictName = 'k0006_fitProb_varying_numInputs_PhosphorylationNet_CTSN_PerfectPhosphorylation_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_maxiter100_avegtol0.01_noClamp_newErrorBars0.1_removeLogForPriors_ratePriorSigma1000.0_seeds0_1_restart0045.dat'
 if restartDictName is not None:
     fitProbDict = Utility.load(restartDictName)
     i = restartDictName.find('_fitProb_')
@@ -499,7 +495,7 @@ for numIndepParams in numIndepParamsList:
         elif fittingType is 'CTSN':
           p = FittingProblem.CTSNFittingProblem(complexityList,fakeData,
             outputNames=outputVars,priorSigma=priorSigma,                       
-            switchSigmoid=switchSigmoid,inputNames=inputNames,**kwargs)
+            inputNames=inputNames,**kwargs)
         else:
             raise Exception, 'No valid fittingType specified.'
         

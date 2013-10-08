@@ -69,21 +69,29 @@ def makeEnsemble(fpdFilename,numDataPoints,modelName=None,numSteps=1000,        
 if __name__ == '__main__':
 
     # Specify the model(s) for which to generate ensemble(s)
-    numDataPoints = 200 #100 #52
+    numDataPoints = 100 #200 #100 #52
     filenameList,modelNameList = [],[]
     
     if True: # perfect phosphorylation model
-        filenameList.append('k0011_fitProb_varying_numInputs_PhosphorylationNet_'   \
+        #filenameList.append('k0011_fitProb_varying_numInputs_PhosphorylationNet_'   \
+        #        'PerfectPhosphorylation_withEnsembleT1000_steps10000.0_10_'         \
+        #        'maxiter100_avegtol0.01_noiseFracSize0.1_ratePriorSigma10_'         \
+        #        'seeds0_1.dat')
+        filenameList.append('k0032_fitProb_varying_numInputs_PhosphorylationNet_'   \
                 'PerfectPhosphorylation_withEnsembleT1000_steps10000.0_10_'         \
-                'maxiter100_avegtol0.01_noiseFracSize0.1_ratePriorSigma10_'         \
-                'seeds0_1.dat')
+                'maxiter100_avegtol0.01_noiseFracSize0.1_ratePriorSigma1000.0_'     \
+                'seeds0_1_restart0006.dat')
         modelNameList.append( 'Perfect' )
-    if True: # sigmoidal phosphorylation model
-        filenameList.append('k0012_fitProb_varying_numInputs_PhosphorylationNet_'   \
-                'CTSN_withEnsembleT1000_steps10000.0_10_maxiter100_avegtol0.01_'    \
-                'noiseFracSize0.1_ratePriorSigma10_seeds0_1.dat')
-        modelNameList.append( None )
-    if True: # simple phosphorylation model
+    if False: # sigmoidal phosphorylation model
+        #filenameList.append('k0012_fitProb_varying_numInputs_PhosphorylationNet_'   \
+        #        'CTSN_withEnsembleT1000_steps10000.0_10_maxiter100_avegtol0.01_'    \
+        #        'noiseFracSize0.1_ratePriorSigma10_seeds0_1.dat')
+        filenameList.append('k0009_fitProb_varying_numInputs_PhosphorylationNet_'   \
+                'CTSN_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_'        \
+                'maxiter100_avegtol0.01_noClamp_newErrorBars0.1_'                   \
+                'removeLogForPriors_ratePriorSigma1000.0_seeds0_1_restart0013.dat')
+        modelNameList.append( None ) # None => use maxLogLikelihoodName
+    if False: # simple phosphorylation model
         filenameList.append('s0004_fitProb_varying_numInputs_PhosphorylationNet_'   \
             'SimplePhosphorylation_withEnsembleT1000_steps10000.0_10_'              \
             'useBest_numPoints1_maxiter100_avegtol0.01_noClamp_newErrorBars0.1_'    \
