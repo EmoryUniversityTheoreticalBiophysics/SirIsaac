@@ -8,6 +8,17 @@
 import FittingProblem
 reload(FittingProblem)
 from SloppyCell.ReactionNetworks import *
+import time # for sleep
+import os
+
+print "This computer's name is",os.uname()[1]
+if (os.uname()[1][:4] == 'node'): # 4.4.2012 emory machines
+    print "The current directory is",os.getcwd()
+    if os.getcwd().startswith('/star'):
+        os.chdir('/star/physics/nemenman/daniels/SirIsaac')
+    elif os.getcwd().startswith('/spark'):
+        os.chdir('/spark/physics/nemenman/daniels/SirIsaac')
+    print "Now the current directory is",os.getcwd()
 
 def makeEnsemble(fpdFilename,numDataPoints,modelName=None,numSteps=1000,        \
     numStepsKept=10,sing_val_cutoff=1e-4,seeds=(100,100),numprocs=1,            \
@@ -69,37 +80,48 @@ def makeEnsemble(fpdFilename,numDataPoints,modelName=None,numSteps=1000,        
 if __name__ == '__main__':
 
     # Specify the model(s) for which to generate ensemble(s)
-    numDataPoints = 100 #200 #100 #52
+    numDataPoints = 300 #200 #100 #52
     filenameList,modelNameList = [],[]
     
     if True: # perfect phosphorylation model
-        #filenameList.append('k0011_fitProb_varying_numInputs_PhosphorylationNet_'   \
-        #        'PerfectPhosphorylation_withEnsembleT1000_steps10000.0_10_'         \
-        #        'maxiter100_avegtol0.01_noiseFracSize0.1_ratePriorSigma10_'         \
-        #        'seeds0_1.dat')
-        filenameList.append('k0032_fitProb_varying_numInputs_PhosphorylationNet_'   \
+        filenameList.append('k0011_fitProb_varying_numInputs_PhosphorylationNet_'   \
                 'PerfectPhosphorylation_withEnsembleT1000_steps10000.0_10_'         \
-                'maxiter100_avegtol0.01_noiseFracSize0.1_ratePriorSigma1000.0_'     \
-                'seeds0_1_restart0006.dat')
+                'maxiter100_avegtol0.01_noiseFracSize0.1_ratePriorSigma10_'         \
+                'seeds0_1.dat')
+        #filenameList.append('k0032_fitProb_varying_numInputs_PhosphorylationNet_'   \
+        #        'PerfectPhosphorylation_withEnsembleT1000_steps10000.0_10_'         \
+        #        'maxiter100_avegtol0.01_noiseFracSize0.1_ratePriorSigma1000.0_'     \
+        #        'seeds0_1_restart0006.dat')
         modelNameList.append( 'Perfect' )
-    if False: # sigmoidal phosphorylation model
-        #filenameList.append('k0012_fitProb_varying_numInputs_PhosphorylationNet_'   \
-        #        'CTSN_withEnsembleT1000_steps10000.0_10_maxiter100_avegtol0.01_'    \
-        #        'noiseFracSize0.1_ratePriorSigma10_seeds0_1.dat')
-        filenameList.append('k0009_fitProb_varying_numInputs_PhosphorylationNet_'   \
-                'CTSN_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_'        \
-                'maxiter100_avegtol0.01_noClamp_newErrorBars0.1_'                   \
-                'removeLogForPriors_ratePriorSigma1000.0_seeds0_1_restart0013.dat')
+    if True: # sigmoidal phosphorylation model
+        filenameList.append('k0012_fitProb_varying_numInputs_PhosphorylationNet_'   \
+                'CTSN_withEnsembleT1000_steps10000.0_10_maxiter100_avegtol0.01_'    \
+                'noiseFracSize0.1_ratePriorSigma10_seeds0_1.dat')
+        #filenameList.append('k0009_fitProb_varying_numInputs_PhosphorylationNet_'   \
+        #        'CTSN_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_'        \
+        #        'maxiter100_avegtol0.01_noClamp_newErrorBars0.1_'                   \
+        #        'removeLogForPriors_ratePriorSigma1000.0_seeds0_1_restart0013.dat')
         modelNameList.append( None ) # None => use maxLogLikelihoodName
-    if False: # simple phosphorylation model
+    if True: # simple phosphorylation model
         filenameList.append('s0004_fitProb_varying_numInputs_PhosphorylationNet_'   \
             'SimplePhosphorylation_withEnsembleT1000_steps10000.0_10_'              \
             'useBest_numPoints1_maxiter100_avegtol0.01_noClamp_newErrorBars0.1_'    \
             'removeLogForPriors_ratePriorSigma1000.0_seeds0_1_restart0001.dat')
         modelNameList.append( 'SimplePhosphorylationModel' )
 
+    # wait for perfect fit to be done
+    fp = None
+    i = 0
+    while not hasattr(fp,'perfectFitParams'):
+        i += 1
+        Utility.save([i,1000],'131008_temp1000.txt')
+        print "makeSloppyEnsemble: Sleeping..."
+        time.sleep(60)
+        fpd = Utility.load(filenameList[0])
+        fp = fpd[numDataPoints]
+    
     # set up ensemble generator
-    numprocs = 10
+    numprocs = 20 #10
     numSteps = 10000 # 1000 takes roughly 60 minutes on 8 processors for perfect 200
     numStepsKept = 1000
     sing_val_cutoff = 0.1 #1e-4 #1

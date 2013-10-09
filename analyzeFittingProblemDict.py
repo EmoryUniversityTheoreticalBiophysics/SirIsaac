@@ -285,14 +285,14 @@ def meanAbsGradFunc(m,fp):
     
 def plotAllFpdsDict(dataDict,marker='o',ls='',color='b',label=None,     \
     plotMeans=False,errorBars=True,filterNans=False,                    \
-    returnData=False,**kwargs):
+    returnData=False,makePlot=True,**kwargs):
     """
     filterNans (False)      : If True, NaNs are removed from the data
                               before taking the mean.
     """
     kwargs['label'] = label
     kList,meanList,stdList = [],[],[]
-    for i,k in enumerate(dataDict.keys()):
+    for i,k in enumerate(scipy.sort(dataDict.keys())):
         vals = dataDict[k]
         if i==1: # include label for legend only once
             kwargs.pop('label')
@@ -300,10 +300,11 @@ def plotAllFpdsDict(dataDict,marker='o',ls='',color='b',label=None,     \
             if filterNans: fVals = filter(lambda v: not scipy.isnan(v),vals)
             else: fVals = vals
             meanVal,stdVal = scipy.mean(fVals),scipy.std(fVals,ddof=1)
-            if errorBars:
+            if makePlot:
+              if errorBars:
                 pylab.errorbar([k],[meanVal],yerr=[stdVal],             \
                     marker=marker,ls=ls,color=color,**kwargs)
-            else:
+              else:
                 pylab.plot([k],[meanVal],marker=marker,ls=ls,           \
                     color=color,**kwargs)
             kList.append(k)
@@ -311,11 +312,17 @@ def plotAllFpdsDict(dataDict,marker='o',ls='',color='b',label=None,     \
             stdList.append(stdVal)
             
         else: # scatter plot of all values
-            pylab.plot(scipy.repeat(k,len(vals)),vals,marker=marker,    \
+            if makePlot:
+              pylab.plot(scipy.repeat(k,len(vals)),vals,marker=marker,  \
                 ls=ls,color=color,**kwargs)
-            kList.extend(scipy.repeat(k,len(vals)))
-            meanList.extend(vals)
-            stdList.extend(scipy.repeat(None,len(vals)))
+            #kList.extend(scipy.repeat(k,len(vals)))
+            #meanList.extend(vals)
+            #stdList.extend(scipy.repeat(None,len(vals)))
+            kList.append(k)
+            meanList.append(vals)
+            stdList.append(None)
+
+            
     if returnData:
         return kList,meanList,stdList
         
