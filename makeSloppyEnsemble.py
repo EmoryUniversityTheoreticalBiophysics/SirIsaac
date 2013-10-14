@@ -114,7 +114,7 @@ if __name__ == '__main__':
     i = 0
     while not hasattr(fp,'perfectFitParams'):
         i += 1
-        Utility.save([i,1000],'131008_temp1000.txt')
+        Utility.save([i,10000],'131008_temp10000.txt')
         print "makeSloppyEnsemble: Sleeping..."
         time.sleep(60)
         fpd = Utility.load(filenameList[0])

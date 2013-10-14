@@ -170,11 +170,19 @@ def totalNumFunctionCalls(fpdList,**kwargs):
     totalFuncCallsFunc = lambda mName,fp: scipy.sum( [ scipy.sum(fp.fittingModelDict[name].numCostCallsList) + scipy.sum(fp.fittingModelDict[name].numGradCallsList) for name in fp.newLogLikelihoodDict.keys() ] )
     return calcForAllFpds(fpdList,totalFuncCallsFunc,skip=False,**kwargs)
 
+# updated 10.10.2013
 def totalNumEvaluations(fpdList,stopFittingN=scipy.inf,**kwargs):
     """
-    (Sum of all cost calls plus grad calls plus ensemble steps)
-    times (number of measurements)
+    Total number of times daeint was called.
+    
+    Sum of
+       (cost calls) * (number of measurements)
+       (grad calls + ensemble steps) * (1 + number of measurements)
     over ALL models tested.
+    
+    (I'm not sure that the '1 + ' is necessary for the gradient
+    calculation, but that seems to be the number of times
+    SloppyCell calls daeint.)
     
     stopFittingN (inf)          : Only include models up to stopFittingN
                                   past the maxLogLikelihoodName
@@ -184,12 +192,13 @@ def totalNumEvaluations(fpdList,stopFittingN=scipy.inf,**kwargs):
             keyList = orderedFitNames(fp,stopFittingN=stopFittingN)
         else:
             keyList = []
-        return scipy.sum( [ \
-        len(fp.fittingData) * \
-         ( scipy.sum(fp.fittingModelDict[name].numCostCallsList) \
-         + scipy.sum(fp.fittingModelDict[name].numGradCallsList) \
-         + fp.fittingModelDict[name].ensGen.totalSteps )
-         for name in keyList ] )
+        ND = len(fp.fittingData)
+        mList = [ fp.fittingModelDict[name] for name in keyList ]
+        return scipy.sum( [                                             \
+           ND * scipy.sum(m.numCostCallsList)                           \
+         + ND*(1+len(m.getParameters())) *                              \
+            ( scipy.sum(m.numGradCallsList) + m.ensGen.totalSteps )
+         for m in mList ] )
     return calcForAllFpds(fpdList,totalFuncCallsFunc,skip=False,**kwargs)
     
 def totalWallTimesHours(fpdList,includedNames=None,**kwargs):
