@@ -1957,7 +1957,8 @@ class SloppyCellFittingModel(FittingModel):
         separateIndepParams=True,figHeight=8,figWidth=None,newFigure=True,      \
         rowOffset=0,                                                            \
         plotDerivs=False,linestyle=None,plotInitialConditions=False,            \
-        marker=None,numCols=None,xmax=None,color=None,numYTicks=3,**kwargs):
+        marker=None,numCols=None,xmax=None,color=None,numYTicks=3,              \
+        hspace=0.05,wspace=0.0,ICmarker=None,ICmarkerSize=None,**kwargs):
         """
         Note: exptsToPlot isn't currently used when numCols != 1.
         
@@ -2032,8 +2033,11 @@ class SloppyCellFittingModel(FittingModel):
                 if figWidth is None:
                     figWidth = aspectRatioIndiv*indivHeight*numCols
                 Plotting.figure(figsize=(figWidth,figHeight))
-                pad = 0.1*8./figWidth # want default (0.1) when figWidth is default (8.)
-                Plotting.subplots_adjust(wspace=0.,hspace=0.05,left=pad,right=1.0-pad)
+                # want default (0.1) when figWidth is default (8.)
+                pad = min(0.1,0.1*8./figWidth)
+                
+                Plotting.subplots_adjust(wspace=wspace,hspace=hspace,           \
+                    left=pad,right=1.0-pad)
             
             returnList = []
             
@@ -2092,11 +2096,14 @@ class SloppyCellFittingModel(FittingModel):
                 returnList.append( Plotting.plot_model_results(dataModel,       \
                     show_legend=show_legend,style=style,                        \
                     colorWheelFmt=colorWheelFmt,data_to_plot=[name],            \
-                    expts=['data'+netID],plot_data=errorBars,**kwargs) )
+                    expts=['data'+netID],plot_data=errorBars,                   \
+                    **kwargs) )
     
                 if plotInitialConditions and (i<len(indepParamsList[j])):
+                    if ICmarker is None: ICmarker = colorWheelFmt[1]
                     Plotting.plot([0],[indepParamsList[j][i]],                  \
-                        marker=colorWheelFmt[1],color=colorWheelFmt[0])
+                        marker=ICmarker,color=colorWheelFmt[0],                 \
+                        clip_on=False,ms=ICmarkerSize)
                 
                 if j == 0:
                     Plotting.ylabel(name)
@@ -2641,13 +2648,16 @@ class yeastOscillatorFittingModel(FittingModel):
         plotSeparately=True,fmt=None,numPoints=500,minTime=0.,maxTime=None,     \
         dataToPlot=None,plotFittingData=False,linewidth=1.,numRows=None,        \
         newFigure=False,rowOffset=0,plotFirstN=None,linestyle=None,             \
-        plotHiddenNodes=False,color=None):
+        plotHiddenNodes=False,color=None,hspace=0.05,wspace=0.0,                \
+        plotInitialConditions=False,ICmarker=None,markerSize=None,**kwargs):
         """
         numCols (None)      : 3.17.2013 set to 1 to plot all indepParams on a single
                               column.
         plotFirstN (None)   : 3.18.2013 if given an integer, plot first N
                               indepParams / fittingData combinations
                               (hack to avoid calling MATLAB)
+        
+        **kwargs passed to pylab.plot.
         """
         if newFigure:
             Plotting.figure()
@@ -2725,8 +2735,16 @@ class yeastOscillatorFittingModel(FittingModel):
                       ax.get_xaxis().set_ticklabels([])
                   # plot continuous lines
                   modelTraj = self.evaluateVec(times,name,indepParams)
-                  returnList.append( pylab.plot(times,modelTraj,ls=lineFmt,        \
-                                                lw=linewidth,color=colorToUse) )
+                  returnList.append( pylab.plot(times,modelTraj,ls=lineFmt,         \
+                                                lw=linewidth,color=colorToUse,      \
+                                                **kwargs) )
+                
+                  if plotInitialConditions and (i<len(indepParamsList[j])):
+                    if ICmarker is None: ICmarker = colorWheelFmt[1]
+                    Plotting.plot([0],[indepParamsList[j][i]],                      \
+                        marker=ICmarker,color=colorWheelFmt[0],                     \
+                        clip_on=False,ms=markerSize)
+                
                   if plotFittingData and (name in varsWithData):
                       # plot data points
                       dataTimes = data[name].keys()
@@ -2734,13 +2752,13 @@ class yeastOscillatorFittingModel(FittingModel):
                       dataStds = [ data[name][time][1] for time in dataTimes ]
                       returnList.append( pylab.errorbar(dataTimes,dataVals,         \
                             yerr=dataStds,marker=marker,mfc=colorToUse,ls='',       \
-                            ecolor='k') )
+                            ecolor='k',ms=markerSize) )
                 
                   ranges = Plotting.axis()
                   ymins.append(ranges[2])
                   ymaxs.append(ranges[3])
                 # make it pretty
-                Plotting.subplots_adjust(wspace=0.,hspace=0.05)
+                Plotting.subplots_adjust(wspace=wspace,hspace=hspace)
                 [ ax.axis(ymin=min(ymins),ymax=max(ymaxs)) for ax in axList ]
             
             return returnList

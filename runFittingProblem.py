@@ -76,16 +76,16 @@ else:
 
 # () choose data source
 #originalString = 'PlanetaryNet'
-#originalString = 'yeastOscillator'
-originalString = 'PhosphorylationNet'
+originalString = 'yeastOscillator'
+#originalString = 'PhosphorylationNet'
 
 # () choose fitting model class
 #fittingType = 'Polynomial'
 #fittingType = 'Laguerre'
 #fittingType = 'SimplePhosphorylation'
-fittingType = 'PerfectPhosphorylation'
+#fittingType = 'PerfectPhosphorylation'
 #fittingType = 'PowerLaw'
-#fittingType = 'CTSN'
+fittingType = 'CTSN'
 
 
 # 8.7.2013 use Planetary network to generate perfect data
@@ -94,7 +94,7 @@ if originalString is 'PlanetaryNet':
     timeAndNoiseSeed = 0 #0
     ICseed = 1 #1
     switchSigmoid = False
-    noiseFracSize = 0.05 #0.01
+    noiseFracSize = 0.05 #0.01 #0.1
     
     maxNumInputs = 1000 # we'll generate this many random inputs for possible use
     
@@ -308,8 +308,10 @@ for v in nonrateVars: priorSigma.append( (v,nonratePriorSigma) )
 fitProbDict = {}
 
 # () optionally restart calculations from a loaded fittingProblemDict
-#restartDictName = None
-restartDictName = 'k0006_fitProb_varying_numInputs_PhosphorylationNet_CTSN_PerfectPhosphorylation_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_maxiter100_avegtol0.01_noClamp_newErrorBars0.1_removeLogForPriors_ratePriorSigma1000.0_seeds0_1_restart0045.dat'
+restartDictName = None
+#restartDictName = '0062_fitProb_varying_numInputs_yeastOscillator_CTSN_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_maxiter100_avegtol0.01_noClamp_newErrorBars0.1_removeLogForPriors_seeds0_1_2_restart0027.dat'
+#restartDictName = 'k0030_fitProb_varying_numInputs_yeastOscillator_CTSN_withEnsembleT1000_steps10000.0_10_maxiter100_avegtol0.01_noiseFracSize0.1_ratePriorSigma10.0_seeds3_4_5_restart0041.dat'
+#restartDictName = '0042_fitProb_varying_numInputs_yeastOscillator_CTSN_withEnsembleT1000_steps10000.0_10_useBest_numPoints1_maxiter100_avegtol0.01_noClamp_newErrorBars0.1_removeLogForPriors_ratePriorSigma10.0_seeds6_7_8_restart0038.dat'
 if restartDictName is not None:
     fitProbDict = Utility.load(restartDictName)
     i = restartDictName.find('_fitProb_')
@@ -367,7 +369,7 @@ if originalString is "PhosphorylationNet":
     numIndepParamsList.extend([52,100,200,300,400,500])
 elif originalString is "yeastOscillator":
     deltaNumIndepParams = 2
-    maxNumIndepParams = 25
+    maxNumIndepParams = 52 #25
     numIndepParamsList = range(deltaNumIndepParams,maxNumIndepParams,deltaNumIndepParams)
 elif originalString is "PlanetaryNet":
     deltaNumIndepParams = 10
@@ -507,7 +509,8 @@ for numIndepParams in numIndepParamsList:
     if fittingType is not 'PerfectPhosphorylation':
         try:
             # fit models
-            p.fitAll(usePreviousParams=usePreviousParams)
+            #p.fitAll(usePreviousParams=usePreviousParams)
+            pass
         except KeyboardInterrupt:
             raise
     Utility.save(fitProbDict,fileNumString+configString+'.dat')
