@@ -113,7 +113,7 @@ def yeastData(numPoints,timeInterval,                                   \
     names = allNames[includedIndices]
     varList = names
     
-    defaultTemperature = 288 #K
+    defaultTemperature = 286.5 #changed 10.16.2013 (was 288 K before)
     
     # Table 2 of RuoChrWol03
     defaultICs = scipy.array([1.187,0.193,0.050,0.115,0.077,2.475,0.077]) # mM
@@ -128,9 +128,6 @@ def yeastData(numPoints,timeInterval,                                   \
         inputList = [[defaultTemperature]]
         inputDescriptors = [inputs[0] for inputs in inputList]
     elif inputVars is None: # use varying initial conditions on all 7 species
-        # *************
-        #numICs = 4 #2 # 4.17.2012 now set with 
-        # *************
         inputVars = [name+"_init" for name in names]  
         print "inputVars =",inputVars      
         # taken from SchValJen11 Table 2
@@ -166,7 +163,7 @@ def yeastData(numPoints,timeInterval,                                   \
     scipy.random.seed(noiseSeed)
     
     # set up preloaded data dict
-    yeastSavedDataFile = "yeast_fittingData_dict.data"
+    yeastSavedDataFile = "yeastExampleData.fittingData"
     yeastDict = {}
     if usePreloadedData:
         try:

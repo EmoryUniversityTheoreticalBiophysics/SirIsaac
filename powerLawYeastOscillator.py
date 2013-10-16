@@ -23,15 +23,17 @@ class PowerLawFittingModel_yeastOscillator(PowerLawFittingModel_FullyConnected):
                        'v1': [('v1A','xi_v1A'),('v1B',1),('v1C',1),('v1D',1),('v1E',1)] }
             
 
-    def __init__(self,temperature=288.,prune=True,**kwargs):
+    def __init__(self,temperature=286.5,prune=True,**kwargs):
         """
         Models yeast oscillator as a 19-dimensional power-law network.
         
         See notes 2.6.2013 - 2.13.2013 and Ruoff_model_original.m.
         
-        temperature (288.)      : In Kelvin.  Rates are dependent on 
+        temperature (286.5)     : In Kelvin.  Rates are dependent on 
                                   temperature according to an Arrhenius
                                   law.
+                                  
+        10.16.2013 Default temperature changed to 286.5 K.
         """
         
         self.speciesNames = scipy.array(['S1','S2A','S2B','S3A','S3B',          \

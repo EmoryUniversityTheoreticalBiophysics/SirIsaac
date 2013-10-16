@@ -3,12 +3,27 @@ function [T,yintegrated,yDerivs,params] = Ruoff_model_original(t,y0,Temperature)
 
 % BCD 8.19.2011 ******************** 
 % (temperature dependent) rate constants
+% from RuoChrWol03
 % k1,k2 from "Fit of model to Hemker et al. data" 
 % at end of Fig.3 caption; rest from Table 1
-% in mM/min (except for K1, in mM?)
+% units mM/min (except for K1, in mM?)
+%x_temp = [ 2.5,
+%          25.,
+%          2.0,
+%          16.0,
+%          100.0,
+%          1.28,
+%          12.0,
+%          1.8,
+%          13.0,
+%          0.52];
+
+% BCD 10.16.2013 changed to match with parameters
+% used in SchValJen11 at T = Tref (same as Table 1
+% in RuoChrWol03)
 x_temp = [ 2.5,
-          25.,
-          2.0,
+          100.,
+          6.0,
           16.0,
           100.0,
           1.28,
@@ -16,6 +31,7 @@ x_temp = [ 2.5,
           1.8,
           13.0,
           0.52];
+
 Tref = 286.5; % K
 R = 0.0083144; % kJ/K/mol
 

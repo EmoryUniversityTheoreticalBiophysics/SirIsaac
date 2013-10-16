@@ -7,6 +7,13 @@
 # alternating log-linear power-law fitting
 # using 7-dimensional yeast oscillator model.
 #
+# ********************************************
+# Outdated as of 10.16.2013, since we're now
+# using parameters that match SchValJen11
+# instead of using T = 288 K
+# (see Ruoff_model_original.m).
+# ********************************************
+#
 
 import FittingProblem
 reload(FittingProblem)
