@@ -98,7 +98,8 @@ def yeastData(numPoints,timeInterval,                                   \
               numICs,useDerivs=True,includedIndices=range(7),           \
               timesSeed=3,noiseSeed=4,ICseed=5,                         \
               multiplicativeErrorBar=0.1,upperRangeMultiple=1.,         \
-              randomX=True,inputVars=None,nonzeroMin=True):
+              randomX=True,inputVars=None,nonzeroMin=True,              \
+              yeastSavedDataFile=None):
     """
     upperRangeMultiple (1.)         : Each range of initial conditions is
                                       expanded by this factor by increasing
@@ -163,7 +164,8 @@ def yeastData(numPoints,timeInterval,                                   \
     scipy.random.seed(noiseSeed)
     
     # set up preloaded data dict
-    yeastSavedDataFile = "yeastExampleData.fittingData"
+    if yeastSavedDataFile is None:
+        yeastSavedDataFile = "yeastExampleData.fittingData"
     yeastDict = {}
     if usePreloadedData:
         try:

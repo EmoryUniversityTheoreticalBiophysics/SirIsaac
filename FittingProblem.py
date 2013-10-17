@@ -2603,8 +2603,9 @@ class yeastOscillatorFittingModel(FittingModel):
             
         # Table 2 of RuoChrWol03
         # units: mM (except for the last one, in K)
+        # 10.16.2013 default temperature changed from 288 to 286.5
         self.defaultIndepParams =                                               \
-                scipy.array([1.187,0.193,0.050,0.115,0.077,2.475,0.077,288.])
+                scipy.array([1.187,0.193,0.050,0.115,0.077,2.475,0.077,286.5])
         
         self._savedEvalsFilename = 'yeast_savedEvalsDict.data'
         try:
@@ -2731,7 +2732,7 @@ class yeastOscillatorFittingModel(FittingModel):
                   axList.append(ax)
                   # remove middle axes labels
                   if j != 0: ax.get_yaxis().set_ticklabels([])
-                  if i != len(dataToPlotSorted)-1: 
+                  if i != len(dataToPlotSorted)-1:
                       ax.get_xaxis().set_ticklabels([])
                   # plot continuous lines
                   modelTraj = self.evaluateVec(times,name,indepParams)
@@ -2818,8 +2819,35 @@ class yeastOscillatorFittingModel(FittingModel):
             print "shape(data) =",scipy.shape(data)
                                                                               
         return data[desiredVarIndices]
-            
+
+    def networkFigure(self,filename,**kwargs):
+        """
+        Passes on kwargs to networkList2DOT.
         
+        (The networkList is hard-coded, so this function always 
+        returns the same network.  
+        Edge parameters are based solely on activation/repression.
+        See notes 10.16.2013.  
+        Always activating = arrow
+        Always inhibiting = circle
+        Sometimes activating, sometimes inhibiting = dotted line
+        """
+        
+        netList = [ [ 1, {0:-1, 5:0}],
+                    [ 1, {0:+1, 5:0,  1:-1, 4:-1}],
+                    [ 1, {1:+1, 4:-1, 2:-1, 5:+1}],
+                    [ 1, {2:+1, 5:-1, 3:-1, 4:-1, 6:+1}],
+                    [ 1, {1:+1, 4:-1, 3:-1}],
+                    [ 1, {0:-1, 5:0,  2:+1}],
+                    [ 1, {3:+1, 6:-1}]
+                  ]
+        
+        speciesNames = ['S1','S2','S3','S4','N2','A3','S4ex']
+        speciesColors = ['b','g','r','gray','gray','gray','gray']
+        
+        return networkList2DOT(netList,speciesNames,[],                 \
+                    filename,speciesColors=speciesColors,               \
+                    smallWidthStyle='dashed',**kwargs)
 
     
 class EnsembleGenerator():
@@ -4349,12 +4377,15 @@ def _createNetworkList(complexity,numInputs,numOutputs,                         
 def networkList2DOT(networkList,speciesNames,indepParamNames,               \
     filename,nodeShape='ellipse',indepParamColor='w',                       \
     speciesColors=None,Xcolor='gray',skipIndependentNodes=False,            \
-    showWeights=False,**kwargs):
+    showWeights=False,smallWidthStyle='solid',                              \
+    nodeDiameter=0.75,plotDiameter=200.,fontsize=24,**kwargs):
     """
     Uses pygraphviz to create a DOT file from the given networkList.
     
     prog ('neato')          :'neato','fdp',
     showWeights (False)     : True to label edges with weights
+    nodeDiameter (0.75)     : Linear size of nodes (units?)
+    plotDiameter (200.)     : Linear size of plot (units?)
     
     (See also analyzeSparsenessProblem.drawNetworkFromMatrix 
      for more examples of pygraphviz usage.  See also
@@ -4380,7 +4411,7 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,               \
     speciesNamesFiltered =                                                  \
         filter(lambda name: name not in indepParamNames,speciesNames)
 
-    G = AGraph(strict=False,**kwargs)
+    G = AGraph(strict=False,margin=0,**kwargs)
     allNames = inputNames + speciesNamesFiltered
     num = len(allNames)
     if num != len(networkList): 
@@ -4389,9 +4420,9 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,               \
     allColors = list(scipy.repeat(indepParamColor,len(inputNames)))
     for i,color in zip(range(len(speciesNamesFiltered)),speciesColors):
         # in case it's from Plotting.ColorWheel
-        if scipy.iterable(color): color = color[0] 
+        if type(color) is tuple: color = color[0]
         allColors.append(color)
-    nodeWidth,nodeHeight = 1,1
+    nodeWidth,nodeHeight = nodeDiameter,nodeDiameter
     ignoreIndices = []
     positionIndices = range(num)
     positionNum = num
@@ -4406,7 +4437,7 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,               \
         positionIndices = range(-len(inputNames),num-len(inputNames))
     
     twoPi = 2.*scipy.pi
-    radius = 200.
+    radius = plotDiameter/2.
     xList = [ str(radius*scipy.cos(twoPi*i/positionNum)) for i in positionIndices ]
     yList = [ str(radius*scipy.sin(twoPi*i/positionNum)) for i in positionIndices ] 
     
@@ -4426,7 +4457,8 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,               \
       if i not in ignoreIndices:
         G.add_node(i,width=nodeWidth,height=nodeHeight,label=name,          \
           fillcolor=hexColor,style='filled',                                \
-          shape=nodeShape,fontcolor=fc,pos=x+','+y)
+          shape=nodeShape,fontcolor=fc,pos=x+','+y,fontsize=fontsize,       \
+          margin=0.)
     
     # add edges
     for i in range(num):
@@ -4448,7 +4480,7 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,               \
                     label = ''
                     penColor = 'black'
                 if abs(weight) < minPenWidth: 
-                    style = 'solid' #'dotted'
+                    style = smallWidthStyle #'solid' #'dotted'
                     penwidth = minPenWidth
                 elif abs(weight) > maxPenWidth:
                     style = 'solid'
@@ -4464,7 +4496,7 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,               \
         filename = filename + ".dot"
     G.write(filename)
     #call(["neato","-n1","-o"+filename[:-4]+".png","-Tpng",filename])
-    call(["neato","-n2","-o"+filename[:-4]+".png","-Tpng","-Gsplines=true",filename])
+    call(["neato","-n2","-o"+filename[:-4]+".pdf","-Tpdf","-Gsplines=true",filename])
     return G
     
     
