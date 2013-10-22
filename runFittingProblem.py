@@ -235,9 +235,9 @@ elif originalString is 'yeastOscillator':
   names = allNames[includedIndices]
   outputVars = names
     
-  timesSeed = 0 #0
-  noiseSeed = 1 #1
-  ICseed = 2 #2
+  timesSeed = 12 #0
+  noiseSeed = 13 #1
+  ICseed = 14 #2
   noiseFracSize = 0.1
   
   fakeDataAbs = False 
@@ -254,8 +254,7 @@ elif originalString is 'yeastOscillator':
     if (os.uname()[1] != 'star'): # can't do if MATLAB isn't installed
         from simulateYeastOscillator import *
             
-    # NOTE! if changing timeInterval, make sure you run MATLAB stuff again
-    timeInterval = [0.,10.] #[0.,1e-5] #[0.,10.] # minutes #
+    timeInterval = [0.,5.] #[0.,10.] #[0.,1e-5] #[0.,10.] # minutes #
             
     multiplicativeErrorBar = noiseFracSize # 0.1
             
@@ -509,7 +508,8 @@ for numIndepParams in numIndepParamsList:
     if fittingType is not 'PerfectPhosphorylation':
         try:
             # fit models
-            p.fitAll(usePreviousParams=usePreviousParams)
+            #p.fitAll(usePreviousParams=usePreviousParams)
+            pass
         except KeyboardInterrupt:
             raise
     Utility.save(fitProbDict,fileNumString+configString+'.dat')

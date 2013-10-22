@@ -12,6 +12,7 @@ import scipy.io
 import os
 import pylab # for pylab.find
 import simplePickle
+import copy
 
 #codeDir = "~/Research/SloppySimplification/yeastOscillator"
 codeDir = "./yeastOscillator"
@@ -99,7 +100,7 @@ def yeastData(numPoints,timeInterval,                                   \
               timesSeed=3,noiseSeed=4,ICseed=5,                         \
               multiplicativeErrorBar=0.1,upperRangeMultiple=1.,         \
               randomX=True,inputVars=None,nonzeroMin=True,              \
-              yeastSavedDataFile=None):
+              yeastSavedDataFile=None,includeNoise=True):
     """
     upperRangeMultiple (1.)         : Each range of initial conditions is
                                       expanded by this factor by increasing
@@ -189,7 +190,7 @@ def yeastData(numPoints,timeInterval,                                   \
         else:
             temperature = defaultTemperature
         
-        initialConditions = defaultICs
+        initialConditions = copy.deepcopy(defaultICs)
         for inputVar,input in zip(inputVars,inputs):
             # if it's initial conditions
             if inputVar[-5:] == "_init":
@@ -205,14 +206,9 @@ def yeastData(numPoints,timeInterval,                                   \
             desiredTimes = timesRand * (timeInterval[1]-timeInterval[0])        \
                 + timeInterval[0]
 
-        yeastDataKey = (tuple(initialConditions),inputDescriptor,tuple(timesRand))
-        #yeastDataFilename = "yeast_fittingData_T"+str(temperature)+             \
-        #    "_numPoints"+str(numPoints)+                                        \
-        #    "_"+str(inputDescriptor)+"_randomX"+str(randomX)+                   \
-        #    "_seeds_"+str(timesSeed)+"_"+str(ICseed)+                           \
-        #    "_endTime_"+str(timeInterval[1])+                                   \
-        #    "_upperRangeMult_"+str(upperRangeMultiple)+                         \
-        #    "_nonzeroMin"+str(nonzeroMin)+".data"
+        yeastDataKey = copy.deepcopy(                                           \
+            (tuple(initialConditions),inputDescriptor,tuple(desiredTimes)))
+        
         runMATLAB = not usePreloadedData
         if usePreloadedData:
                 if yeastDict.has_key(yeastDataKey):
@@ -235,10 +231,8 @@ def yeastData(numPoints,timeInterval,                                   \
                               for time in desiredTimes ]
             yeastRawData = yeastRawData[:,desiredIndices]
             yeastTimes = yeastTimes[:,desiredIndices]
-            #simplePickle.save((yeastTimes,initialConditions,yeastRawData),      \
-            #                    yeastDataFilename)
             
-            yeastDict[yeastDataKey] = (yeastTimes,1.*initialConditions,yeastRawData)
+            yeastDict[yeastDataKey] = (yeastTimes,initialConditions,yeastRawData)
 
         if False: # OLD! use temp. as input, calculate v1 as output, mult. error bars
             S1data = yeastRawData[0]
@@ -271,8 +265,7 @@ def yeastData(numPoints,timeInterval,                                   \
             # 2.22.2012 from Table 2 of SchValJen11
             stddevs = [0.4872,0.6263,0.0503,0.0814,0.0379,0.7478,0.0159] # mM
             
-            #includeDerivs = False
-            includeNoise = False #True # <<<<****** 12.5.2012 to avoid negative values
+            #includeNoise = False #True # <<<<****** 12.5.2012 to avoid negative values
             verbose = True
             
             dataList = scipy.array(yeastRawData)[:7][includedIndices]
