@@ -235,9 +235,9 @@ elif originalString is 'yeastOscillator':
   names = allNames[includedIndices]
   outputVars = names
     
-  timesSeed = 12 #0
-  noiseSeed = 13 #1
-  ICseed = 14 #2
+  timesSeed = 0 #0
+  noiseSeed = 1 #1
+  ICseed = 2 #2
   noiseFracSize = 0.1
   
   fakeDataAbs = False 
@@ -508,8 +508,7 @@ for numIndepParams in numIndepParamsList:
     if fittingType is not 'PerfectPhosphorylation':
         try:
             # fit models
-            #p.fitAll(usePreviousParams=usePreviousParams)
-            pass
+            p.fitAll(usePreviousParams=usePreviousParams)
         except KeyboardInterrupt:
             raise
     Utility.save(fitProbDict,fileNumString+configString+'.dat')
