@@ -769,7 +769,7 @@ class FittingProblem:
             else:
                 return [scipy.nan]
         
-        for indepParams in indepParamsList:
+        for k,indepParams in enumerate(indepParamsList):
           
           # 7.12.2012 for use with speedDict from George worm data
           if self.saveFilename.find('wormData') >= 0:
@@ -787,30 +787,64 @@ class FittingProblem:
             if hasattr(self,'perfectFitParams'):
               self.perfectModel.initializeParameters(self.perfectFitParams)
                 
-          corrListI,errListI = [],[]
           data = fittingModel.evaluateVec(times,var,indepParams)
-          
-          if makePlots: 
-            pylab.figure()
-            cW = Plotting.ColorWheel()
-            numRows = scipy.ceil(float(len(var))/numCols)
         
-          for i,v,d,pd in zip(range(len(var)),var,data,perfectData):
-            d = flat(d)
-            pd = flat(pd)
-            corr,p = scipy.stats.pearsonr(d,pd)
-            corrListI.append(corr)
-            meansqerr = scipy.mean( (d - pd)**2 )
-            errListI.append(meansqerr)
-            if makePlots:
-                Plotting.subplot(numRows,numCols,i+1)
-                color,tmp,tmp = cW.next()
-                pylab.plot(d,'-',color=color,label="Model "+v)
-                pylab.plot(pd,'o',color=color,label="Actual "+v)
-                pylab.ylabel(v)
-                #pylab.legend()
-          corrList.append(corrListI)
-          errList.append(errListI)
+          if numPoints > 1:
+              # for multiple timepoints, calculate correlation over timepoints
+              # (typical case in 2013 paper)
+              corrListI,errListI = [],[]
+              if makePlots:
+                  pylab.figure()
+                  cW = Plotting.ColorWheel()
+                  numRows = scipy.ceil(float(len(var))/numCols)
+              for i,v,d,pd in zip(range(len(var)),var,data,perfectData):
+                d = flat(d)
+                pd = flat(pd)
+                corr,p = scipy.stats.pearsonr(d,pd)
+                corrListI.append(corr)
+                meansqerr = scipy.mean( (d - pd)**2 )
+                errListI.append(meansqerr)
+                if makePlots:
+                    Plotting.subplot(numRows,numCols,i+1)
+                    color,tmp,tmp = cW.next()
+                    pylab.plot(d,'-',color=color,label="Model "+str(v))
+                    pylab.plot(pd,'o',color=color,label="Actual "+str(v))
+                    pylab.ylabel(v)
+                    #pylab.legend()
+              corrList.append(corrListI)
+              errList.append(errListI)
+          elif numPoints == 1:
+            # for single timepoint, calculate correlation over indepParams
+            if k == 0:
+              # initialize data structures
+              dataList,perfectDataList = [],[]
+            
+            dataList.append(data[:,0])
+            perfectDataList.append(perfectData[:,0])
+    
+            if k == len(indepParamsList) - 1: # calculate correlations once
+              data,perfectData =                                                \
+                scipy.transpose(dataList),scipy.transpose(perfectDataList)
+              # now data is (#vars) x (#indepParams)
+              corrListI,errListI = [],[]
+              if makePlots:
+                  pylab.figure()
+                  cW = Plotting.ColorWheel()
+                  numRows = scipy.ceil(float(len(var))/numCols)
+              for i,v,d,pd in zip(range(len(var)),var,data,perfectData):
+                  corr,p = scipy.stats.pearsonr(d,pd)
+                  corrListI.append(corr)
+                  meansqerr = scipy.mean( (d - pd)**2 )
+                  errListI.append(meansqerr)
+                  if makePlots:
+                    Plotting.subplot(numRows,numCols,i+1)
+                    color,tmp,tmp = cW.next()
+                    pylab.plot(d,pd,'o',color=color)
+                    pylab.ylabel("Actual "+str(v))
+                    pylab.xlabel("Model "+str(v))
+                    #pylab.legend()
+              corrList.append(corrListI)
+              errList.append(errListI)
         
         if returnErrors:
               return scipy.array(corrList),scipy.array(errList)

@@ -65,11 +65,9 @@ def numDataPoints(fittingProblem,perDataPoint=True):
         return scipy.sum([len(d.keys()) for d in fittingProblem.fittingData])
 
 # various things you can calculate
-def bestOutOfSampleCorrs(fpdList,type,vars=None,maxIndex=-3,outOfSampleMult=2.,indepParamRanges=None,sampleInLog=False,onlyBest=True,seed=100,timeRange=None,testPerfect=False,returnErrors=True,**kwargs):
+def bestOutOfSampleCorrs(fpdList,type,vars=None,maxIndex=-3,outOfSampleMult=2.,indepParamRanges=None,sampleInLog=False,onlyBest=True,seed=100,testPerfect=False,returnErrors=True,timeRange=[0,10],numPoints=100,numTests=100,**kwargs):
     """
     nans (encountered when integration fails) are changed to zeros.
-    
-    For non-derivative fitting, uses time range of [0,10].
     
     type                    : Can be 'yeast','phos','worm'
     onlyBest (True)         : If False, calculate out-of-sample correlations for all
@@ -77,6 +75,12 @@ def bestOutOfSampleCorrs(fpdList,type,vars=None,maxIndex=-3,outOfSampleMult=2.,i
     testPerfect (False)     : If True, test fp.perfectModel.  Overrides onlyBest.
     returnErrors (True)     : If True, also return mean squared errors 
                               (only works for certain cases)
+    timeRange ([0,10])      : For non-derivative fitting, sample uniformly
+                              over this time range.
+    numPoints (100)         : Number of timepoints to test.  (If 1, calculate
+                              correlations for a single timepoint over 
+                              independent parameter conditions.)
+    numTests (100)          : Number of independent parameter sets to test.
     """
     if hasattr(fpdList[0].values()[0],'fittingDataDerivs'):
         useDerivs = (fpdList[0].values()[0].fittingDataDerivs is not None)
@@ -102,7 +106,8 @@ def bestOutOfSampleCorrs(fpdList,type,vars=None,maxIndex=-3,outOfSampleMult=2.,i
         raise Exception, "Unrecognized type: "+str(type)
 
     def modelCorrsFunc(fp,model):
-        c = fp.outOfSampleCorrelation(model,[0,10],vars,indepParamRanges,numTests=100,verbose=False,sampleInLog=sampleInLog,seed=seed,returnErrors=returnErrors)
+        c = fp.outOfSampleCorrelation(model,timeRange,vars,indepParamRanges,numTests=numTests,verbose=False,sampleInLog=sampleInLog,seed=seed,returnErrors=returnErrors,
+            numPoints=numPoints)
         if returnErrors:
             return scipy.mean(scipy.nan_to_num(c[0])),scipy.mean(c[1])
         else:
@@ -115,7 +120,7 @@ def bestOutOfSampleCorrs(fpdList,type,vars=None,maxIndex=-3,outOfSampleMult=2.,i
       if not useDerivs: # not fitting derivatives
         corrsFunc = lambda mName,fp: modelCorrsFunc(fp,fp.fittingModelDict[mName])
       else: # fitting derivatives 1.10.2013
-        corrsFunc = lambda mName,fp: scipy.nan_to_num( fp.outOfSampleCorrelation_deriv(fp.fittingModelDict[mName],vars,indepParamRanges,numTests=100,sampleInLog=sampleInLog,seed=seed) ) 
+        corrsFunc = lambda mName,fp: scipy.nan_to_num( fp.outOfSampleCorrelation_deriv(fp.fittingModelDict[mName],vars,indepParamRanges,numTests=numTests,sampleInLog=sampleInLog,seed=seed) )
       skip = True
     else: # 7.25.2012 calculate for all fit models
       if not useDerivs: # not fitting derivatives
@@ -126,7 +131,7 @@ def bestOutOfSampleCorrs(fpdList,type,vars=None,maxIndex=-3,outOfSampleMult=2.,i
         indepParamsSeed = seed
         scipy.random.seed(seed)
         timeSeed = scipy.random.randint(1e6)
-        corrsFunc = lambda mName,fp: [ scipy.nan_to_num( fp.outOfSampleCorrelation_deriv(fp.fittingModelDict[name],vars,indepParamRanges,numTests=100,timeSeed=timeSeed,indepParamsSeed=indepParamsSeed,timeRange=timeRange) ) for name in orderedFitNames(fp) ]
+        corrsFunc = lambda mName,fp: [ scipy.nan_to_num( fp.outOfSampleCorrelation_deriv(fp.fittingModelDict[name],vars,indepParamRanges,numTests=numTests,timeSeed=timeSeed,indepParamsSeed=indepParamsSeed,timeRange=timeRange) ) for name in orderedFitNames(fp) ]
       skip = False
     return calcForAllFpds(fpdList,corrsFunc,maxIndex=maxIndex,addYeastPerfectModel=addYeastPerfectModel,**kwargs)
 
