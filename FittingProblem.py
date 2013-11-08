@@ -2136,8 +2136,9 @@ class SloppyCellFittingModel(FittingModel):
                 if plotInitialConditions and (i<len(indepParamsList[j])):
                     if ICmarker is None: ICmarker = colorWheelFmt[1]
                     Plotting.plot([0],[indepParamsList[j][i]],                  \
-                        marker=ICmarker,color=colorWheelFmt[0],                 \
-                        clip_on=False,ms=ICmarkerSize)
+                        marker=ICmarker,                                        \
+                        clip_on=False,ms=ICmarkerSize,zorder=5,                 \
+                        mfc="None",mec=colorWheelFmt[0],mew=ICmarkerSize/3.)
                 
                 if j == 0:
                     Plotting.ylabel(name)
@@ -2777,8 +2778,9 @@ class yeastOscillatorFittingModel(FittingModel):
                   if plotInitialConditions and (i<len(indepParamsList[j])):
                     if ICmarker is None: ICmarker = colorWheelFmt[1]
                     Plotting.plot([0],[indepParamsList[j][i]],                      \
-                        marker=ICmarker,color=colorWheelFmt[0],                     \
-                        clip_on=False,ms=markerSize)
+                        marker=ICmarker,                                            \
+                        clip_on=False,ms=markerSize,zorder=5,                       \
+                        mfc="None",mec=colorWheelFmt[0],mew=markerSize/3.)
                 
                   if plotFittingData and (name in varsWithData):
                       # plot data points
@@ -2787,7 +2789,7 @@ class yeastOscillatorFittingModel(FittingModel):
                       dataStds = [ data[name][time][1] for time in dataTimes ]
                       returnList.append( pylab.errorbar(dataTimes,dataVals,         \
                             yerr=dataStds,marker=marker,mfc=colorToUse,ls='',       \
-                            ecolor='k',ms=markerSize) )
+                            ecolor='k',ms=markerSize,barsabove=True) )
                 
                   ranges = Plotting.axis()
                   ymins.append(ranges[2])

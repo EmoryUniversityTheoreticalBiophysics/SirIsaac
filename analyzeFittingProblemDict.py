@@ -176,7 +176,8 @@ def totalNumFunctionCalls(fpdList,**kwargs):
     return calcForAllFpds(fpdList,totalFuncCallsFunc,skip=False,**kwargs)
 
 # updated 10.10.2013
-def totalNumEvaluations(fpdList,stopFittingN=scipy.inf,**kwargs):
+def totalNumEvaluations(fpdList,stopFittingN=scipy.inf,                     \
+    replaceNanWithMax=False,**kwargs):
     """
     Total number of times daeint was called.
     
@@ -191,6 +192,12 @@ def totalNumEvaluations(fpdList,stopFittingN=scipy.inf,**kwargs):
     
     stopFittingN (inf)          : Only include models up to stopFittingN
                                   past the maxLogLikelihoodName
+    replaceNanWithMax (False)   : If True, replace nans in numGradCallsList
+                                  and numCostCallsList with the maximum
+                                  non-nan value in the list (hopefully 
+                                  overestimating the total number, 
+                                  especially when nans are rare).
+                                  See notes 10.31.2013.
     """
     def totalFuncCallsFunc(mName,fp):
         if hasattr(fp,'newLogLikelihoodDict'):
@@ -199,11 +206,24 @@ def totalNumEvaluations(fpdList,stopFittingN=scipy.inf,**kwargs):
             keyList = []
         ND = len(fp.fittingData)
         mList = [ fp.fittingModelDict[name] for name in keyList ]
-        return scipy.sum( [                                             \
-           ND * scipy.sum(m.numCostCallsList)                           \
-         + ND*(1+len(m.getParameters())) *                              \
-            ( scipy.sum(m.numGradCallsList) + m.ensGen.totalSteps )
-         for m in mList ] )
+        
+        total = 0
+        for m in mList:
+            costCalls = m.numCostCallsList
+            gradCalls = m.numGradCallsList
+            if replaceNanWithMax:
+                costCallsMax = scipy.nanmax(costCalls)
+                numNanCost = scipy.sum(scipy.isnan(costCalls))
+                costCalls = numNanCost * costCallsMax + scipy.nansum(costCalls)
+                gradCallsMax = scipy.nanmax(gradCalls)
+                numNanGrad = scipy.sum(scipy.isnan(gradCalls))
+                gradCalls = numNanGrad * gradCallsMax + scipy.nansum(gradCalls)
+            total +=                                                        \
+               ND * scipy.sum(costCalls)                                    \
+             + ND*(1+len(m.getParameters())) *                              \
+             ( scipy.sum(gradCalls) + m.ensGen.totalSteps )
+        return total
+        
     return calcForAllFpds(fpdList,totalFuncCallsFunc,skip=False,**kwargs)
     
 def totalWallTimesHours(fpdList,includedNames=None,**kwargs):
