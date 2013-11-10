@@ -1992,9 +1992,12 @@ class SloppyCellFittingModel(FittingModel):
         rowOffset=0,                                                            \
         plotDerivs=False,linestyle=None,plotInitialConditions=False,            \
         marker=None,numCols=None,xmax=None,color=None,numYTicks=3,              \
-        hspace=0.05,wspace=0.0,ICmarker=None,ICmarkerSize=None,**kwargs):
+        hspace=0.05,wspace=0.0,ICmarker=None,ICmarkerSize=None,                 \
+        height_ratios=None,**kwargs):
         """
         Note: exptsToPlot isn't currently used when numCols != 1.
+        
+        Returns 2D list of axes.
         
         separateIndepParams (True)      : 4.18.2012 plot each set of independent
                                           parameters and each species in a 
@@ -2003,6 +2006,8 @@ class SloppyCellFittingModel(FittingModel):
                                           column for all independent parameters
         numYTicks (3)                   : Force a given number of ticks on
                                           each y-axis (use None for default)
+        height_ratios (None)            : Passed to Plotting.matplotlib.
+                                          gridspec.GridSpec
         """
         
         
@@ -2074,6 +2079,7 @@ class SloppyCellFittingModel(FittingModel):
                     left=pad,right=1.0-pad)
             
             returnList = []
+            axArray = []
             
             # loop over species
             for i,name in enumerate(dataToPlotSorted):
@@ -2095,7 +2101,11 @@ class SloppyCellFittingModel(FittingModel):
                 colorWheelFmt = colorWheelFmt[0],colorWheelFmt[1],linestyle
               if marker is not None:
                 colorWheelFmt = colorWheelFmt[0],marker,colorWheelFmt[2]
-                
+    
+              # set up subplot grid
+              subplotGrid = Plotting.matplotlib.gridspec.GridSpec(          \
+                numRows,numCols,height_ratios=height_ratios)
+    
               # loop over independent parameter conditions
               for j,netID in enumerate(netIDList):
                     
@@ -2109,7 +2119,8 @@ class SloppyCellFittingModel(FittingModel):
                         # avoid assuming that we want subplot(1,1,1)
                         ax = Plotting.gca()
                     else:
-                        ax = Plotting.subplot(numRows,numCols,subplotIndex)
+                        #ax = Plotting.subplot(numRows,numCols,subplotIndex)
+                        ax = Plotting.subplot(subplotGrid[subplotIndex-1])
                   
                     # Mess with ticks
                     if numYTicks is not None:
@@ -2153,7 +2164,9 @@ class SloppyCellFittingModel(FittingModel):
                   and (i == len(dataToPlotSorted)-1):
                     xticks = ax.xaxis.get_ticklocs()
                     ax.xaxis.set_ticks(xticks[:-1])
-                
+        
+              axArray.append(axList)
+        
               if xmax is not None:
                 Plotting.axis(xmax=xmax)
               
@@ -2170,7 +2183,7 @@ class SloppyCellFittingModel(FittingModel):
                     ax0.yaxis.set_ticks(yticks[:-1])
                     #print "ytl =", ytl
                 
-            return returnList
+            return axArray #returnList
     
     # 9.26.2012
     def plotDerivResults(self,fittingData,fittingDataDerivs,
@@ -2685,13 +2698,17 @@ class yeastOscillatorFittingModel(FittingModel):
         dataToPlot=None,plotFittingData=False,linewidth=1.,numRows=None,        \
         newFigure=False,rowOffset=0,plotFirstN=None,linestyle=None,             \
         plotHiddenNodes=False,color=None,hspace=0.05,wspace=0.0,                \
-        plotInitialConditions=False,ICmarker=None,markerSize=None,**kwargs):
+        plotInitialConditions=False,ICmarker=None,markerSize=None,              \
+        height_ratios=None,existingAxArray=None,**kwargs):
         """
+        Returns 2D list of axes.
+        
         numCols (None)      : 3.17.2013 set to 1 to plot all indepParams on a single
                               column.
         plotFirstN (None)   : 3.18.2013 if given an integer, plot first N
                               indepParams / fittingData combinations
                               (hack to avoid calling MATLAB)
+        existingAxArray (None)  : Use to plot on an existing axis array.
         
         **kwargs passed to pylab.plot.
         """
@@ -2733,7 +2750,12 @@ class yeastOscillatorFittingModel(FittingModel):
             if numRows is None:
                 #numRows = scipy.ceil(float(len(dataToPlotSorted))/numCols)
                 numRows = len(dataToPlotSorted)
-            returnList = []
+                
+            # set up subplot grid
+            subplotGrid = Plotting.matplotlib.gridspec.GridSpec(          \
+                numRows,numCols,height_ratios=height_ratios)
+                
+            returnList,axArray = [],[]
             for i,name in enumerate(dataToPlotSorted):
                 axList = []
                 ymins,ymaxs = [],[]
@@ -2757,12 +2779,18 @@ class yeastOscillatorFittingModel(FittingModel):
                 j = -1
                 for data,indepParams in zip(fittingData[:N],indepParamsList[:N]):
                   j += 1
-                  #Plotting.subplot(numRows,numCols,i+1)
-                  if numCols == 1:
-                    subplotIndex = 1+(i+rowOffset)*numCols
+                  
+                  if existingAxArray is None:
+                      if numCols == 1:
+                        subplotIndex = 1+(i+rowOffset)*numCols
+                      else:
+                        subplotIndex = j+1+(i+rowOffset)*numCols
+                      #ax = Plotting.subplot(numRows,numCols,subplotIndex)
+                      ax = Plotting.subplot(subplotGrid[subplotIndex-1])
                   else:
-                    subplotIndex = j+1+(i+rowOffset)*numCols
-                  ax = Plotting.subplot(numRows,numCols,subplotIndex)
+                      ax = existingAxArray[i][j]
+                      Plotting.sca(ax)
+                  
                   if j==0: Plotting.ylabel(name)
                   axList.append(ax)
                   # remove middle axes labels
@@ -2794,11 +2822,12 @@ class yeastOscillatorFittingModel(FittingModel):
                   ranges = Plotting.axis()
                   ymins.append(ranges[2])
                   ymaxs.append(ranges[3])
+                axArray.append(axList)
                 # make it pretty
                 Plotting.subplots_adjust(wspace=wspace,hspace=hspace)
                 [ ax.axis(ymin=min(ymins),ymax=max(ymaxs)) for ax in axList ]
             
-            return returnList
+            return axArray #returnList
     
     def initializeParameters(self,paramList):
         print "Oops!  initializeParameters needs to be implemented!"
@@ -4414,7 +4443,8 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,               \
     filename,nodeShape='ellipse',indepParamColor='w',                       \
     speciesColors=None,Xcolor='gray',skipIndependentNodes=False,            \
     showWeights=False,smallWidthStyle='solid',                              \
-    nodeDiameter=0.75,plotDiameter=200.,fontsize=24,**kwargs):
+    nodeDiameter=0.75,plotDiameter=200.,fontsize=24,                        \
+    minPenWidth = 0.3,maxPenWidth = 10.,**kwargs):
     """
     Uses pygraphviz to create a DOT file from the given networkList.
     
@@ -4507,8 +4537,6 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,               \
                 weight = scipy.mean( weightList )
                 if weight < 0.: arrowhead = 'odot'
                 else: arrowhead = 'normal'
-                minPenWidth = 0.3
-                maxPenWidth = 10.
                 if showWeights: 
                     label = ''.join([ '%1.2f '%w for w in weightList ])
                     penColor = 'gray52' #'slategray'
