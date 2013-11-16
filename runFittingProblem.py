@@ -187,7 +187,7 @@ elif originalString is 'PhosphorylationNet':
     rateVars = ['k']
     nonrateVars = ['Km','totalPhos']
 
-    ratePriorSigma = 1e3 #10 #1e3 #10. #1e3
+    ratePriorSigma = 10 #1e3 #10 #1e3 #10. #1e3
     nonratePriorSigma = 10.
 
     originalModelFilename = 'examplePhosphorylationFittingModel.model'

@@ -140,20 +140,56 @@ def bestModelCostPerMeasurement(fpdList,testPerfect=False,onlyBest=True,**kwargs
     testPerfect (False)     : If True, look for fp.perfectCost.
     
     Returns 2*cost/numMeasurements.  (2*cost should be chi^2.)
+    
+    Assumes numMeasurements = len(fittingData)*len(fittingData[0])
+    (that for every time point there are an equal number of measurements)
     """
     if testPerfect:
         def costFunc(mName,fp):
             if hasattr(fp,'perfectCost'):
-                return 2.*fp.perfectCost/len(fp.fittingData)
+                return 2.*fp.perfectCost/(len(fp.fittingData)*len(fp.fittingData[0]))
             else:
                 print "bestModelCostPerMeasurement: No perfectCost.  Returning None."
                 return None
         kwargs['skip'] = False # don't skip if we haven't fit the fittingModels
     elif onlyBest:
-        costFunc = lambda mName,fp: 2.*fp.costDict[mName]/len(fp.fittingData)
+        costFunc = lambda mName,fp: \
+              2.*fp.costDict[mName]/(len(fp.fittingData)*len(fp.fittingData[0])) 
     else: # calculate for all models
         costFunc = lambda mName,fp: \
-            [ 2.*fp.costDict[name]/len(fp.fittingData) for name in orderedFitNames(fp) ]
+            [ 2.*fp.costDict[name]/(len(fp.fittingData)*len(fp.fittingData[0]))     \
+             for name in orderedFitNames(fp) ]
+    return calcForAllFpds(fpdList,costFunc,**kwargs)
+
+def bestModelCostPerMeasurementNoPriors(fpdList,testPerfect=False,onlyBest=True,**kwargs):
+    """
+        testPerfect (False)     : If True, look for fp.perfectModel.
+        
+        Returns 2*cost/numMeasurements.  (2*cost should be chi^2.)
+        
+        Assumes numMeasurements = len(fittingData)*len(fittingData[0])
+        (that for every time point there are an equal number of measurements)
+        """
+    costNoPriors = lambda m,fp: scipy.sum( scipy.array(                             \
+        m.currentResiduals(fp.fittingData,fp.indepParamsList,                       \
+                           includePriors=False))**2 ) /                             \
+        (len(fp.fittingData)*len(fp.fittingData[0]))
+    
+    if testPerfect:
+        def costFunc(mName,fp):
+            if hasattr(fp,'perfectModel'):
+                return costNoPriors(fp.perfectModel,fp)
+            else:
+                print "bestModelCostPerMeasurement: No perfectCost.  Returning None."
+                return None
+        kwargs['skip'] = False # don't skip if we haven't fit the fittingModels
+    elif onlyBest:
+        costFunc = lambda mName,fp: \
+            costNoPriors(fp.fittingModelDict[mName],fp)
+    else: # calculate for all models
+        costFunc = lambda mName,fp: \
+            [ costNoPriors(fp.fittingModelDict[name],fp)                            \
+             for name in orderedFitNames(fp) ]
     return calcForAllFpds(fpdList,costFunc,**kwargs)
 
 def bestModelNumParams(fpdList,**kwargs):
@@ -359,7 +395,56 @@ def plotAllFpdsDict(dataDict,marker='o',ls='',color='b',label=None,     \
             
     if returnData:
         return kList,meanList,stdList
-        
+
+# 11.13.2013 taken from paperFiguresPhosphorylation.ipynb
+def plotAllFpdsDictPretty(fpdList,plotDivisibleBy=1,errorBars=True,percent=67.,
+                          clip_on=True,ls=':',lw=1,ms=None,**kwargs):
+    """
+    plotDivisibleBy (None)          : plot only N_Ds divisible by plotDivisibleBy
+    percent (67.)                   : confidence interval size (0 to 100)
+    errorBars (True)                : If false, plot MEANS (NOT MEDIANS) only
+    """
+    # use plotMeans=False to get all data, not just means
+    kList,yValsList,stdList = plotAllFpdsDict(fpdList,returnData=True,\
+                                              makePlot=False,plotMeans=False,**kwargs)
+    #print kList
+    keptIndices = filter(lambda i: kList[i]%plotDivisibleBy == 0,range(len(kList)))
+    kList = scipy.array(kList)[keptIndices]
+    yValsList = scipy.array(yValsList)[keptIndices]
+    #stdList = scipy.array(stdList)[keptIndices]
+    
+    color = kwargs.get('color')
+    label = kwargs.get('label')
+    marker = kwargs.get('marker')
+    
+    # calculate median and percentiles
+    percentile = scipy.percentile
+    yValsMed   = [ percentile(yVals,50) for yVals in yValsList ]
+    yValsMinus = [ percentile(yVals,(100.-percent)/2.) for yVals in yValsList ]
+    yValsPlus  = [ percentile(yVals,(100.+percent)/2.) for yVals in yValsList ]
+    
+    if errorBars:
+        prettyErrorbar(kList,yValsMed,yValsMinus,yValsPlus,color=color,label=label,\
+                       marker=marker,clip_on=clip_on,ls=ls)
+    else:
+        # calculate means
+        yValsMeans = [ mean(yVals) for yVals in yValsList ]
+        plot(kList,yValsMeans,color=color,label=label,marker=marker,clip_on=clip_on,ls=ls,\
+             lw=lw,ms=ms)
+
+# taken from paperFiguresPhosphorylation.ipynb
+def prettyErrorbar(xList,yList,yListLow,yListHigh,color='blue',alpha=0.15,label=None,\
+                   marker='o',ls=':',clip_on=True,**kwargs):
+    #m = lambda x: scipy.maximum(x,minVal)
+    #array = scipy.array
+    #x,y,err = array(xList),array(yList),array(yerr)
+    
+    pylab.plot(xList,yList,marker=marker,ls=ls,color=color,label=label,clip_on=clip_on,\
+               **kwargs)
+    pylab.fill_between(xList,yListLow,yListHigh,color=color,alpha=alpha)
+
+
+
 # 7.25.2012
 def orderedFitNames(fp,stopFittingN=scipy.inf):
     """

@@ -1486,9 +1486,145 @@ class FittingModel:
         print "Oops!  currentHessian needs to be implemented!"
         raise Exception
         
-    def plotResults(self,fittingData,indepParamsList):
-        print "Oops!  plotResults needs to be implemented!"
-        raise Exception
+    #def plotResults(self,fittingData,indepParamsList):
+    #    print "Oops!  plotResults needs to be implemented!"
+    #    raise Exception
+    
+    def plotResults(self,fittingData,indepParamsList,numCols=None,              \
+        plotSeparately=True,fmt=None,numPoints=500,minTime=0.,maxTime=None,     \
+        dataToPlot=None,plotFittingData=False,linewidth=1.,numRows=None,        \
+        newFigure=False,rowOffset=0,plotFirstN=None,linestyle=None,             \
+        plotHiddenNodes=False,color=None,hspace=0.05,wspace=0.0,                \
+        plotInitialConditions=False,ICmarker=None,markerSize=None,              \
+        height_ratios=None,existingAxArray=None,**kwargs):
+        """
+        Returns 2D list of axes.
+        
+        numCols (None)      : 3.17.2013 set to 1 to plot all indepParams on a single
+        column.
+        plotFirstN (None)   : 3.18.2013 if given an integer, plot first N
+                              indepParams / fittingData combinations
+                              (hack to avoid calling MATLAB)
+        existingAxArray (None)  : Use to plot on an existing axis array.
+        
+        **kwargs passed to pylab.plot.
+        """
+        if newFigure:
+            Plotting.figure()
+        
+        if maxTime is None:
+            allDataTimes = scipy.concatenate([ scipy.concatenate([                \
+              varDat.keys() for varDat in data.values()])                         \
+                                              for data in fittingData ])
+            maxTime = 1.1 * max(allDataTimes)
+        times = scipy.linspace(minTime,maxTime,numPoints)
+        
+        if plotFirstN is None:
+            N = min(len(fittingData),len(indepParamsList))
+        else:
+            N = plotFirstN
+        
+        if not plotSeparately: # plot everything on one subplot
+            raise Exception, "Error: plotSeparately=False not implemented"
+        else:
+            # assumes first dataset includes all species of interest
+            varsWithData = fittingData[0].keys()
+            
+            if dataToPlot is None:
+                # sort in the order they're found in self.speciesNames
+                dataToPlotSorted = []
+                for name in self.speciesNames:
+                    #if plotDerivs: fullName = (name,'time')
+                    #else: fullName = name
+                    if name in varsWithData: dataToPlotSorted.append(name)
+                    elif plotHiddenNodes: dataToPlotSorted.append(name)
+            else:
+                dataToPlotSorted = dataToPlot
+            
+            cW = Plotting.ColorWheel()
+            if numCols is None:
+                numCols = len(indepParamsList)
+            if numRows is None:
+                #numRows = scipy.ceil(float(len(dataToPlotSorted))/numCols)
+                numRows = len(dataToPlotSorted)
+            
+            # set up subplot grid
+            subplotGrid = Plotting.matplotlib.gridspec.GridSpec(          \
+                numRows,numCols,height_ratios=height_ratios)
+            
+            returnList,axArray = [],[]
+            for i,name in enumerate(dataToPlotSorted):
+                axList = []
+                ymins,ymaxs = [],[]
+                # determine color and line format
+                # (this may not be completely consistent)
+                cWnext = cW.next()
+                if linestyle is None: lineFmt = cWnext[2]
+                else: lineFmt = linestyle
+                if fmt is None:
+                    if name in varsWithData:
+                        colorWheelFmt = cWnext
+                    else: # 3.30.2012 plot hidden nodes gray by default
+                        colorWheelFmt = 'gray','o',lineFmt
+                else:
+                    colorWheelFmt = fmt
+                marker = colorWheelFmt[1]
+                if color is None:
+                    colorToUse = colorWheelFmt[0]
+                else:
+                    colorToUse = color
+                j = -1
+                for data,indepParams in zip(fittingData[:N],indepParamsList[:N]):
+                    j += 1
+                    
+                    if existingAxArray is None:
+                        if numCols == 1:
+                            subplotIndex = 1+(i+rowOffset)*numCols
+                        else:
+                            subplotIndex = j+1+(i+rowOffset)*numCols
+                        #ax = Plotting.subplot(numRows,numCols,subplotIndex)
+                        ax = Plotting.subplot(subplotGrid[subplotIndex-1])
+                    else:
+                        ax = existingAxArray[i][j]
+                        Plotting.sca(ax)
+                    
+                    if j==0: Plotting.ylabel(name)
+                    axList.append(ax)
+                    # remove middle axes labels
+                    if j != 0: ax.get_yaxis().set_ticklabels([])
+                    if i != len(dataToPlotSorted)-1:
+                        ax.get_xaxis().set_ticklabels([])
+                    # plot continuous lines
+                    modelTraj = self.evaluateVec(times,name,indepParams)
+                    returnList.append( pylab.plot(times,modelTraj,ls=lineFmt,         \
+                                                  lw=linewidth,color=colorToUse,      \
+                                                  **kwargs) )
+                    
+                    if plotInitialConditions and (i<len(indepParamsList[j])):
+                        if ICmarker is None: ICmarker = colorWheelFmt[1]
+                        Plotting.plot([0],[indepParamsList[j][i]],                      \
+                            marker=ICmarker,                                            \
+                            clip_on=False,ms=markerSize,zorder=5,                       \
+                            mfc="None",mec=colorWheelFmt[0],mew=markerSize/3.)
+                    
+                    if plotFittingData and (name in varsWithData):
+                        # plot data points
+                        dataTimes = data[name].keys()
+                        dataVals = [ data[name][time][0] for time in dataTimes ]
+                        dataStds = [ data[name][time][1] for time in dataTimes ]
+                        returnList.append( pylab.errorbar(dataTimes,dataVals,         \
+                              yerr=dataStds,marker=marker,mfc=colorToUse,ls='',       \
+                              ecolor='k',ms=markerSize,barsabove=True) )
+                    
+                    ranges = Plotting.axis()
+                    ymins.append(ranges[2])
+                    ymaxs.append(ranges[3])
+                axArray.append(axList)
+                # make it pretty
+                Plotting.subplots_adjust(wspace=wspace,hspace=hspace)
+                [ ax.axis(ymin=min(ymins),ymax=max(ymaxs)) for ax in axList ]
+            
+            return axArray #returnList
     
     def initializeParameters(self,paramList):
         print "Oops!  initializeParameters needs to be implemented!"
@@ -1985,7 +2121,7 @@ class SloppyCellFittingModel(FittingModel):
         J,JtJ = modelNoData.GetJandJtJ(self.getParameters())
         return JtJ
     
-    def plotResults(self,fittingData,indepParamsList=[[]],                      \
+    def plotResultsSloppyCell(self,fittingData,indepParamsList=[[]],            \
         show_legend=False,numPoints=500,errorBars=True,exptsToPlot=None,        \
         dataToPlot=None,numRows=None,fmt=None,plotHiddenNodes=True,             \
         separateIndepParams=True,figHeight=8,figWidth=None,newFigure=True,      \
@@ -2150,7 +2286,7 @@ class SloppyCellFittingModel(FittingModel):
                         marker=ICmarker,                                        \
                         clip_on=False,ms=ICmarkerSize,zorder=5,                 \
                         mfc="None",mec=colorWheelFmt[0],mew=ICmarkerSize/3.)
-                
+    
                 if j == 0:
                     Plotting.ylabel(name)
                 
@@ -2692,142 +2828,6 @@ class yeastOscillatorFittingModel(FittingModel):
     def currentHessian(self,fittingData,indepParamsList):
         print "Oops!  currentHessian needs to be implemented!"
         raise Exception
-    
-    def plotResults(self,fittingData,indepParamsList,numCols=None,              \
-        plotSeparately=True,fmt=None,numPoints=500,minTime=0.,maxTime=None,     \
-        dataToPlot=None,plotFittingData=False,linewidth=1.,numRows=None,        \
-        newFigure=False,rowOffset=0,plotFirstN=None,linestyle=None,             \
-        plotHiddenNodes=False,color=None,hspace=0.05,wspace=0.0,                \
-        plotInitialConditions=False,ICmarker=None,markerSize=None,              \
-        height_ratios=None,existingAxArray=None,**kwargs):
-        """
-        Returns 2D list of axes.
-        
-        numCols (None)      : 3.17.2013 set to 1 to plot all indepParams on a single
-                              column.
-        plotFirstN (None)   : 3.18.2013 if given an integer, plot first N
-                              indepParams / fittingData combinations
-                              (hack to avoid calling MATLAB)
-        existingAxArray (None)  : Use to plot on an existing axis array.
-        
-        **kwargs passed to pylab.plot.
-        """
-        if newFigure:
-            Plotting.figure()
-                
-        if maxTime is None:
-          allDataTimes = scipy.concatenate([ scipy.concatenate([                \
-            varDat.keys() for varDat in data.values()])                         \
-            for data in fittingData ])
-          maxTime = 1.1 * max(allDataTimes)
-        times = scipy.linspace(minTime,maxTime,numPoints)
-        
-        if plotFirstN is None:
-            N = min(len(fittingData),len(indepParamsList))
-        else:
-            N = plotFirstN
-        
-        if not plotSeparately: # plot everything on one subplot
-            raise Exception, "Error: plotSeparately=False not implemented"
-        else:
-            # assumes first dataset includes all species of interest
-            varsWithData = fittingData[0].keys()
-            
-            if dataToPlot is None:
-                # sort in the order they're found in self.speciesNames
-                dataToPlotSorted = []
-                for name in self.speciesNames:
-                    #if plotDerivs: fullName = (name,'time')
-                    #else: fullName = name
-                    if name in varsWithData: dataToPlotSorted.append(name)
-                    elif plotHiddenNodes: dataToPlotSorted.append(name)
-            else:
-                dataToPlotSorted = dataToPlot
-            
-            cW = Plotting.ColorWheel()
-            if numCols is None:
-                numCols = len(indepParamsList)
-            if numRows is None:
-                #numRows = scipy.ceil(float(len(dataToPlotSorted))/numCols)
-                numRows = len(dataToPlotSorted)
-                
-            # set up subplot grid
-            subplotGrid = Plotting.matplotlib.gridspec.GridSpec(          \
-                numRows,numCols,height_ratios=height_ratios)
-                
-            returnList,axArray = [],[]
-            for i,name in enumerate(dataToPlotSorted):
-                axList = []
-                ymins,ymaxs = [],[]
-                # determine color and line format
-                # (this may not be completely consistent)
-                cWnext = cW.next()
-                if linestyle is None: lineFmt = cWnext[2] 
-                else: lineFmt = linestyle
-                if fmt is None:
-                    if name in varsWithData:
-                        colorWheelFmt = cWnext
-                    else: # 3.30.2012 plot hidden nodes gray by default
-                        colorWheelFmt = 'gray','o',lineFmt
-                else:
-                    colorWheelFmt = fmt
-                marker = colorWheelFmt[1]
-                if color is None:
-                    colorToUse = colorWheelFmt[0]
-                else:
-                    colorToUse = color
-                j = -1
-                for data,indepParams in zip(fittingData[:N],indepParamsList[:N]):
-                  j += 1
-                  
-                  if existingAxArray is None:
-                      if numCols == 1:
-                        subplotIndex = 1+(i+rowOffset)*numCols
-                      else:
-                        subplotIndex = j+1+(i+rowOffset)*numCols
-                      #ax = Plotting.subplot(numRows,numCols,subplotIndex)
-                      ax = Plotting.subplot(subplotGrid[subplotIndex-1])
-                  else:
-                      ax = existingAxArray[i][j]
-                      Plotting.sca(ax)
-                  
-                  if j==0: Plotting.ylabel(name)
-                  axList.append(ax)
-                  # remove middle axes labels
-                  if j != 0: ax.get_yaxis().set_ticklabels([])
-                  if i != len(dataToPlotSorted)-1:
-                      ax.get_xaxis().set_ticklabels([])
-                  # plot continuous lines
-                  modelTraj = self.evaluateVec(times,name,indepParams)
-                  returnList.append( pylab.plot(times,modelTraj,ls=lineFmt,         \
-                                                lw=linewidth,color=colorToUse,      \
-                                                **kwargs) )
-                
-                  if plotInitialConditions and (i<len(indepParamsList[j])):
-                    if ICmarker is None: ICmarker = colorWheelFmt[1]
-                    Plotting.plot([0],[indepParamsList[j][i]],                      \
-                        marker=ICmarker,                                            \
-                        clip_on=False,ms=markerSize,zorder=5,                       \
-                        mfc="None",mec=colorWheelFmt[0],mew=markerSize/3.)
-                
-                  if plotFittingData and (name in varsWithData):
-                      # plot data points
-                      dataTimes = data[name].keys()
-                      dataVals = [ data[name][time][0] for time in dataTimes ]
-                      dataStds = [ data[name][time][1] for time in dataTimes ]
-                      returnList.append( pylab.errorbar(dataTimes,dataVals,         \
-                            yerr=dataStds,marker=marker,mfc=colorToUse,ls='',       \
-                            ecolor='k',ms=markerSize,barsabove=True) )
-                
-                  ranges = Plotting.axis()
-                  ymins.append(ranges[2])
-                  ymaxs.append(ranges[3])
-                axArray.append(axList)
-                # make it pretty
-                Plotting.subplots_adjust(wspace=wspace,hspace=hspace)
-                [ ax.axis(ymin=min(ymins),ymax=max(ymaxs)) for ax in axList ]
-            
-            return axArray #returnList
     
     def initializeParameters(self,paramList):
         print "Oops!  initializeParameters needs to be implemented!"
