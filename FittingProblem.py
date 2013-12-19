@@ -1303,7 +1303,8 @@ class CTSNFittingProblem(FittingProblem):
         for name in self.fittingModelNames:
             self.convFlagDict[name] = self.fittingModelDict[name].convFlag
             
-    def networkFigureBestModel(self,filename,modelName=None,indepParamMax=None,**kwargs):
+    def networkFigureBestModel(self,filename,modelName=None,indepParamMax=None, \
+        swapSign=False,**kwargs):
         """
         Passes on kwargs to networkList2DOT.
         
@@ -1323,7 +1324,9 @@ class CTSNFittingProblem(FittingProblem):
             p = params.getByKey('w_'+str(nodeIndex)+'_'+str(neighborIndex))
             if neighborIndex < bestModel.numInputs:
               p = p*indepParamMax[neighborIndex]
-            netList[nodeIndex][1][neighborIndex] = p
+            if swapSign: param = -p
+            else: param = p
+            netList[nodeIndex][1][neighborIndex] = param
         #print netList
             
         return networkList2DOT(netList,bestModel.speciesNames,    \
@@ -4511,7 +4514,7 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,               \
     for i,name,color,x,y in zip(range(num),allNames,allColors,xList,yList):
     
       # color stuff
-      if (name[:2] == "X_") and (Xcolor is not None):
+      if (name[0] == "X") and (Xcolor is not None):
         color = Xcolor
       RGBAcolor = matplotlib.colors.colorConverter.to_rgba(color)
       # change text color based on node color (from makeGroupsFigure)

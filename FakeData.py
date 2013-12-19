@@ -15,6 +15,8 @@ def noisyFakeData(net,numPoints,timeInterval,                                   
     """
     Adds Gaussian noise to data: 
         mean 0, stdev noiseFracSize*("typical value" of variable)
+        (By default, the "typical value" is the maximum value for that variable;
+         see SloppyCell.ReactionNetworks.PerfectData.update_typical_vals)
         
     randomX             : if False, the data points are distributed evenly over
                           the interval.  if True, they are spread randomly and

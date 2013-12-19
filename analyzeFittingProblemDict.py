@@ -199,6 +199,10 @@ def bestModelNumParams(fpdList,**kwargs):
 def bestModelEffectiveNumParams(fpdList,**kwargs):
     effectiveNumParamsFunc = lambda mName,fp: fp.numStiffSingValsDict[mName]
     return calcForAllFpds(fpdList,effectiveNumParamsFunc,**kwargs)
+
+def perfectModelEffectiveNumParams(fpdList,**kwargs):
+    effectiveNumParamsFunc = lambda mName,fp: fp.perfectNumStiffSingVals
+    return calcForAllFpds(fpdList,effectiveNumParamsFunc,skip=False,**kwargs)
     
 def logLikelihoods(fpdList,**kwargs):
     llFunc = lambda mName,fp: [ fp.newLogLikelihoodDict[name] for name in orderedFitNames(fp) ]
@@ -240,7 +244,7 @@ def totalNumEvaluations(fpdList,stopFittingN=scipy.inf,                     \
             keyList = orderedFitNames(fp,stopFittingN=stopFittingN)
         else:
             keyList = []
-        ND = len(fp.fittingData)
+        N = len(fp.fittingData)
         mList = [ fp.fittingModelDict[name] for name in keyList ]
         
         total = 0
@@ -255,9 +259,8 @@ def totalNumEvaluations(fpdList,stopFittingN=scipy.inf,                     \
                 numNanGrad = scipy.sum(scipy.isnan(gradCalls))
                 gradCalls = numNanGrad * gradCallsMax + scipy.nansum(gradCalls)
             total +=                                                        \
-               ND * scipy.sum(costCalls)                                    \
-             + ND*(1+len(m.getParameters())) *                              \
-             ( scipy.sum(gradCalls) + m.ensGen.totalSteps )
+               N * (scipy.sum(costCalls) + m.ensGen.totalSteps)             \
+             + N * (1+len(m.getParameters())) * scipy.sum(gradCalls)
         return total
         
     return calcForAllFpds(fpdList,totalFuncCallsFunc,skip=False,**kwargs)
@@ -397,12 +400,15 @@ def plotAllFpdsDict(dataDict,marker='o',ls='',color='b',label=None,     \
         return kList,meanList,stdList
 
 # 11.13.2013 taken from paperFiguresPhosphorylation.ipynb
-def plotAllFpdsDictPretty(fpdList,plotDivisibleBy=1,errorBars=True,percent=67.,
-                          clip_on=True,ls=':',lw=1,ms=None,**kwargs):
+def plotAllFpdsDictPretty(fpdList,plotDivisibleBy=1,errorBars=True,percent=50.,
+                          clip_on=True,ls=':',lw=1,ms=None,useMeans=False,**kwargs):
     """
     plotDivisibleBy (None)          : plot only N_Ds divisible by plotDivisibleBy
-    percent (67.)                   : confidence interval size (0 to 100)
+    percent (50.)                   : confidence interval size (0 to 100)
     errorBars (True)                : If false, plot MEANS (NOT MEDIANS) only
+    useMeans (False)                : If false, use medians and confidence intervals.
+                                      If true, use means and standard deviations
+                                      (ignoring 'percent')
     """
     # use plotMeans=False to get all data, not just means
     kList,yValsList,stdList = plotAllFpdsDict(fpdList,returnData=True,\
@@ -417,20 +423,27 @@ def plotAllFpdsDictPretty(fpdList,plotDivisibleBy=1,errorBars=True,percent=67.,
     label = kwargs.get('label')
     marker = kwargs.get('marker')
     
-    # calculate median and percentiles
-    percentile = scipy.percentile
-    yValsMed   = [ percentile(yVals,50) for yVals in yValsList ]
-    yValsMinus = [ percentile(yVals,(100.-percent)/2.) for yVals in yValsList ]
-    yValsPlus  = [ percentile(yVals,(100.+percent)/2.) for yVals in yValsList ]
-    
+    if useMeans:
+        # calculate means and standard deviations
+        yValsMed = scipy.array([ scipy.mean(yVals) for yVals in yValsList ])
+        yValsStd = scipy.array([ scipy.std(yVals,ddof=1) for yVals in yValsList ])
+        yValsMinus = yValsMed - yValsStd
+        yValsPlus  = yValsMed + yValsStd
+    else:
+        # calculate median and percentiles
+        percentile = scipy.percentile
+        yValsMed   = [ percentile(yVals,50) for yVals in yValsList ]
+        yValsMinus = [ percentile(yVals,(100.-percent)/2.) for yVals in yValsList ]
+        yValsPlus  = [ percentile(yVals,(100.+percent)/2.) for yVals in yValsList ]
+        
     if errorBars:
         prettyErrorbar(kList,yValsMed,yValsMinus,yValsPlus,color=color,label=label,\
-                       marker=marker,clip_on=clip_on,ls=ls)
+                       marker=marker,clip_on=clip_on,ls=ls,lw=lw)
     else:
         # calculate means
-        yValsMeans = [ mean(yVals) for yVals in yValsList ]
-        plot(kList,yValsMeans,color=color,label=label,marker=marker,clip_on=clip_on,ls=ls,\
-             lw=lw,ms=ms)
+        yValsMeans = [ scipy.mean(yVals) for yVals in yValsList ]
+        pylab.plot(kList,yValsMeans,color=color,label=label,marker=marker,          \
+                   clip_on=clip_on,ls=ls,lw=lw,ms=ms)
 
 # taken from paperFiguresPhosphorylation.ipynb
 def prettyErrorbar(xList,yList,yListLow,yListHigh,color='blue',alpha=0.15,label=None,\
