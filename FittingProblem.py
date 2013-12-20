@@ -4701,7 +4701,7 @@ class CTSNFittingModel(SloppyCellFittingModel):
     """
     
     def __init__(self,complexity,indepParamNames=[],outputNames=[],                  \
-        switchSigmoid=False,inputNames=None,**kwargs):
+        switchSigmoid=False,inputNames=None,xiNegative=False,**kwargs):
         
         if inputNames is None:
             # 2.22.2012 don't include indepParams ending in "_init" as inputs
@@ -4740,9 +4740,10 @@ class CTSNFittingModel(SloppyCellFittingModel):
         #indepParamNames = inputNames
         
         self.switchSigmoid = switchSigmoid
+        self.xiNegative = xiNegative
         
         SloppyCellNet = CTSNNetwork.CTSN_List(self.networkList,self.speciesNames,      \
-            switchSigmoid=switchSigmoid)
+            switchSigmoid=switchSigmoid,xiNegative=xiNegative)
         
         #if initialParameters is not None:
         #    SloppyCellNet.setOptimizables(initialParameters)
