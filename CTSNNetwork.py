@@ -14,7 +14,7 @@ import copy
 import GaussianPrior
 
 def CTSN_List(networkList,speciesNames=None,                                    \
-    logParams=True,netid='CTSN',switchSigmoid=False):
+    logParams=True,netid='CTSN',switchSigmoid=False,xiNegative=False):
     """
     Defines a CTSN based on a connection list.
     
@@ -114,12 +114,20 @@ def CTSN_List(networkList,speciesNames=None,                                    
       if (nodeType != 0) and not switchSigmoid: # default
         sum = ''
         # always connect to yourself
-        sum += 'wself_'+str(i)                                                  \
-            +' / (1. + exp('+speciesNames[i]+' + theta_'+str(i)+')) + '
-        for j in connectionDict.keys(): 
+        if xiNegative:
+          sum += 'wself_'+str(i)                                                  \
+              +' / (1. + exp(-'+speciesNames[i]+' - theta_'+str(i)+')) + '
+        else: # prior to 12.19.2013
+            sum += 'wself_'+str(i)                                                  \
+                +' / (1. + exp('+speciesNames[i]+' + theta_'+str(i)+')) + '
+        for j in connectionDict.keys():
           if networkList[j][0] != 0: # the connection is not from an input node
-            sum += 'w_'+str(i)+'_'+str(j)                                       \
-              +' / (1. + exp('+speciesNames[j]+' + theta_'+str(j)+')) + '
+            if xiNegative: 
+                sum += 'w_'+str(i)+'_'+str(j)                                       \
+                  +' / (1. + exp(-'+speciesNames[j]+' - theta_'+str(j)+')) + '
+            else: # prior to 12.19.2013
+                sum += 'w_'+str(i)+'_'+str(j)                                       \
+                    +' / (1. + exp('+speciesNames[j]+' + theta_'+str(j)+')) + '
           else:  # it is an input node.  XXX How should I do this?
             sum += 'w_'+str(i)+'_'+str(j)+' * '+speciesNames[j]+' + '
         # 3.30.2012 trying having tau only divide the decay term

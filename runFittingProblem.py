@@ -94,6 +94,7 @@ if originalString is 'PlanetaryNet':
     timeAndNoiseSeed = 0 #0
     ICseed = 1 #1
     switchSigmoid = False
+    xiNegative = False
     noiseFracSize = 0.05 #0.01 #0.1
     
     maxNumInputs = 1000 # we'll generate this many random inputs for possible use
@@ -151,6 +152,7 @@ elif originalString is 'PhosphorylationNet':
     timeAndNoiseSeed = 0 #0
     ICseed = 1 #1
     switchSigmoid = False # False
+    xiNegative = False
     noiseFracSize = 0.1
     
     maxNumInputs = 1000 # we'll generate this many random inputs for possible use
@@ -234,6 +236,9 @@ elif originalString is 'yeastOscillator':
   allNames = scipy.array(['S1','S2','S3','S4','N2','A3','S4ex']) 
   names = allNames[includedIndices]
   outputVars = names
+    
+  switchSigmoid = False # False
+  xiNegative = False
     
   timesSeed = 0 #0
   noiseSeed = 1 #1
@@ -494,6 +499,7 @@ for numIndepParams in numIndepParamsList:
             fittingDataDerivs=fittingDataDerivs,
             useFullyConnected=useFullyConnected,inputNames=inputNames,**kwargs)
         elif fittingType is 'CTSN':
+          kwargs['xiNegative'] = xiNegative
           p = FittingProblem.CTSNFittingProblem(complexityList,fakeData,
             outputNames=outputVars,priorSigma=priorSigma,                       
             inputNames=inputNames,**kwargs)
