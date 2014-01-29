@@ -401,7 +401,8 @@ def plotAllFpdsDict(dataDict,marker='o',ls='',color='b',label=None,     \
 
 # 11.13.2013 taken from paperFiguresPhosphorylation.ipynb
 def plotAllFpdsDictPretty(fpdList,plotDivisibleBy=1,errorBars=True,percent=50.,
-                          clip_on=True,ls=':',lw=1,ms=None,useMeans=False,**kwargs):
+                          clip_on=True,ls=':',lw=1,ms=None,useMeans=False,
+                          stdMean=False,ignoreNans=False,**kwargs):
     """
     plotDivisibleBy (None)          : plot only N_Ds divisible by plotDivisibleBy
     percent (50.)                   : confidence interval size (0 to 100)
@@ -409,6 +410,10 @@ def plotAllFpdsDictPretty(fpdList,plotDivisibleBy=1,errorBars=True,percent=50.,
     useMeans (False)                : If false, use medians and confidence intervals.
                                       If true, use means and standard deviations
                                       (ignoring 'percent')
+    stdMean (False)                 : If true and useMeans=True, plot standard
+                                      deviation of the mean instead of standard
+                                      deviation.
+    ignoreNans (False)              : If true, filter out nans before calculations
     """
     # use plotMeans=False to get all data, not just means
     kList,yValsList,stdList = plotAllFpdsDict(fpdList,returnData=True,\
@@ -418,6 +423,9 @@ def plotAllFpdsDictPretty(fpdList,plotDivisibleBy=1,errorBars=True,percent=50.,
     kList = scipy.array(kList)[keptIndices]
     yValsList = scipy.array(yValsList)[keptIndices]
     #stdList = scipy.array(stdList)[keptIndices]
+    if ignoreNans:
+        yValsList = [ filter(lambda y: not scipy.isnan(y),yVals)                    \
+                      for yVals in yValsList ]
     
     color = kwargs.get('color')
     label = kwargs.get('label')
@@ -427,6 +435,8 @@ def plotAllFpdsDictPretty(fpdList,plotDivisibleBy=1,errorBars=True,percent=50.,
         # calculate means and standard deviations
         yValsMed = scipy.array([ scipy.mean(yVals) for yVals in yValsList ])
         yValsStd = scipy.array([ scipy.std(yVals,ddof=1) for yVals in yValsList ])
+        if stdMean:
+            yValsStd /= scipy.sqrt(len(yValsStd))
         yValsMinus = yValsMed - yValsStd
         yValsPlus  = yValsMed + yValsStd
     else:

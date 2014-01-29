@@ -76,8 +76,8 @@ else:
 
 # () choose data source
 #originalString = 'PlanetaryNet'
-originalString = 'yeastOscillator'
-#originalString = 'PhosphorylationNet'
+#originalString = 'yeastOscillator'
+originalString = 'PhosphorylationNet'
 
 # () choose fitting model class
 #fittingType = 'Polynomial'
