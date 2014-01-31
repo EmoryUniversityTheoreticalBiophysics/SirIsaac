@@ -4,6 +4,8 @@
 # data files
 *.data
 *.dat
+# but include the simple example data file
+!simpleExample_savedFittingProblem.data
 
 # SloppyCell files
 .SloppyCell
@@ -30,6 +32,8 @@ stdout_stderr_*
 # ipython notebook files
 *.ipynb
 .ipynb_checkpoints
+# but include the example ipython notebook
+!simpleExample.ipynb
 
 # SBML files
 .netModel

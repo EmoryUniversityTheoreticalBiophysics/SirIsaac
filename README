@@ -27,6 +27,7 @@ SBML (systems biology markup language)
 BioNetGen
 Vision
 Pygraphviz (for creating network diagrams)
+ipython (for reading ipython notebook file describing example usage)
 
 
 Contributors:
