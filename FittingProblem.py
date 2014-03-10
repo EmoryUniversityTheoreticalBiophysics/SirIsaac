@@ -34,12 +34,13 @@ reload(GaussianPrior)
 import scipy.linalg
 import io, os
 import time
-#print "This computer's name is",os.uname()[1]
-if (os.uname()[1][:8] != 'vader') and (os.uname()[1][:8] != 'maul') and \
-   (os.uname()[1][:8] != 'sidious') and (os.uname()[1][:4] != 'node') and \
-   (os.uname()[1][:8] != 'star') and (os.uname()[1][:8] != 'spark'):
+
+try:
     from pygraphviz import * # for network figures
     import matplotlib.colors
+except ImportError:
+    print "Failed to import pygraphviz.  Network figures unavailable."
+    
 if (os.uname()[1] != 'star'):
     from simulateYeastOscillator import *
 import pylab
