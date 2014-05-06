@@ -3678,7 +3678,8 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             # if self.net doesn't have a regStrength parameter, it can't be nonzero
             if not ((regStrength == 0.) or (regStrength is None)): raise Exception
             regStrength = 0.
-            
+        
+        predictedDerivsList,actualDerivsList = [],[]
         
         flat = lambda a: scipy.reshape(a,scipy.prod(scipy.shape(a)))
         
@@ -3704,16 +3705,17 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                 actualSingleVar = actualDerivs[i]
                 predictedSingleVar = predictedDerivs[i]
 
-            if makePlot: # To do: make more fancy.  See plotDerivsResults
+            if makePlot: 
                 if newFigure:
                     pylab.figure()
-                pylab.plot(flat(actualSingleVar),flat(predictedSingleVar),'o')
+                pylab.plot(flat(actualSingleVar),flat(predictedSingleVar),'o',
+                    label=speciesName)
                 # plot diagonal
-                low = min(min(flat(actualSingleVar)),min(flat(predictedSingleVar)))
-                hi = max(max(flat(actualSingleVar)),max(flat(predictedSingleVar)))
-                pylab.plot([low,hi],[low,hi],'k-')
+                xmin,xmax,ymin,ymax = pylab.axis()
+                Min,Max = min(xmin,ymin),max(xmax,ymax)
+                pylab.plot([Min,Max],[Min,Max],'k-')
+                pylab.axis([Min,Max,Min,Max])
                 # make pretty
-                pylab.axis([low,hi,low,hi])
                 pylab.title(speciesName)
                 pylab.xlabel('Actual time derivative')
                 pylab.ylabel('Predicted time derivative')
@@ -3723,8 +3725,11 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             
             corrs.append(corr)
             pVals.append(pVal)
+
+            predictedDerivsList.append(flat(predictedSingleVar))
+            actualDerivsList.append(flat(actualSingleVar))
         
-        return corrs,pVals
+        return corrs,pVals,predictedDerivsList,actualDerivsList
         
     # 8.15.2012
     def fitToDataDerivs(self,fittingData,fittingDataDerivs,indepParamsList=[[]],
