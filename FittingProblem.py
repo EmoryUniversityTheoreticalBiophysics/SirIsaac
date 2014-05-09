@@ -31,6 +31,8 @@ import VaryingParamsWrapper
 reload(VaryingParamsWrapper)
 import GaussianPrior
 reload(GaussianPrior)
+import Optimize
+reload(Optimize)
 import scipy.linalg
 import io, os
 import time
@@ -59,7 +61,6 @@ avegtolDefault = 1e-8
 maxiterDefault = None
 cutoffDefault = 1.
 verboseDefault = False
-maxMemoryUsageDefault = scipy.inf # 500000 ~ 500M
 
 def UpdateOldFitProbDict(fitProbDict):
     for p in fitProbDict.values():
@@ -1576,18 +1577,17 @@ class SloppyCellFittingModel(FittingModel):
     A general SloppyCell Network that will be used to fit data
     under a set of experimental conditions.
     
-    Uses Levenberg-Marquardt (Optimization.fmin_lm) to fit.
+    Uses Levenberg-Marquardt (Optimize.fmin_lm) to fit.
     
     (Note: SloppyCell uses the word "model" in a different way.)
     
     indepParamNames     : a list of names of (non-optimizable) 
                           independent parameters
-    (as of 6.29.09, does not yet implement independent parameters)
     priorSigma (10.)    : If not None, Gaussian priors with the
                           given width are put every
                           parameter.  If None, no priors are used
                           (which produces infinities in log-
-                          likelihood estimates). 
+                          likelihood estimates).
                           Note: it is also possible to have
                           priorSigma depend on the parameter...
                           needs to be documented here.
@@ -1652,9 +1652,6 @@ class SloppyCellFittingModel(FittingModel):
         for name in indepParamNames:
             self.net.set_var_optimizable(name,False)
             
-        # 7.31.2009
-        self.maxMemoryUsage = maxMemoryUsageDefault
-    
     def getParameters(self):
         return self.net.GetParameters()
         
@@ -1918,9 +1915,9 @@ class SloppyCellFittingModel(FittingModel):
         #dataModel = self._SloppyCellDataModel(fittingData,indepParamsList)
         if hasattr(self,'minimizeInLog'):
           if self.minimizeInLog:
-            minimizerList.append( Optimization.fmin_lm_log_params )
+            minimizerList.append( Optimize.fmin_lm_log_params )
         else:
-            minimizerList.append( Optimization.fmin_lm )
+            minimizerList.append( Optimize.fmin_lm )
         
         for minimizer in minimizerList:
             try:
@@ -1928,7 +1925,7 @@ class SloppyCellFittingModel(FittingModel):
                 minimizer(                                                          \
                     dataModel,initialParameters,                                    \
                     avegtol=self.avegtol,maxiter=self.maxiter,full_output=True,     \
-                    disp=self.minimizerVerbose,maxMemoryUsage=self.maxMemoryUsage)
+                    disp=self.minimizerVerbose)
               #print "localFitToData: Cost =",cost
             except KeyboardInterrupt:
               raise
