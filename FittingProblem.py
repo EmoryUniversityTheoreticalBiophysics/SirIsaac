@@ -3417,7 +3417,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         W = scipy.transpose( (weightMatrix.T)[includedIndices] )
         D = Design[includedIndices]
         YT = scipy.real_if_close( (Y.T)[includedIndices] )
-        YTTilde = W.T*W.T*YT
+        YTTilde = W.T*YT
         P = []
         for i in range(numSpecies):
             # 8.30.2012 XXX check next line; was repeat(numSpecies+1,axis=0)
@@ -3451,7 +3451,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             # ***************
             
             YiTilde = YTTilde[:,i]
-            p2 = scipy.dot(thetai.T*D.T,YiTilde)
+            p2 = scipy.dot(DiTilde.T,YiTilde)
             Pi = scipy.dot(Binv,p2)
             P.append(Pi)
             # **********************************************************
