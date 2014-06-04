@@ -3951,9 +3951,9 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         if speciesDataTimeDerivSigmas is None:
             speciesDataTimeDerivSigmas = scipy.ones_like(speciesDataTimeDerivs)
         
-        # (note that I now typically fit `hidden' derivatives in the
-        #  EM framework, so numSpeciesNonHidden here is larger
-        #  than the number of visible species in fitDataDerivs)
+        # (note that we now typically do NOT fit `hidden' derivatives in the
+        #  EM framework, so numSpeciesNonHidden here is the same as
+        #  the number of visible species in fitDataDerivs)
         numSpeciesTotal,numTimes = scipy.shape(speciesData)
         numSpeciesNonHidden,numTimes = scipy.shape(speciesDataTimeDerivs)
         
@@ -3974,20 +3974,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             allParams = scipy.prod(scipy.shape(thetaMatrixG))                       \
                       + scipy.prod(scipy.shape(thetaMatrixH))
             print "_derivProblem_fit:",freeParams,"free parameters out of",allParams
-        
-        # 6.29.2012 for use in full nonlinear optimizer
-        numParams = (numSpeciesTotal+1+numIndepParams)*numSpeciesTotal
-        def residualFn(P):
-            Pg = scipy.reshape(P[:numParams],
-                (numSpeciesTotal+1+numIndepParams,numSpeciesTotal))
-            Ph = scipy.reshape(P[-numParams:],
-                (numSpeciesTotal+1+numIndepParams,numSpeciesTotal))
-            predictedDerivs = self._derivProblem_predictedDerivs(Pg,Ph,
-                speciesData,indepParamsMat,r)
-            return scipy.reshape( speciesDataTimeDerivs - predictedDerivs,  
-                                  scipy.prod(scipy.shape(predictedDerivs)) )
 
-        
         #GnumIncludedIndicesList = []
         #HnumIncludedIndicesList = []
         derivCostList = []
@@ -4004,11 +3991,6 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                 print "_derivProblem_fit: degradation params:",                 \
                     min(f(Ph)),"to",max(f(Ph))
         
-        # 12.12.2012 commented this out
-        #scipy.random.seed(1)
-        #Pg = scipy.random.rand(*scipy.shape(Pg))
-        #Ph = scipy.random.rand(*scipy.shape(Ph))
-        
         # need to be set for first iteration
         includedIndices = []
         predictedDerivs = self._derivProblem_predictedDerivs(Pg,Ph,speciesData,indepParamsMat,r)
@@ -4018,30 +4000,11 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         
         for i in range(numiter):
             
-            # 6.29.2012 shuffle
-            #if i%10 == 0:
-            #    shuffle = scipy.random.shuffle
-            #    shuffle(Pg)
-            #    shuffle(Pg.T)
-            #    shuffle(Ph)
-            #    shuffle(Ph.T)
-            
             if verbose: print "_derivProblem_fit: Iteration",i+1,"of",numiter
             
             # check whether new fit is better than old one,
             # at least at the included time indices
             predYh = scipy.transpose(scipy.dot(D,Ph))
-            #oldDeltaYh = scipy.real_if_close( scipy.sum( (Yh-oldPredYh)[:,includedIndices]**2 ) )
-            #newDeltaYh = scipy.real_if_close( scipy.sum( (Yh-predYh)[:,includedIndices]**2 ) )
-            #deltaYhList.append(newDeltaYh)
-            #if verbose: print "_derivProblem_fit: oldDeltaYh =",oldDeltaYh
-            #if verbose: print "_derivProblem_fit: newDeltaYh =",newDeltaYh
-            #oldDeltaExpYh = scipy.real_if_close( scipy.sum( (scipy.exp(Yh)-scipy.exp(oldPredYh))[:,includedIndices]**2 ) )
-            #newDeltaExpYh = scipy.real_if_close( scipy.sum( (scipy.exp(Yh)-scipy.exp(predYh))[:,includedIndices]**2 ) )
-            #if verbose:
-            #    print "_derivProblem_fit: oldDeltaExpYh =",oldDeltaExpYh
-            #    print "_derivProblem_fit: newDeltaExpYh =",newDeltaExpYh
-            #    if oldDeltaYh < newDeltaYh: print "_derivProblem_fit: WARNING: fit getting worse: oldDeltaYh =",oldDeltaYh,", newDeltaYh =",newDeltaYh
             
             #derivCostSubset0 = scipy.sum( (speciesDataTimeDerivs - predictedDerivs)[:,includedIndices]**2 )
             predG,predH = self._derivProblem_predictedDerivs(Pg,Ph,speciesData,indepParamsMat,r,True)
@@ -4061,10 +4024,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             # () Do fitting of production params while holding degradation fixed
             H = self._derivProblem_productTerm(Ph,speciesData,indepParamsMat)
             Yg = scipy.log(H + speciesDataTimeDerivs) - r/speciesData
-            if True: # 7.19.2012 old included indices stuff (consider removing)
-                #includedIndices = pylab.find( scipy.array([ scipy.all( h >= 0.) for h in scipy.transpose(H + speciesDataTimeDerivs) ]) )
-                #if verbose: print len(includedIndices),"of",len(Yg.T)
-                #GnumIncludedIndicesList.append(len(includedIndices))
+            if True: 
                 fittable = scipy.sum((H + speciesDataTimeDerivs)>0.)
                 total = scipy.prod(scipy.shape(H))
                 if verbose: print "_derivProblem_fit: production terms fit:",fittable,"of",total
@@ -4076,19 +4036,8 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             # check whether new fit is better than old one,
             # at least at the included time indices
             predYg = scipy.transpose(scipy.dot(D,Pg))
-            #oldDeltaYg = scipy.real_if_close( scipy.sum( (Yg-oldPredYg)[:,includedIndices]**2 ) )
-            #newDeltaYg = scipy.real_if_close( scipy.sum( (Yg-predYg)[:,includedIndices]**2 ) )
-            #deltaYgList.append(newDeltaYg)
-            #if verbose:
-            #    print "_derivProblem_fit: oldDeltaYg =",oldDeltaYg
-            #    print "_derivProblem_fit: newDeltaYg =",newDeltaYg
-            #    if oldDeltaYg < newDeltaYg: print "_derivProblem_fit: WARNING: fit getting worse: oldDeltaYg =",oldDeltaYg,", newDeltaYg =",newDeltaYg
             
-            #derivCostSubset0 = scipy.sum( (speciesDataTimeDerivs - predictedDerivs)[:,includedIndices]**2 )
             predictedDerivs = self._derivProblem_predictedDerivs(Pg,Ph,speciesData,indepParamsMat,r)
-            #derivCostSubset1 = scipy.sum( (speciesDataTimeDerivs - predictedDerivs)[:,includedIndices]**2 )
-            #derivCostSubsetDelta = derivCostSubset1 - derivCostSubset0
-            #derivCostSubsetDeltaList.append(derivCostSubsetDelta)
             priorCost = 0.5*priorLambda*scipy.sum(Pg**2 + Ph**2) # 5.29.2014
             derivCost = 0.5*scipy.sum( ((speciesDataTimeDerivs - predictedDerivs)/speciesDataTimeDerivSigmas)**2 ) + priorCost
             printParamSummary(Pg,Ph)
@@ -4100,10 +4049,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             # () Do fitting of degradation params while holding production fixed
             G = self._derivProblem_productTerm(Pg,speciesData,indepParamsMat)
             Yh = scipy.log(G - speciesDataTimeDerivs) - r*speciesData
-            if True: # 7.19.2012 old included indices stuff (consider removing)
-                #includedIndices = pylab.find( scipy.array([ scipy.all( g >= 0.) for g in scipy.transpose(G - speciesDataTimeDerivs) ]) )
-                #if verbose: print len(includedIndices),"of",len(Yh.T)
-                #HnumIncludedIndicesList.append(len(includedIndices))
+            if True: 
                 fittable = scipy.sum((G - speciesDataTimeDerivs)>0.)
                 total = scipy.prod(scipy.shape(G))
                 if verbose:
@@ -4112,14 +4058,6 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                  * scipy.exp(-r*speciesData) * ((G - speciesDataTimeDerivs)>0.)
             Ph = self._derivProblem_regression(D,Yh,weightMatrix=Wh,                    \
                 priorLambda=priorLambda,thetaMatrix=thetaMatrixH)
-        
-            if False:
-                # 6.29.2012 full nonlinear optimizer
-                P0 = scipy.concatenate( (scipy.reshape(Pg,(numParams,)),                \
-                                         scipy.reshape(Ph,(numParams,))) )
-                P = scipy.optimize.leastsq(residualFn,P0,maxfev=maxfev)[0]
-                Pg = scipy.reshape(P[:numParams],(numSpeciesTotal+1,numSpeciesNonHidden))
-                Ph = scipy.reshape(P[-numParams:],(numSpeciesTotal+1,numSpeciesNonHidden))
                     
         if setModelParams:
             self._derivProblem_setParams(Pg,Ph,numIndepParams)
