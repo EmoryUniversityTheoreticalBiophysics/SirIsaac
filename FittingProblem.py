@@ -3441,7 +3441,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                 # but it probably is if Wi is all zeros (which is what I'm
                 # trying to fix).  I'll raise an exception in other cases to
                 # be safe.
-                if scipy.sum(Wi**2) != 0: raise Exception
+                if scipy.sum(Wi**2) != 0: raise ValueError
                 Binv = scipy.zeros( ( len(DiTilde[0]),len(DiTilde[0]) ) )
         
             # ***************
@@ -3762,7 +3762,6 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                                   regStrength parameter in self.net.
         priorLambda (0.)
                                   
-        Note: As of 8.15.2012, does not take into account error bars on data.
         """
         
         if regStrength is None:
@@ -3836,7 +3835,11 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                                        
                 # 9.27.2012 calculate new cost before integrating hidden nodes
                 predictedDerivsVisible = predictedDerivs[:len(nonHiddenDataDerivs)]
-                afterMinCost = 0.5 * scipy.sum( ((predictedDerivsVisible-nonHiddenDataDerivs)/nonHiddenDataDerivSigmas)**2 )
+                numSpeciesTotal,numTimes = scipy.shape(speciesData)
+                numIndepParams = len(indepParamsMat)
+                priorCost = self._derivProblem_priorCost(priorLambda,numSpeciesTotal,
+                                                         numIndepParams) # 5.29.2014
+                afterMinCost = 0.5 * scipy.sum( ((predictedDerivsVisible-nonHiddenDataDerivs)/nonHiddenDataDerivSigmas)**2 ) + priorCost
                 afterMinCostList.append( afterMinCost )
                 afterMinCostNoSigma = scipy.sum( (predictedDerivsVisible-nonHiddenDataDerivs)**2 )
                                                   
@@ -3870,17 +3873,17 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                 else:
                     return self.getParameters()
                 
-                if verbose and False: # plot behavior
-                    self.plotResults(fittingData,indepParamsList)
-                    Plotting.title("Seed "+str(seed))
-                
-                # restart with new parameters
-                seed += 1
-                if verbose: print "fitToDataDerivs: *** ODEs produced "         \
-                  "bad behavior.  Restarting with random seed",seed
-                i = 0
-                paramsList = []
-                self._derivProblem_setRandomParams(seed)
+                #if verbose and False: # plot behavior
+                #    self.plotResults(fittingData,indepParamsList)
+                #    Plotting.title("Seed "+str(seed))
+                #
+                ## restart with new parameters
+                #seed += 1
+                #if verbose: print "fitToDataDerivs: *** ODEs produced "         \
+                #  "bad behavior.  Restarting with random seed",seed
+                #i = 0
+                #paramsList = []
+                #self._derivProblem_setRandomParams(seed)
 
                 
             # 8.23.2012
@@ -3903,7 +3906,10 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             return bestParams
                 
             
-        
+    # 5.29.2014
+    def _derivProblem_priorCost(self,priorLambda,numSpeciesTotal,numIndepParams):
+        Pg,Ph = self._derivProblem_getParams(numSpeciesTotal,numIndepParams)
+        return 0.5*priorLambda*scipy.sum(Pg**2 + Ph**2)
         
         
     # 6.27.2012
@@ -4044,7 +4050,8 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             #derivCostSubset1 = scipy.sum( (speciesDataTimeDerivs - predictedDerivs)[:,includedIndices]**2 )
             #derivCostSubsetDelta = derivCostSubset1 - derivCostSubset0
             #derivCostSubsetDeltaList.append(derivCostSubsetDelta)
-            derivCost = scipy.sum( ((speciesDataTimeDerivs - predictedDerivs)/speciesDataTimeDerivSigmas)**2 )
+            priorCost = 0.5*priorLambda*scipy.sum(Pg**2 + Ph**2) # 5.29.2014
+            derivCost = 0.5*scipy.sum( ((speciesDataTimeDerivs - predictedDerivs)/speciesDataTimeDerivSigmas)**2 ) + priorCost
             printParamSummary(Pg,Ph)
             if verbose: print "_derivProblem_fit: current deriv cost =", derivCost
             derivCostList.append(derivCost)
@@ -4082,7 +4089,8 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             #derivCostSubset1 = scipy.sum( (speciesDataTimeDerivs - predictedDerivs)[:,includedIndices]**2 )
             #derivCostSubsetDelta = derivCostSubset1 - derivCostSubset0
             #derivCostSubsetDeltaList.append(derivCostSubsetDelta)
-            derivCost = scipy.sum( ((speciesDataTimeDerivs - predictedDerivs)/speciesDataTimeDerivSigmas)**2 )
+            priorCost = 0.5*priorLambda*scipy.sum(Pg**2 + Ph**2) # 5.29.2014
+            derivCost = 0.5*scipy.sum( ((speciesDataTimeDerivs - predictedDerivs)/speciesDataTimeDerivSigmas)**2 ) + priorCost
             printParamSummary(Pg,Ph)
             if verbose: print "_derivProblem_fit: current deriv cost =", derivCost
             derivCostList.append(derivCost)
@@ -4121,7 +4129,177 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         
         predictedDerivs = self._derivProblem_predictedDerivs(Pg,Ph,speciesData,indepParamsMat,r)
         return predictedDerivs
-      
+
+    # 5.29.2014
+    def _derivProblem_logLikelihood(self,fittingData,fittingDataDerivs,indepParamsList,
+        priorLambda,retall=False):
+        """
+        Calculates approximation to the log-likelihood, including 
+        parameter sensitivities and priors.
+        
+        Jacobian calculation assumes 1 timepoint per condition.
+        
+        Has not been tested with numIndepParams > 0.
+        
+        retall (False)              : If True, return log likelihood, singular values
+                                      of the Hessian, and singular values of the prior
+        """
+        r = 0 # old regularization thing
+        
+        # calculate chi^2 cost
+        speciesData,speciesDataTimeDerivs,                                              \
+                        nonHiddenDataDerivs,nonHiddenDataDerivSigmas,indepParamsMat =   \
+                        self._derivProblem_createDataMatrices(fittingData,              \
+                        fittingDataDerivs,indepParamsList)
+        predictedDerivsVisible = self._derivProblem_calculateDerivs(fittingData,fittingDataDerivs,indepParamsList,r)
+        numSpeciesTotal,numTimes = scipy.shape(speciesData)
+        numIndepParams = len(indepParamsMat)
+        priorCost = self._derivProblem_priorCost(priorLambda,numSpeciesTotal,
+                                                 numIndepParams) # 5.29.2014
+        cost = 0.5 * scipy.sum( ((predictedDerivsVisible-nonHiddenDataDerivs)/nonHiddenDataDerivSigmas)**2 ) + priorCost
+        
+        # calculate complexity penalty
+        H = self._derivProblem_Hessian(fittingData,fittingDataDerivs,
+                                       indepParamsList,priorLambda)
+        try:
+            u,singVals,vt = scipy.linalg.svd( H )
+            priorSingVals = priorLambda * scipy.ones(len(H))
+        except scipy.linalg.LinAlgError:
+            singVals = scipy.inf * scipy.ones(len(H))
+            priorSingVals = -scipy.inf * scipy.ones(len(H))
+            print "_derivProblem_logLikelihood: Error in Hessian SVD.  "            \
+                "Setting logLikelihood to negative infinity."
+
+        print "_derivProblem_logLikelihood: cost =",-cost
+        print "_derivProblem_logLikelihood: penalty =",                             \
+                      -(0.5*scipy.sum( scipy.log(singVals) )                        \
+                      - 0.5*scipy.sum( scipy.log(priorSingVals) ) )
+        
+        L = -(cost + 0.5*scipy.sum( scipy.log(singVals) )                           \
+                      - 0.5*scipy.sum( scipy.log(priorSingVals) ) )
+        
+        if retall:
+            return L,singVals,priorSingVals
+        else:
+            return L
+        
+    # 5.29.2014
+    def _derivProblem_Hessian(self,fittingData,fittingDataDerivs,indepParamsList,
+        priorLambda):
+        """
+        Returns J^T.J approximation to the Hessian, with shape
+        (# parameters)x(#parameters).
+        
+        Note: (# parameters) is equal to the number of optimizable 
+        parameters (for which flatTheta > 0).
+        
+        Jacobian calculation assumes 1 timepoint per condition.
+        
+        Has not been tested with numIndepParams > 0.
+        """
+        J = self._derivProblem_Jacobian(fittingData,fittingDataDerivs,
+            indepParamsList)
+        HnoPrior = scipy.dot(J.T,J)
+    
+        # add parameter prior to diagonal
+        numResiduals,numParameters = scipy.shape(J)
+        priorDiag = scipy.diag(scipy.ones(numParameters)*priorLambda)
+        H = HnoPrior + priorDiag
+    
+        return H
+    
+    # shapes
+    # Pg,Ph : (#indepParams + 1 + #species)x(#species)
+    # G,H   : (#species)x(#data points)
+    # speciesData, speciesDataTimeDerivs : (#species)x(#data points)
+    # indepParamsMat : (#(nonIC?)indepParams)x(#times)
+    #                = (#(nonIC?)indepParams)x(#conditions*timepts/condition)
+    # indepParamsList : (#conditions)x(#indepParams)
+    # D     : (#times)x(#indepParams + 1 + #species)
+
+    # 5.29.2014
+    def _derivProblem_Jacobian(self,fittingData,fittingDataDerivs,
+        indepParamsList):
+        """
+        Returns Jacobian of shape (# residuals)x(# parameters).
+        
+        Note: (# parameters) is equal to the number of optimizable 
+        parameters (for which flatTheta > 0).
+        
+        Assumes 1 timepoint per condition.
+        
+        Has not been tested with numIndepParams > 0.
+        """
+        # stuff that might be useful
+        speciesData,speciesDataTimeDerivs,n,m,indepParamsMat =                      \
+            self._derivProblem_createDataMatrices(fittingData,                      \
+            fittingDataDerivs,indepParamsList)
+        
+        numSpeciesTotal,numTimes = scipy.shape(speciesData)
+        numIndepParams,numTimes2 = scipy.shape(indepParamsMat)
+        assert numTimes == numTimes2
+        numResiduals = numSpeciesTotal*numTimes
+        if numIndepParams > 0:
+            raise Exception, \
+                "_derivProblem_Jacobian has not been tested with numIndepParams > 0."
+        
+        Pg,Ph,thetaG,thetaH = self._derivProblem_getParams(numSpeciesTotal,
+                                    numIndepParams,retTheta=True)
+        
+        G = self._derivProblem_productTerm(Pg,speciesData,indepParamsMat)
+        H = self._derivProblem_productTerm(Ph,speciesData,indepParamsMat)
+
+        # flatTheta has length (total # possible parameters)
+        flatTheta = self._derivProblem_flatten(thetaG,thetaH)
+        numParams = len(flatTheta)
+        numParamsUsed = sum(flatTheta)
+    
+        J = scipy.zeros((numResiduals,numParamsUsed))
+
+        paramsShape = scipy.shape(thetaG)
+        assert paramsShape == (numIndepParams+numSpeciesTotal+1,numSpeciesTotal)
+        i = 0 # residual index
+        for t in range(numTimes):
+          for iSpecies in range(numSpeciesTotal):
+            JGi = scipy.zeros(paramsShape)
+            JHi = scipy.zeros(paramsShape)
+            
+            # derivs wrt alpha and beta
+            Gi, Hi = G[iSpecies,t], H[iSpecies,t]
+            JGi[numIndepParams,iSpecies] = Gi
+            JHi[numIndepParams,iSpecies] =-Hi
+            
+            # derivs wrt g and h
+            xEll = speciesData[:,t]
+            JGi[(numIndepParams+1):,iSpecies] = scipy.log(xEll)*Gi
+            JHi[(numIndepParams+1):,iSpecies] =-scipy.log(xEll)*Hi
+            
+            fullJi = self._derivProblem_flatten(JGi,JHi)
+            assert scipy.shape(fullJi) == scipy.shape(flatTheta)
+            
+            # only fill in values with flatTheta > 0
+            jReduced = 0
+            for j in range(numParams):
+              if flatTheta[j] > 0:
+                J[i,jReduced] = fullJi[j]
+                jReduced += 1
+            assert jReduced == numParamsUsed
+            #J[i] = fullJi * flatTheta
+            
+            i += 1
+
+        return J
+
+    # 5.29.2014
+    def _derivProblem_flatten(self,Gparams,Hparams):
+        """
+        Takes two matrices of shape (# indepParams + # species + 1)x(# species)
+        and returns a single flat array of length (total # params).
+        """
+        a = scipy.concatenate((Gparams,Hparams))
+        return a.reshape(scipy.prod(scipy.shape(a)))
+        
+        
         
 class PowerLawFittingModel_Complexity(PowerLawFittingModel):
     """
@@ -4133,7 +4311,7 @@ class PowerLawFittingModel_Complexity(PowerLawFittingModel):
     """
     
     def __init__(self,complexity,indepParamNames=[],outputNames=[],             
-        inputNames=None,**kwargs):
+        inputNames=None,connectionOrder="node",typeOrder="last",**kwargs):
         
         if inputNames is None:
             # 2.22.2012 don't include indepParams ending in "_init" as inputs
@@ -4153,7 +4331,8 @@ class PowerLawFittingModel_Complexity(PowerLawFittingModel):
         maxType = 5
         maxConnection = 2
         self.networkList = _createNetworkList(complexity,self.numInputs,        
-            self.numOutputs,defaultType,defaultOutputType,maxType,maxConnection)
+            self.numOutputs,defaultType,defaultOutputType,maxType,maxConnection,
+            connectionOrder=connectionOrder,typeOrder=typeOrder)
         self.n = len(self.networkList)
         
         speciesNames = [ 'X_'+str(i) for i in range(self.n) ]
@@ -4317,16 +4496,28 @@ class PowerLawFittingModel_planetary(PowerLawFittingModel_FullyConnected):
 
 
 def _createNetworkList(complexity,numInputs,numOutputs,                         
-    defaultType,defaultOutputType,maxType,maxConnection):
+    defaultType,defaultOutputType,maxType,maxConnection,
+    connectionOrder="node",typeOrder="last"):
         """
         Note: complexity != numParameters
         
         (Only works for 1 <= maxConnection <= 2)
-        """
         
+        connectionOrder           : "node", "nearest"
+        typeOrder                 : "last", "first" ("mixed"?)
+        """
+    
+        # check that options are valid
+        typeOrders = ['last','first']
+        connectionOrders = ['nearest','node']
+        if typeOrder not in typeOrders:
+            raise Exception, "Unrecognized typeOrder = "+str(typeOrder)
+        if connectionOrder not in connectionOrders:
+            raise Exception, "Unrecognized connectionOrder ="+str(connectionOrder)
+    
         #complexity,numInputs,numOutputs =                                       \
         #    self.complexity,self.numInputs,self.numOutputs
-        
+    
         networkList = []
         def done(curComplexity):
             if curComplexity[0] >= complexity:
@@ -4335,10 +4526,18 @@ def _createNetworkList(complexity,numInputs,numOutputs,
             return False
         curComplexity = [0]
         numHidden = 0
-        
+    
         def addConnection(node,connectedNode,connectionType):
             networkList[node][1][connectedNode] = connectionType
-        
+    
+        def upgradeOutputNodes():
+            # upgrade each output node
+            for nodeType in range(defaultOutputType+1,maxType+1):
+              for i in range(numOutputs):
+                networkList[numInputs+i][0] = nodeType
+                if done(curComplexity): return networkList
+            return None
+    
         # first add input and output nodes, with each output connected
         # to each input (this is complexity 0)
         for i in range(numInputs):
@@ -4355,22 +4554,42 @@ def _createNetworkList(complexity,numInputs,numOutputs,
             for j in range(numInputs):
                 addConnection(numInputs+i,j,2)
                 if done(curComplexity): return networkList
-                
-        # add connections among output nodes
-        for connectionType in range(1,maxConnection+1):
-          for i in range(numOutputs):
-            for j in range(i+1,numOutputs):
-              addConnection(numInputs+i,numInputs+j,connectionType) # was numInputs+i,j
-              if done(curComplexity): return networkList
-              addConnection(numInputs+j,numInputs+i,connectionType) # was j,numInputs+i
-              if done(curComplexity): return networkList
-              
-        # upgrade each output node
-        for nodeType in range(defaultOutputType+1,maxType+1):
-          for i in range(numOutputs):
-            networkList[numInputs+i][0] = nodeType
-            if done(curComplexity): return networkList
-           
+
+        if typeOrder is "first":
+            n = upgradeOutputNodes()
+            if n is not None: return n
+
+        if connectionOrder is "node":
+            # add connections among output nodes
+            # fully connect each node before moving to next node
+            for connectionType in range(1,maxConnection+1):
+              for i in range(numOutputs):
+                for j in range(i+1,numOutputs):
+                  addConnection(numInputs+i,numInputs+j,connectionType)
+                  if done(curComplexity): return networkList
+                  addConnection(numInputs+j,numInputs+i,connectionType)
+                  if done(curComplexity): return networkList
+        elif connectionOrder is "nearest":
+            # add connections among output nodes
+            # order by 'length' of connection
+            for connectionType in range(1,maxConnection+1):
+              for length in range(1,1+numOutputs/2):
+                # last iteration is different when numOutputs is even
+                if float(length) == float(numOutputs)/2.: 
+                    iMax = numOutputs/2
+                else:
+                    iMax = numOutputs
+                for i in range(iMax):
+                  j = (i+length)%numOutputs
+                  addConnection(numInputs+i,numInputs+j,connectionType)
+                  if done(curComplexity): return networkList
+                  addConnection(numInputs+j,numInputs+i,connectionType)
+                  if done(curComplexity): return networkList
+
+        if typeOrder is "last":
+            n = upgradeOutputNodes()
+            if n is not None: return n
+
         # add hidden nodes
         while True:
             # add node
