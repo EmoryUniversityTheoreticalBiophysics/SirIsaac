@@ -462,9 +462,10 @@ def prettyErrorbar(xList,yList,yListLow,yListHigh,color='blue',alpha=0.15,label=
     #array = scipy.array
     #x,y,err = array(xList),array(yList),array(yerr)
     
+    
     pylab.plot(xList,yList,marker=marker,ls=ls,color=color,label=label,clip_on=clip_on,\
                **kwargs)
-    pylab.fill_between(xList,yListLow,yListHigh,color=color,alpha=alpha)
+    pylab.fill_between(xList,yListLow,yListHigh,color=color,alpha=alpha,**kwargs)
 
 
 

@@ -88,8 +88,17 @@ class PowerLawFittingModel_yeastOscillator(PowerLawFittingModel_FullyConnected):
         # (I think k1,k2,k3,k4,k6 really have units 1/mM/min)
         #   k1,k2 from "Fit of model to Hemker et al. data"
         #   at end of Fig.3 caption; rest from Table 1
-        barriersAndRates = {'J0': (16.2, 2.5 ),     'k1': (13.8, 25. ),         \
-                            'k2': (60.7, 2.0 ),     'k3': (44.9, 16.0),         \
+        #
+        #barriersAndRates = {'J0': (16.2, 2.5 ),     'k1': (13.8, 25. ),         \
+        #                    'k2': (60.7, 2.0 ),     'k3': (44.9, 16.0),         \
+        #                    'k4': (58.7, 100.),     'k5': (41.2, 1.28),         \
+        #                    'k6': (31.4, 12.0),     'k':  (24.3, 1.8 ),         \
+        #                    'kappa': (15.9, 13.0),  'K1': (47.0, 0.52)}
+        # BCD 6.1.2014 changed to match with parameters
+        # used in SchValJen11 at T = Tref (same as Table 1
+        # in RuoChrWol03)
+        barriersAndRates = {'J0': (16.2, 2.5 ),     'k1': (13.8, 100. ),        \
+                            'k2': (60.7, 6.0 ),     'k3': (44.9, 16.0),         \
                             'k4': (58.7, 100.),     'k5': (41.2, 1.28),         \
                             'k6': (31.4, 12.0),     'k':  (24.3, 1.8 ),         \
                             'kappa': (15.9, 13.0),  'K1': (47.0, 0.52)}
