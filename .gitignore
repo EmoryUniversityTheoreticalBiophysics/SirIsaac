@@ -4,6 +4,7 @@
 # data files
 *.data
 *.dat
+yeastDerivData*
 # but include the simple example data file
 !simpleExample_savedFittingProblem.data
 
@@ -43,3 +44,6 @@ stdout_stderr_*
 
 # SloppyCell compiled code
 *.so
+
+# Mathematica files
+*.nb

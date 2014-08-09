@@ -3786,8 +3786,8 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         # (could surely be done more efficiently)
         # 12.10.2012 disabled integration
         if (dataModel is None) and not noHiddenSpecies:
-            dataModel = self._SloppyCellDataModel(fittingData,indepParamsList,              \
-                fittingDataDerivs=fittingDataDerivs,includePriors=False,                    \
+            dataModel = self._SloppyCellDataModel(fittingData,indepParamsList,
+                fittingDataDerivs=fittingDataDerivs,includePriors=False,             
                 disableIntegration=True)
         afterMinCostList,afterExpCostList = [],[]
         
@@ -4168,8 +4168,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         
         Has not been tested with numIndepParams > 0.
         """
-        # stuff that might be useful
-        speciesData,speciesDataTimeDerivs,n,m,indepParamsMat =                      \
+        speciesData,speciesDataTimeDerivs,n,derivSigmas,indepParamsMat =            \
             self._derivProblem_createDataMatrices(fittingData,                      \
             fittingDataDerivs,indepParamsList)
         
@@ -4219,7 +4218,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             jReduced = 0
             for j in range(numParams):
               if flatTheta[j] > 0:
-                J[i,jReduced] = fullJi[j]
+                J[i,jReduced] = fullJi[j] / derivSigmas[iSpecies,t]
                 jReduced += 1
             assert jReduced == numParamsUsed
             #J[i] = fullJi * flatTheta
