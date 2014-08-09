@@ -24,10 +24,12 @@ iPython.
 
 As of February 2014, SirIsaac depends on the latest
 developer version of SloppyCell.  This software is
-available through a CVS repository.
+available through a git repository.
 We describe here one typical way to download and 
 install SloppyCell.
-More information is available here: https://sourceforge.net/p/sloppycell/code/
+More information is available here: 
+http://sloppycell.sourceforge.net/
+http://sourceforge.net/p/sloppycell/git/ci/master/tree/
 
 Typically you will want to install SloppyCell in Python's
 site-packages folder, usually found within a directory such as
@@ -38,16 +40,16 @@ site-packages folder, usually found within a directory such as
 * ~/anaconda/lib/python2.7/site-packages/ using Anaconda
 * ~/sage-x.x/lib/python2.6/site-packages/ using Sage
 
-In the simplest case, you can anonymously 'check out' the latest version 
+In the simplest case, you can anonymously 'clone' the latest version 
 by changing to the above directory and running
 
-    sudo cvs -z3 -d:pserver:anonymous@sloppycell.cvs.sourceforge.net:/cvsroot/sloppycell co -P SloppyCell
+    git clone git://git.code.sf.net/p/sloppycell/git sloppycell-git
 
 You should see a bunch of files being downloaded.  Next,
-build the Fortran libraries by changing into the new 'SloppyCell' 
+build the Fortran libraries by changing into the new 'sloppycell-git' 
 directory and running setup.py:
 
-    cd SloppyCell
+    cd sloppycell-git
     sudo python setup.py build install --install-lib=..
 
 (prefacing by sudo if necessary for write privileges).  (If you
