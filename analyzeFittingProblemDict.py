@@ -401,8 +401,9 @@ def plotAllFpdsDict(dataDict,marker='o',ls='',color='b',label=None,     \
 
 # 11.13.2013 taken from paperFiguresPhosphorylation.ipynb
 def plotAllFpdsDictPretty(fpdList,plotDivisibleBy=1,errorBars=True,percent=50.,
-                          clip_on=True,ls=':',lw=1,ms=None,useMeans=False,
-                          stdMean=False,ignoreNans=False,**kwargs):
+                          clip_on=True,ls=':',lw=1,ms=5,useMeans=False,
+                          stdMean=False,ignoreNans=False,mec='k',mfc=None,
+                          mew=1,**kwargs):
     """
     plotDivisibleBy (None)          : plot only N_Ds divisible by plotDivisibleBy
     percent (50.)                   : confidence interval size (0 to 100)
@@ -448,23 +449,25 @@ def plotAllFpdsDictPretty(fpdList,plotDivisibleBy=1,errorBars=True,percent=50.,
         
     if errorBars:
         prettyErrorbar(kList,yValsMed,yValsMinus,yValsPlus,color=color,label=label,\
-                       marker=marker,clip_on=clip_on,ls=ls,lw=lw)
+                       marker=marker,clip_on=clip_on,ls=ls,lw=lw,ms=ms,mec=mec)
     else:
         # calculate means
         yValsMeans = [ scipy.mean(yVals) for yVals in yValsList ]
         pylab.plot(kList,yValsMeans,color=color,label=label,marker=marker,          \
-                   clip_on=clip_on,ls=ls,lw=lw,ms=ms)
+                   clip_on=clip_on,ls=ls,lw=lw,ms=ms,mec=mec,mfc=mfc,mew=mew)
 
 # taken from paperFiguresPhosphorylation.ipynb
-def prettyErrorbar(xList,yList,yListLow,yListHigh,color='blue',alpha=0.15,label=None,\
-                   marker='o',ls=':',clip_on=True,**kwargs):
+def prettyErrorbar(xList,yList,yListLow,yListHigh,color='blue',alpha=0.15,label=None,
+                   marker='o',ls=':',clip_on=True,ms=5,mec='k',mfc=None,
+                   **kwargs):
     #m = lambda x: scipy.maximum(x,minVal)
     #array = scipy.array
     #x,y,err = array(xList),array(yList),array(yerr)
     
+    if mfc is None: mfc = color
     
-    pylab.plot(xList,yList,marker=marker,ls=ls,color=color,label=label,clip_on=clip_on,\
-               **kwargs)
+    pylab.plot(xList,yList,marker=marker,ls=ls,color=color,label=label,
+               clip_on=clip_on,ms=ms,mec=mec,dashes=(1,1),**kwargs)
     pylab.fill_between(xList,yListLow,yListHigh,color=color,alpha=alpha,**kwargs)
 
 
