@@ -560,3 +560,74 @@ def plotOutOfSampleCorrelationVsMeasurements(fpdList,varList,seed=100,
     pylab.xlabel('Number of derivative data points')
     pylab.ylabel('Out-of-sample correlation')
     pylab.legend(loc=4)
+
+
+# 8.11.2014
+def plotPareto(numParamsDict,performanceDict,plotDivisibleBy=1,
+    marker='o',label='',xmax=None,ymax=None,ymin=None,color='b',
+    bigIsBetter=False,**kwargs):
+    """
+    Plots mean performance versus mean number of parameters, along with
+    the resulting Pareto front.  
+    
+    plotDivisibleBy (None)          : plot only N_Ds divisible by plotDivisibleBy
+    bigIsBetter (False)             : If True, the Pareto front is made with
+                                      respect to the largest performance values
+    
+    """
+
+    # use plotMeans=False to get all data, not just means
+    xKList,xValsList,xStdList = plotAllFpdsDict(numParamsDict,returnData=True,
+                                makePlot=False,plotMeans=False,**kwargs)
+    yKList,yValsList,yStdList = plotAllFpdsDict(performanceDict,returnData=True,
+                                makePlot=False,plotMeans=False,**kwargs)
+    if (len(xKList) != len(yKList)) or \
+       (not scipy.all(scipy.equal(xKList,yKList))):
+        raise Exception, "numParamsDict and performanceDict contain different keys"
+    #print kList
+    keptIndices = filter(lambda i: xKList[i]%plotDivisibleBy == 0,
+                         range(len(xKList)))
+    xValsList = scipy.array(xValsList)[keptIndices]
+    yValsList = scipy.array(yValsList)[keptIndices]
+    #stdList = scipy.array(stdList)[keptIndices]
+    xVals = scipy.array([ scipy.mean(x) for x in xValsList ])
+    yVals = scipy.array([ scipy.mean(y) for y in yValsList ])
+    #if ignoreNans:
+    #    yValsList = [ filter(lambda y: not scipy.isnan(y),yVals)         \
+    #                 for yVals in yValsList ]
+    #    yValsList = [ filter(lambda y: not scipy.isnan(y),yVals)         \
+    #                 for yVals in yValsList ]
+
+    # plot the points
+    pylab.plot(xVals,yVals,marker=marker,ls='',label=label,mew=0.25,
+               color=color,**kwargs)
+
+    # plot the Pareto front
+    performances = list( scipy.linspace(min(yVals),max(yVals),1000) )
+    if bigIsBetter:
+        minNps = [ min(xVals[pylab.find(yVals>=p)]) for p in performances ]
+    else:
+        minNps = [ min(xVals[pylab.find(yVals<=p)]) for p in performances ]
+
+    # add endpoints
+    if xmax is None: xmax = max(xVals)
+    if ymax is None: ymax = max(yVals)
+    if ymin is None: ymin = min(yVals)
+    if bigIsBetter:
+        performances = [ ymin ] + performances + [ max(performances) ]
+        minNps = [ min(xVals) ] + minNps + [ xmax ]
+    else:
+        performances = [ min(performances) ] + performances + [ ymax ]
+        minNps = [ xmax ] + minNps + [ min(xVals) ]
+    pylab.plot(minNps,performances,ls='-',color=color,
+               zorder=1,**kwargs) #,label=label+' Pareto front'
+
+
+
+
+
+
+
+
+
+
