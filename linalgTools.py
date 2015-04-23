@@ -11,7 +11,7 @@ import scipy
 import scipy.linalg
 
 # 7.10.2012
-def svdInverse(mat,maxEig=1e10,minEig=0.): #1e10,1e-10
+def svdInverse(mat,maxEig=1e10,minEig=1e-10): #1e10,1e-10
     u,w,vt = scipy.linalg.svd(mat)
     if any(w==0.):
         raise ZeroDivisionError, "Singular matrix."

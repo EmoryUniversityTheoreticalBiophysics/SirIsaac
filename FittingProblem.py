@@ -4102,7 +4102,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         try:
             u,singVals,vt = scipy.linalg.svd( H )
             priorSingVals = priorLambda * scipy.ones(len(H))
-        except scipy.linalg.LinAlgError:
+        except (scipy.linalg.LinAlgError,ValueError):
             singVals = scipy.inf * scipy.ones(len(H))
             priorSingVals = -scipy.inf * scipy.ones(len(H))
             print "_derivProblem_logLikelihood: Error in Hessian SVD.  "            \
@@ -4248,7 +4248,7 @@ class PowerLawFittingModel_Complexity(PowerLawFittingModel):
     """
     
     def __init__(self,complexity,indepParamNames=[],outputNames=[],             
-        inputNames=None,connectionOrder="node",typeOrder="last",**kwargs):
+        inputNames=None,connectionOrder="node",typeOrder="last",seed=100,**kwargs):
         
         if inputNames is None:
             # 2.22.2012 don't include indepParams ending in "_init" as inputs
@@ -4269,7 +4269,7 @@ class PowerLawFittingModel_Complexity(PowerLawFittingModel):
         maxConnection = 2
         self.networkList = _createNetworkList(complexity,self.numInputs,        
             self.numOutputs,defaultType,defaultOutputType,maxType,maxConnection,
-            connectionOrder=connectionOrder,typeOrder=typeOrder)
+            connectionOrder=connectionOrder,typeOrder=typeOrder,seed=seed)
         self.n = len(self.networkList)
         
         speciesNames = [ 'X_'+str(i) for i in range(self.n) ]
@@ -4434,19 +4434,19 @@ class PowerLawFittingModel_planetary(PowerLawFittingModel_FullyConnected):
 
 def _createNetworkList(complexity,numInputs,numOutputs,                         
     defaultType,defaultOutputType,maxType,maxConnection,
-    connectionOrder="node",typeOrder="last"):
+    connectionOrder="node",typeOrder="last",seed=100):
         """
         Note: complexity != numParameters
         
         (Only works for 1 <= maxConnection <= 2)
         
-        connectionOrder           : "node", "nearest"
+        connectionOrder           : "node", "nearest", "random"
         typeOrder                 : "last", "first" ("mixed"?)
         """
     
         # check that options are valid
         typeOrders = ['last','first']
-        connectionOrders = ['nearest','node']
+        connectionOrders = ['nearest','node','random']
         if typeOrder not in typeOrders:
             raise Exception, "Unrecognized typeOrder = "+str(typeOrder)
         if connectionOrder not in connectionOrders:
@@ -4522,6 +4522,29 @@ def _createNetworkList(complexity,numInputs,numOutputs,
                   if done(curComplexity): return networkList
                   addConnection(numInputs+j,numInputs+i,connectionType)
                   if done(curComplexity): return networkList
+        elif connectionOrder is "random": # 12.4.2014
+            # add connection parameters in random order
+            # (note that this is different from other connectionOrders
+            #  both because it connects nodes in a random order and
+            #  because it doesn't require all connections of a given
+            #  connectionType before moving on)
+            nodes = range(numInputs,numInputs+numOutputs)
+            # Make flat list of possible ordered pairs of nodes
+            nodePairs = scipy.reshape([ [ (i,j) for i in nodes ] for j in nodes ],
+                                      [len(nodes)**2,2])
+            # Don't include self connections
+            nodePairs = filter(lambda pair: pair[0] != pair[1],nodePairs)
+            # Each nodePair appears maxConnection times
+            connections = scipy.repeat(nodePairs,maxConnection,axis=0)
+            # Shuffle list of connections
+            scipy.random.seed(seed)
+            pylab.shuffle(connections)
+            # Add connections in shuffled order
+            for connection in connections:
+                node1,node2 = connection[0],connection[1]
+                currType = networkList[node1][1].get(node2,0)
+                addConnection(node1,node2,currType+1)
+                if done(curComplexity): return networkList
 
         if typeOrder is "last":
             n = upgradeOutputNodes()
