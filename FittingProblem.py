@@ -4561,7 +4561,7 @@ def _createNetworkList(complexity,numInputs,numOutputs,
             if typeOrder is "random": # 4.25.2015
                 for nodeType in range(defaultOutputType,maxType):
                     for i in range(numInputs,numInputs+numOutputs):
-                        connections.append((i,))
+                        connections.append( scipy.array((i,)) )
             # Shuffle list of connections
             scipy.random.seed(seed)
             pylab.shuffle(connections)
@@ -4631,7 +4631,7 @@ def _createNetworkList(complexity,numInputs,numOutputs,
                 # Optionally include node parameters in list
                 if typeOrder is "random": # 4.25.2015
                     for nodeType in range(defaultType,maxType):
-                        connections.append((curHidden,))
+                        connections.append( scipy.array((curHidden,)) )
                 # Shuffle list of connections
                 scipy.random.seed(seed+curHidden)
                 pylab.shuffle(connections)
