@@ -4248,7 +4248,8 @@ class PowerLawFittingModel_Complexity(PowerLawFittingModel):
     """
     
     def __init__(self,complexity,indepParamNames=[],outputNames=[],             
-        inputNames=None,connectionOrder="node",typeOrder="last",seed=100,**kwargs):
+        inputNames=None,connectionOrder="node",typeOrder="last",
+        connectionOrderSeed=100,**kwargs):
         
         if inputNames is None:
             # 2.22.2012 don't include indepParams ending in "_init" as inputs
@@ -4269,7 +4270,8 @@ class PowerLawFittingModel_Complexity(PowerLawFittingModel):
         maxConnection = 2
         self.networkList = _createNetworkList(complexity,self.numInputs,        
             self.numOutputs,defaultType,defaultOutputType,maxType,maxConnection,
-            connectionOrder=connectionOrder,typeOrder=typeOrder,seed=seed)
+            connectionOrder=connectionOrder,typeOrder=typeOrder,
+            seed=connectionOrderSeed)
         self.n = len(self.networkList)
         
         speciesNames = [ 'X_'+str(i) for i in range(self.n) ]
@@ -4441,16 +4443,23 @@ def _createNetworkList(complexity,numInputs,numOutputs,
         (Only works for 1 <= maxConnection <= 2)
         
         connectionOrder           : "node", "nearest", "random"
-        typeOrder                 : "last", "first" ("mixed"?)
+        typeOrder                 : "last", "first", "random"
+                                    ("last" adds parameters specific to each node after
+                                     adding connection parameters, whereas "first"
+                                     adds them first.  "random" adds them interspersed
+                                     with the connection parameters.)
         """
     
         # check that options are valid
-        typeOrders = ['last','first']
+        typeOrders = ['last','first','random']
         connectionOrders = ['nearest','node','random']
         if typeOrder not in typeOrders:
             raise Exception, "Unrecognized typeOrder = "+str(typeOrder)
         if connectionOrder not in connectionOrders:
-            raise Exception, "Unrecognized connectionOrder ="+str(connectionOrder)
+            raise Exception, "Unrecognized connectionOrder = "+str(connectionOrder)
+        if (typeOrder is "random") and (connectionOrder is not "random"):
+            raise Exception, "random typeOrder with non-random connectionOrder " \
+                "is not currently supported"
     
         #complexity,numInputs,numOutputs =                                       \
         #    self.complexity,self.numInputs,self.numOutputs
@@ -4466,6 +4475,18 @@ def _createNetworkList(complexity,numInputs,numOutputs,
     
         def addConnection(node,connectedNode,connectionType):
             networkList[node][1][connectedNode] = connectionType
+
+        # 4.25.2015 (eventually shift all connectionOrders to this method?)
+        def addConnectionOrParam(connection):
+            if len(connection) == 2:
+                node1,node2 = connection[0],connection[1]
+                currType = networkList[node1][1].get(node2,0)
+                addConnection(node1,node2,currType+1)
+            elif len(connection) == 1:
+                node = connection[0]
+                currType = networkList[node][0]
+                networkList[node][0] = currType + 1
+            else: raise Exception
     
         def upgradeOutputNodes():
             # upgrade each output node
@@ -4535,16 +4556,19 @@ def _createNetworkList(complexity,numInputs,numOutputs,
             # Don't include self connections
             nodePairs = filter(lambda pair: pair[0] != pair[1],nodePairs)
             # Each nodePair appears maxConnection times
-            connections = scipy.repeat(nodePairs,maxConnection,axis=0)
+            connections = list( scipy.repeat(nodePairs,maxConnection,axis=0) )
+            # Optionally include node parameters in list
+            if typeOrder is "random": # 4.25.2015
+                for nodeType in range(defaultOutputType,maxType):
+                    for i in range(numInputs,numInputs+numOutputs):
+                        connections.append((i,))
             # Shuffle list of connections
             scipy.random.seed(seed)
             pylab.shuffle(connections)
             # Add connections in shuffled order
             for connection in connections:
-                node1,node2 = connection[0],connection[1]
-                currType = networkList[node1][1].get(node2,0)
-                addConnection(node1,node2,currType+1)
-                if done(curComplexity): return networkList
+              addConnectionOrParam(connection)
+              if done(curComplexity): return networkList
 
         if typeOrder is "last":
             n = upgradeOutputNodes()
@@ -4557,34 +4581,72 @@ def _createNetworkList(complexity,numInputs,numOutputs,
             numHidden += 1
             curHidden = len(networkList)-1
             
-            # add connections to, then from, output nodes
-            for connectionType in range(1,maxConnection+1):
-              for i in range(numOutputs):
-                addConnection(numInputs+i,curHidden,connectionType)
-                if done(curComplexity): return networkList
-            for connectionType in range(1,maxConnection+1):
-              for i in range(numOutputs):
-                addConnection(curHidden,numInputs+i,connectionType)
-                if done(curComplexity): return networkList
-                
-            # add connections from input nodes
-            for connectionType in range(1,maxConnection+1):
-              for i in range(numInputs):
-                addConnection(curHidden,i,connectionType)
-                if done(curComplexity): return networkList
-                
-            # add connections to and from all other nodes
-            for connectionType in range(1,maxConnection+1):
-              for i in range(numHidden-1):
-                addConnection(numInputs+numOutputs+i,curHidden,connectionType)
-                if done(curComplexity): return networkList
-                addConnection(curHidden,numInputs+numOutputs+i,connectionType)
-                if done(curComplexity): return networkList
+            if typeOrder is "first":
+                # upgrade type
+                for nodeType in range(defaultType+1,maxType+1):
+                    networkList[curHidden][0] = nodeType
+                    if done(curComplexity): return networkList
             
-            # upgrade type
-            for nodeType in range(defaultType+1,maxType+1):
-                networkList[curHidden][0] = nodeType
-                if done(curComplexity): return networkList
+            # add connections to and from new hidden node
+            if connectionOrder is "node":
+            
+                # add connections to, then from, output nodes
+                for connectionType in range(1,maxConnection+1):
+                  for i in range(numOutputs):
+                    addConnection(numInputs+i,curHidden,connectionType)
+                    if done(curComplexity): return networkList
+                for connectionType in range(1,maxConnection+1):
+                  for i in range(numOutputs):
+                    addConnection(curHidden,numInputs+i,connectionType)
+                    if done(curComplexity): return networkList
+                    
+                # add connections from input nodes
+                for connectionType in range(1,maxConnection+1):
+                  for i in range(numInputs):
+                    addConnection(curHidden,i,connectionType)
+                    if done(curComplexity): return networkList
+                    
+                # add connections to and from all other nodes
+                for connectionType in range(1,maxConnection+1):
+                  for i in range(numHidden-1):
+                    addConnection(numInputs+numOutputs+i,curHidden,connectionType)
+                    if done(curComplexity): return networkList
+                    addConnection(curHidden,numInputs+numOutputs+i,connectionType)
+                    if done(curComplexity): return networkList
+
+            elif connectionOrder is "random":
+                # 4.24.2015
+                # add connection parameters in random order
+                # (note that this is different from other connectionOrders
+                #  both because it connects nodes in a random order and
+                #  because it doesn't require all connections of a given
+                #  connectionType before moving on)
+                nodes = range(curHidden)
+                nodesExceptInput = range(numInputs,curHidden)
+                # Make flat list of possible ordered pairs of nodes
+                nodePairs = [ (i,curHidden) for i in nodesExceptInput ] \
+                          + [ (curHidden,j) for j in nodes ]
+                # Each nodePair appears maxConnection times
+                connections = list( scipy.repeat(nodePairs,maxConnection,axis=0) )
+                # Optionally include node parameters in list
+                if typeOrder is "random": # 4.25.2015
+                    for nodeType in range(defaultType,maxType):
+                        connections.append((curHidden,))
+                # Shuffle list of connections
+                scipy.random.seed(seed+curHidden)
+                pylab.shuffle(connections)
+                # Add connections in shuffled order
+                for connection in connections:
+                    addConnectionOrParam(connection)
+                    if done(curComplexity): return networkList
+            else:
+                raise Exception, "Unsupported connectionOrder with hidden nodes: "+str(connectionOrder)
+
+            if typeOrder is "last":
+                # upgrade type
+                for nodeType in range(defaultType+1,maxType+1):
+                    networkList[curHidden][0] = nodeType
+                    if done(curComplexity): return networkList
 
 
 
@@ -4847,7 +4909,9 @@ class CTSNFittingModel(SloppyCellFittingModel):
     """
     
     def __init__(self,complexity,indepParamNames=[],outputNames=[],                  
-        switchSigmoid=False,inputNames=None,xiNegative=False,**kwargs):
+        switchSigmoid=False,inputNames=None,xiNegative=False,
+        connectionOrder="node",typeOrder="last",connectionOrderSeed=100,
+        **kwargs):
         
         if inputNames is None:
             # 2.22.2012 don't include indepParams ending in "_init" as inputs
@@ -4867,7 +4931,9 @@ class CTSNFittingModel(SloppyCellFittingModel):
         maxType = 4
         maxConnection = 1
         self.networkList = _createNetworkList(complexity,self.numInputs,        
-            self.numOutputs,defaultType,defaultOutputType,maxType,maxConnection)
+            self.numOutputs,defaultType,defaultOutputType,maxType,maxConnection,
+            connectionOrder=connectionOrder,typeOrder=typeOrder,
+            seed=connectionOrderSeed)
         self.n = len(self.networkList)
         
         speciesNames = [ 'X_'+str(i) for i in range(self.n) ]

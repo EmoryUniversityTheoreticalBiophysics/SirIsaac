@@ -201,7 +201,7 @@ def bestModelEffectiveNumParams(fpdList,**kwargs):
     return calcForAllFpds(fpdList,effectiveNumParamsFunc,**kwargs)
 
 def perfectModelEffectiveNumParams(fpdList,**kwargs):
-    effectiveNumParamsFunc = lambda mName,fp: fp.perfectNumStiffSingVals
+    effectiveNumParamsFunc = lambda mName,fp: getattr(fp,'perfectNumStiffSingVals',None)
     return calcForAllFpds(fpdList,effectiveNumParamsFunc,skip=False,**kwargs)
     
 def logLikelihoods(fpdList,**kwargs):
@@ -403,7 +403,7 @@ def plotAllFpdsDict(dataDict,marker='o',ls='',color='b',label=None,     \
 def plotAllFpdsDictPretty(fpdList,plotDivisibleBy=1,errorBars=True,percent=50.,
                           clip_on=True,ls=':',lw=1,ms=5,useMeans=False,
                           stdMean=False,ignoreNans=False,mec='k',mfc=None,
-                          mew=1,**kwargs):
+                          mew=1,dashes=(1,1),**kwargs):
     """
     plotDivisibleBy (None)          : plot only N_Ds divisible by plotDivisibleBy
     percent (50.)                   : confidence interval size (0 to 100)
@@ -448,17 +448,19 @@ def plotAllFpdsDictPretty(fpdList,plotDivisibleBy=1,errorBars=True,percent=50.,
         yValsPlus  = [ percentile(yVals,(100.+percent)/2.) for yVals in yValsList ]
         
     if errorBars:
-        prettyErrorbar(kList,yValsMed,yValsMinus,yValsPlus,color=color,label=label,\
-                       marker=marker,clip_on=clip_on,ls=ls,lw=lw,ms=ms,mec=mec)
+        prettyErrorbar(kList,yValsMed,yValsMinus,yValsPlus,color=color,label=label,
+                       marker=marker,clip_on=clip_on,ls=ls,lw=lw,ms=ms,mec=mec,
+                       dashes=dashes,mfc=mfc)
     else:
         # calculate means
         yValsMeans = [ scipy.mean(yVals) for yVals in yValsList ]
-        pylab.plot(kList,yValsMeans,color=color,label=label,marker=marker,          \
-                   clip_on=clip_on,ls=ls,lw=lw,ms=ms,mec=mec,mfc=mfc,mew=mew)
+        pylab.plot(kList,yValsMeans,color=color,label=label,marker=marker,
+                   clip_on=clip_on,ls=ls,lw=lw,ms=ms,mec=mec,mfc=mfc,mew=mew,
+                   dashes=dashes)
 
 # taken from paperFiguresPhosphorylation.ipynb
 def prettyErrorbar(xList,yList,yListLow,yListHigh,color='blue',alpha=0.15,label=None,
-                   marker='o',ls=':',clip_on=True,ms=5,mec='k',mfc=None,
+                   marker='o',ls=':',clip_on=True,ms=5,mec='k',mfc=None,dashes=(1,1),
                    **kwargs):
     #m = lambda x: scipy.maximum(x,minVal)
     #array = scipy.array
@@ -467,7 +469,7 @@ def prettyErrorbar(xList,yList,yListLow,yListHigh,color='blue',alpha=0.15,label=
     if mfc is None: mfc = color
     
     pylab.plot(xList,yList,marker=marker,ls=ls,color=color,label=label,
-               clip_on=clip_on,ms=ms,mec=mec,dashes=(1,1),**kwargs)
+               clip_on=clip_on,ms=ms,mec=mec,dashes=dashes,mfc=mfc,**kwargs)
     pylab.fill_between(xList,yListLow,yListHigh,color=color,alpha=alpha,**kwargs)
 
 

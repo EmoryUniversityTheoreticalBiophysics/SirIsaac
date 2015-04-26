@@ -138,6 +138,10 @@ if originalString is 'PlanetaryNet':
     ratePriorSigma = 10. #1e3
     nonratePriorSigma = 10.
     
+    # 4.23.2015
+    connectionOrder = 'node'
+    typeOrder = 'last'
+    
     # 9.5.2013 since we're interested in testing whether we can find the
     # perfect representation, we'll remove the stopping criterion
     stopFittingN = scipy.inf
@@ -191,6 +195,11 @@ elif originalString is 'PhosphorylationNet':
 
     ratePriorSigma = 10 #1e3 #10 #1e3 #10. #1e3
     nonratePriorSigma = 10.
+    
+    # 4.23.2015
+    connectionOrder = 'random' #'node'
+    typeOrder = 'random' #'last'
+    connectionOrderSeed = 301
 
     originalModelFilename = 'examplePhosphorylationFittingModel.model'
     if makeOriginalModel:
@@ -253,6 +262,11 @@ elif originalString is 'yeastOscillator':
   
   ratePriorSigma = 10.
   nonratePriorSigma = 10.
+  
+  # 4.23.2015
+  connectionOrder = 'node'
+  typeOrder = 'last'
+  connectionOrderSeed = 300
   
   def yeastDataFunction(numICs,useDerivs,                                   \
     names=names,timesSeed=timesSeed,noiseSeed=noiseSeed,ICseed=ICseed):
@@ -479,6 +493,9 @@ for numIndepParams in numIndepParamsList:
                     'smallerBestParamsDict': smallerBestParamsDict,
                     'saveKey': key,
                     'stopFittingN': stopFittingN,
+                    'connectionOrder': connectionOrder,
+                    'typeOrder': typeOrder,
+                    'connectionOrderSeed': connectionOrderSeed,
                  }
         if fittingType is 'Laguerre':
           p = FittingProblem.LaguerreFittingProblem(degreeListLag,fakeData,
