@@ -858,7 +858,8 @@ class FittingProblem:
                 +str(len(self.fittingModelNames))+" fits have been performed."
         
         # check that we're not past maxIndex
-        if bestIndex > (maxIndex+numModelsFit)%numModelsFit:
+        if (bestIndex > (maxIndex+numModelsFit)%numModelsFit) \
+        or (numModelsFit < -maxIndex):
             if verbose:
                 print "maxLogLikelihoodName: bestIndex > maxIndex.  Returning None."
             return None
