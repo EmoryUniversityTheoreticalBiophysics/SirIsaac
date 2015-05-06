@@ -468,8 +468,11 @@ def prettyErrorbar(xList,yList,yListLow,yListHigh,color='blue',alpha=0.15,label=
     
     if mfc is None: mfc = color
     
+    if dashes is not None: # because dashes=None produces an error
+        kwargs['dashes'] = dashes
     pylab.plot(xList,yList,marker=marker,ls=ls,color=color,label=label,
-               clip_on=clip_on,ms=ms,mec=mec,dashes=dashes,mfc=mfc,**kwargs)
+               clip_on=clip_on,ms=ms,mec=mec,mfc=mfc,**kwargs)
+    kwargs.pop('dashes',None)
     pylab.fill_between(xList,yListLow,yListHigh,color=color,alpha=alpha,**kwargs)
 
 
