@@ -830,7 +830,7 @@ class FittingProblem:
     
     # 4.17.2012
     # 5.2.2013 updated to use new log-likelihood
-    def maxLogLikelihoodName(self,maxIndex=-3,verbose=True):
+    def maxLogLikelihoodName(self,maxIndex=-4,verbose=True):
         """
         maxIndex (-3)     : If the best model has an index above maxIndex,
                             return None.  (Use negative number -N to force 
