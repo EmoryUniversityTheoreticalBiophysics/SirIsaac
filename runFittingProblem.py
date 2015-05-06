@@ -142,6 +142,9 @@ if originalString is 'PlanetaryNet':
     connectionOrder = 'node'
     typeOrder = 'last'
     
+    # 5.6.2015
+    trueNoiseRange = None
+    
     # 9.5.2013 since we're interested in testing whether we can find the
     # perfect representation, we'll remove the stopping criterion
     stopFittingN = scipy.inf
@@ -199,7 +202,10 @@ elif originalString is 'PhosphorylationNet':
     # 4.23.2015
     connectionOrder = 'random' #'node'
     typeOrder = 'random' #'last'
-    connectionOrderSeed = 301
+    connectionOrderSeed = 300
+    
+    # 5.6.2015
+    trueNoiseRange = [0.20,0.20] # None
 
     originalModelFilename = 'examplePhosphorylationFittingModel.model'
     if makeOriginalModel:
@@ -267,6 +273,10 @@ elif originalString is 'yeastOscillator':
   connectionOrder = 'node'
   typeOrder = 'last'
   connectionOrderSeed = 300
+  
+  # 5.6.2015
+  # Note that a value other than None here is not yet implemented
+  trueNoiseRange = None
   
   def yeastDataFunction(numICs,useDerivs,                                   \
     names=names,timesSeed=timesSeed,noiseSeed=noiseSeed,ICseed=ICseed):
@@ -363,6 +373,8 @@ configString = '_fitProb_varying_numInputs'                                 \
    +'_avegtol'+str(avegtol)                                                 \
    +'_noiseFracSize'+str(noiseFracSize)        \
    +'_ratePriorSigma'+str(ratePriorSigma)
+if trueNoiseRange is not None:
+    configString += '_trueNoiseRange'+str(trueNoiseRange[0])+'_'+str(trueNoiseRange[1])
 if originalString is "yeastOscillator":
     configString += '_seeds'+str(timesSeed)+'_'+str(noiseSeed)+'_'+str(ICseed)
 elif (originalString is "PhosphorylationNet") or (originalString is "PlanetaryNet"):
@@ -467,9 +479,10 @@ for numIndepParams in numIndepParamsList:
                 seed=int(timeAndNoiseSeed*1e5+i),vars=[var],                        \
                 noiseFracSize=noiseFracSize,randomX=randomX,                        \
                 includeEndpoints=includeEndpoints,takeAbs=fakeDataAbs,              \
-                noiseSeed=noiseSeed,typValOffsets=valOffsets ))
+                noiseSeed=noiseSeed,typValOffsets=valOffsets,
+                trueNoiseRange=trueNoiseRange ))
         fakeData.append( fakeDataSingleRun )
-    
+
     elif originalString == 'yeastOscillator':
       print "Using yeast oscillator data."
       fakeData,inputVars,inputList,includeDerivs,fittingDataDerivs =           \
@@ -526,7 +539,7 @@ for numIndepParams in numIndepParamsList:
         fitProbDict[key] = p
 
     Utility.save(fitProbDict,fileNumString+configString+'.dat')
-    
+
     # () Fit the models in the fittingProblem p
     if fittingType is not 'PerfectPhosphorylation':
         try:

@@ -9,9 +9,10 @@ from SloppyCell.ReactionNetworks import *
 import scipy
 
 # (originally from runTranscriptionNetwork.py)
-def noisyFakeData(net,numPoints,timeInterval,                                   \
-        vars=None,noiseFracSize=0.1,seed=None,params=None,randomX=True,         \
-        includeEndpoints=True,takeAbs=False,noiseSeed=None,typValOffsets=None):
+def noisyFakeData(net,numPoints,timeInterval,
+        vars=None,noiseFracSize=0.1,seed=None,params=None,randomX=True,
+        includeEndpoints=True,takeAbs=False,noiseSeed=None,typValOffsets=None,
+        trueNoiseRange=None):
     """
     Adds Gaussian noise to data: 
         mean 0, stdev noiseFracSize*("typical value" of variable)
@@ -32,7 +33,14 @@ def noisyFakeData(net,numPoints,timeInterval,                                   
                           to be subtracted from var_typical_val before
                           calculating noiseSize (useful when using an offset to
                           fit powerLaw models).  Defaults to zeros.
+    trueNoiseRange (None): If None, the reported error bars on the data are
+                          the same size as the stdev used to add the noise.
+                          Otherwise, a constant fractional noise
+                          for each variable is chosen from 'trueNoiseRange'
+                          and used to add the noise, while 'noiseFracSize' 
+                          is reported as the stdev in the data.
     """
+    
     if seed is not None: scipy.random.seed(seed)
     
     if vars is None:
@@ -54,20 +62,30 @@ def noisyFakeData(net,numPoints,timeInterval,                                   
           for time in timeInterval:
             data[var][time] = ( traj.get_var_val(var,time), 0. )
 
+    if trueNoiseRange is None:
+        noiseFracSizeList = [noiseFracSize for var in data.keys()]
+    elif len(trueNoiseRange) == 2:
+        if noiseSeed is not None: scipy.random.seed(noiseSeed+1)
+        a,b = trueNoiseRange
+        noiseFracSizeList = scipy.random.uniform(a,b,len(data.keys()))
+    else:
+        raise Exception, "Unrecognized form of trueNoiseRange"
+
     if noiseSeed is not None: scipy.random.seed(noiseSeed)
 
     if typValOffsets is None: typValOffsets = scipy.zeros(len(vars))
 
-    for var,offset in zip(data.keys(),typValOffsets):
-        noiseSize = noiseFracSize * ( net.get_var_typical_val(var) - offset )
+    for var,offset,trueNoiseFracSize in zip(data.keys(),typValOffsets,noiseFracSizeList):
+        trueNoiseSize = trueNoiseFracSize * ( net.get_var_typical_val(var) - offset )
+        reportedNoiseSize = noiseFracSize * ( net.get_var_typical_val(var) - offset )
         for key in data[var].keys():
             old = data[var][key]
-            if noiseSize > 0:
-                new0 = old[0] + scipy.random.normal(0.,noiseSize)
+            if trueNoiseSize > 0:
+                new0 = old[0] + scipy.random.normal(0.,trueNoiseSize)
                 if takeAbs: new0 = abs(new0)
-                new = (new0, noiseSize)
+                new = (new0, reportedNoiseSize)
             else:
-                new = (old[0], 0.)
+                new = (old[0], reportedNoiseSize)
             data[var][key] = new
     
     return data
