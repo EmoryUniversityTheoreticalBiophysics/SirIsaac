@@ -12,7 +12,7 @@ import scipy
 def noisyFakeData(net,numPoints,timeInterval,
         vars=None,noiseFracSize=0.1,seed=None,params=None,randomX=True,
         includeEndpoints=True,takeAbs=False,noiseSeed=None,typValOffsets=None,
-        trueNoiseRange=None):
+        trueNoiseRange=None,lognormalNoise=False):
     """
     Adds Gaussian noise to data: 
         mean 0, stdev noiseFracSize*("typical value" of variable)
@@ -39,6 +39,9 @@ def noisyFakeData(net,numPoints,timeInterval,
                           for each variable is chosen from 'trueNoiseRange'
                           and used to add the noise, while 'noiseFracSize' 
                           is reported as the stdev in the data.
+    lognormalNoise (False): If True, values are sampled from a lognormal with
+                          same mean and standard deviation (in linear space) as
+                          would otherwise be produced.
     """
     
     if seed is not None: scipy.random.seed(seed)
@@ -81,7 +84,13 @@ def noisyFakeData(net,numPoints,timeInterval,
         for key in data[var].keys():
             old = data[var][key]
             if trueNoiseSize > 0:
-                new0 = old[0] + scipy.random.normal(0.,trueNoiseSize)
+                if not lognormalNoise:
+                    new0 = old[0] + scipy.random.normal(0.,trueNoiseSize)
+                else:
+                    mu,sigma = old[0],trueNoiseSize
+                    mul = scipy.log( mu/scipy.sqrt(sigma*sigma/(mu*mu) + 1.) )
+                    sigmal = scipy.sqrt(scipy.log(sigma*sigma/(mu*mu) + 1.))
+                    new0 = scipy.random.lognormal(mul,sigmal)
                 if takeAbs: new0 = abs(new0)
                 new = (new0, reportedNoiseSize)
             else:

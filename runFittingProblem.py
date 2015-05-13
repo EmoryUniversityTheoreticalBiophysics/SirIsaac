@@ -150,6 +150,7 @@ if originalString is 'PlanetaryNet':
     stopFittingN = scipy.inf
     
     fakeDataAbs = False # Avoid negative data
+    lognormalNoise = False
 
 
 
@@ -200,12 +201,15 @@ elif originalString is 'PhosphorylationNet':
     nonratePriorSigma = 10.
     
     # 4.23.2015
-    connectionOrder = 'random' #'node'
-    typeOrder = 'random' #'last'
-    connectionOrderSeed = 300
+    connectionOrder = 'node' #'random'
+    typeOrder = 'last' #'random'
+    connectionOrderSeed = None #300
     
     # 5.6.2015
-    trueNoiseRange = [0.20,0.20] # None
+    trueNoiseRange = None #[0.20,0.20] # None
+    
+    # 5.13.2015
+    lognormalNoise = True # False
 
     originalModelFilename = 'examplePhosphorylationFittingModel.model'
     if makeOriginalModel:
@@ -260,7 +264,8 @@ elif originalString is 'yeastOscillator':
   ICseed = 2 #2
   noiseFracSize = 0.1
   
-  fakeDataAbs = False 
+  fakeDataAbs = False
+  lognormalNoise = False
   
   # (no SloppyCell perfectModel, so no prior vars)
   rateVars = []
@@ -480,7 +485,7 @@ for numIndepParams in numIndepParamsList:
                 noiseFracSize=noiseFracSize,randomX=randomX,                        \
                 includeEndpoints=includeEndpoints,takeAbs=fakeDataAbs,              \
                 noiseSeed=noiseSeed,typValOffsets=valOffsets,
-                trueNoiseRange=trueNoiseRange ))
+                trueNoiseRange=trueNoiseRange,lognormalNoise=lognormalNoise ))
         fakeData.append( fakeDataSingleRun )
 
     elif originalString == 'yeastOscillator':
