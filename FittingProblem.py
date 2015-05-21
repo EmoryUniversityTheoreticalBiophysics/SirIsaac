@@ -383,51 +383,31 @@ class FittingProblem:
             cutoff = self.cutoff
         return filter(lambda s: s>cutoff, singVals)
     
-    def plotResults(self,subplotConfig=None,showTitles=True,showInfo=True,          
+    def plotResults(self,showTitles=True,showInfo=True,
         errorBars=True,exptsToPlot=None,plotDerivs=False,indices=None,
         **kwargs):
         """
         indices (None)          : If a list of indepParamsList indices, plots
                                   only these indices.  Otherwise plots
                                   all conditions in indepParamsList.
-                                  
-        TO DO: Update implementation to more simply call self.plotModelResults.
         """
-        
-        # choose the indices we want
-        if indices is None:
-            indices = range(len(self.indepParamsList))
-        fittingData = [ self.fittingData[i] for i in indices ]
-        indepParamsList = [ self.indepParamsList[i] for i in indices ]
-        
         if not self.fitAllDone:
             print "FittingProblem.plotResults warning: "                            \
                  +"some or all fits have not yet been performed."
-        
-        if subplotConfig is not None:
-            subplotRows,subplotCols = subplotConfig
-        else:
-            subplotRows,subplotCols = 1,1
             
         for i,name in enumerate(self.fittingModelNames):
             fittingModel = self.fittingModelDict[name]
-            curPosition = i%(subplotRows*subplotCols) + 1
-            if (curPosition == 1) and (subplotConfig is not None):
-                Plotting.figure()
-            Plotting.subplot(subplotRows,subplotCols,curPosition)
-            fittingModel.plotResults(fittingData,indepParamsList,     
-                errorBars=errorBars,exptsToPlot=exptsToPlot,plotDerivs=plotDerivs,
-                **kwargs)
+            self.plotModelResults(fittingModel,indices=indices,**kwargs)
+            
             if showTitles:
                 extraInfo = ''
-                if showInfo:
+                if showInfo and hasattr(self.numParametersDict,name):
                     extraInfo = ' ' + str(self.numParametersDict[name])             \
                         + '(' + str(self.numStiffSingValsDict[name]) + ')'
-                if subplotConfig is not None:
-                    Plotting.title(self.fittingModelNames[i]+extraInfo)
-                else: # 12.5.2012
-                    fig = Plotting.gcf()
-                    fig.canvas.set_window_title(self.fittingModelNames[i]+extraInfo)
+                # 12.5.2012
+                fig = Plotting.gcf()
+                fig.canvas.set_window_title(self.fittingModelNames[i]+extraInfo)
+                fig.suptitle(self.fittingModelNames[i]+extraInfo)
             
             
     
