@@ -27,6 +27,8 @@ import PlanetaryNetwork
 reload(PlanetaryNetwork)
 import SimplePhosphorylationNetwork
 reload(SimplePhosphorylationNetwork)
+import SimpleSinusoidalNetwork
+reload(SimpleSinusoidalNetwork)
 import VaryingParamsWrapper
 reload(VaryingParamsWrapper)
 import GaussianPrior
@@ -1382,6 +1384,44 @@ class SimplePhosphorylationFittingProblem(FittingProblem):
                 avegtol=avegtol,maxiter=maxiter,ensGen=ensGen,                  
                 verbose=verbose,**kwargs) ]
         fittingModelNames = ['SimplePhosphorylationModel']
+        
+        # all daughter classes should call generalSetup
+        self.generalSetup(fittingData,indepParamsList,indepParamNames,
+            fittingModelList,singValCutoff,fittingModelNames,verbose,
+            perfectModel,saveFilename,bestSeenParamsDict,
+            smallerBestParamsDict,saveKey,stopFittingN)
+        
+        self.convFlagDict = {}
+    
+    def fitAll(self,**kwargs):
+        FittingProblem.fitAll(self,**kwargs)
+        # we also want to save the convergence information in a
+        # convenient location:
+        for name in self.fittingModelNames:
+            self.convFlagDict[name] = self.fittingModelDict[name].convFlag
+
+# 5.17.2015
+class SimpleSinusoidalFittingProblem(FittingProblem):
+    """
+    Branched from SimplePhosphorylationFittingProblem
+    """
+    def __init__(self,fittingData,
+        indepParamsList=[[]],indepParamNames=[],outputNames=['output'],
+        avegtol=avegtolDefault,
+        maxiter=maxiterDefault,singValCutoff=cutoffDefault,priorSigma=None,
+        ensGen=None,verbose=verboseDefault,perfectModel=None,saveFilename=None,
+        bestSeenParamsDict={},                                                  
+        smallerBestParamsDict={},saveKey=-1,**kwargs):
+        
+        # there's only one model, so we don't have to know when to stop
+        stopFittingN = scipy.inf
+        
+        fittingModelList = [                                                    \
+            SimpleSinusoidalFittingModel(outputNames,
+                indepParamNames=indepParamNames,
+                avegtol=avegtol,maxiter=maxiter,ensGen=ensGen,                  
+                verbose=verbose,**kwargs) ]
+        fittingModelNames = ['SimpleSinusoidalModel']
         
         # all daughter classes should call generalSetup
         self.generalSetup(fittingData,indepParamsList,indepParamNames,
@@ -4986,6 +5026,24 @@ class PlanetaryFittingModel(SloppyCellFittingModel):
         # generalSetup should be run by all daughter classes
         self.generalSetup(SloppyCellNet,indepParamNames,**kwargs)
 
+
+class SimpleSinusoidalFittingModel(SloppyCellFittingModel):
+
+    def __init__(self,outputNameList,indepParamNames=[],**kwargs):
+        """
+        output(t) = [outputName]_init - A sin(phi) + A sin(omega t + phi)
+        """
+
+        net = SimpleSinusoidalNetwork.SimpleSinusoidalNetwork(                  \
+            outputNameList)
+        #priorSigma = None # assuming we won't want priors?
+        
+        self.speciesNames = outputNameList
+        self.numInputs = 1
+        self.numOutputs = len(outputNameList)
+        
+        # generalSetup should be run by all daughter classes
+        self.generalSetup(net,indepParamNames,**kwargs)
 
 
 

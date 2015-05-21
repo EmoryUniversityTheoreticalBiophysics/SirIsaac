@@ -76,8 +76,8 @@ else:
 
 # () choose data source
 #originalString = 'PlanetaryNet'
-#originalString = 'yeastOscillator'
-originalString = 'PhosphorylationNet'
+originalString = 'yeastOscillator'
+#originalString = 'PhosphorylationNet'
 
 # () choose fitting model class
 #fittingType = 'Polynomial'
@@ -85,7 +85,8 @@ originalString = 'PhosphorylationNet'
 #fittingType = 'SimplePhosphorylation'
 #fittingType = 'PerfectPhosphorylation'
 #fittingType = 'PowerLaw'
-fittingType = 'CTSN'
+#fittingType = 'CTSN'
+fittingType = 'SimpleSinusoidal'
 
 
 # 8.7.2013 use Planetary network to generate perfect data
@@ -209,7 +210,7 @@ elif originalString is 'PhosphorylationNet':
     trueNoiseRange = None #[0.20,0.20] # None
     
     # 5.13.2015
-    lognormalNoise = True # False
+    lognormalNoise = False #True # False
 
     originalModelFilename = 'examplePhosphorylationFittingModel.model'
     if makeOriginalModel:
@@ -329,7 +330,8 @@ elif fittingType is 'CTSN':
     rateVars.extend( ['w','log_tau'] )
     nonrateVars.extend( ['theta','X'] )
 elif (fittingType is 'SimplePhosphorylation')                               \
-  or (fittingType is 'PerfectPhosphorylation'):
+  or (fittingType is 'PerfectPhosphorylation')                              \
+  or (fittingType is 'SimpleSinusoidal'):
     pass # we don't include priors for these models
 else:
     raise Exception, "Unrecognized fittingType"
@@ -526,8 +528,18 @@ for numIndepParams in numIndepParamsList:
         elif (fittingType is 'SimplePhosphorylation')                               \
           or (fittingType is 'PerfectPhosphorylation'):
           kwargs.pop('stopFittingN') # only 1 model to fit
+          kwargs.pop('connectionOrderSeed')
+          kwargs.pop('connectionOrder')
+          kwargs.pop('typeOrder')
           p = FittingProblem.SimplePhosphorylationFittingProblem(fakeData,
             offset=offset,**kwargs)
+        elif fittingType is 'SimpleSinusoidal':
+          kwargs.pop('stopFittingN') # only 1 model to fit
+          kwargs.pop('connectionOrderSeed')
+          kwargs.pop('connectionOrder')
+          kwargs.pop('typeOrder')
+          p = FittingProblem.SimpleSinusoidalFittingProblem(fakeData,
+            outputNames=outputVars,**kwargs)
         elif fittingType is 'PowerLaw':
           p = FittingProblem.PowerLawFittingProblem(complexityList,fakeData,
             outputNames=outputVars,priorSigma=priorSigma,
