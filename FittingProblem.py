@@ -4463,6 +4463,9 @@ def _createNetworkList(complexity,numInputs,numOutputs,
         
         (Only works for 1 <= maxConnection <= 2)
         
+        Careful with random orderings, which have the possibility of creating 
+        networks with hidden nodes that do not affect visible nodes.
+        
         connectionOrder           : "node", "nearest", "random"
         typeOrder                 : "last", "first", "random"
                                     ("last" adds parameters specific to each node after
