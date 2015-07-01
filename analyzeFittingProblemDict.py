@@ -461,7 +461,7 @@ def plotAllFpdsDictPretty(fpdList,plotDivisibleBy=1,errorBars=True,percent=50.,
 # taken from paperFiguresPhosphorylation.ipynb
 def prettyErrorbar(xList,yList,yListLow,yListHigh,color='blue',alpha=0.15,label=None,
                    marker='o',ls=':',clip_on=True,ms=5,mec='k',mfc=None,dashes=(1,1),
-                   **kwargs):
+                   mew=None,**kwargs):
     #m = lambda x: scipy.maximum(x,minVal)
     #array = scipy.array
     #x,y,err = array(xList),array(yList),array(yerr)
@@ -471,7 +471,7 @@ def prettyErrorbar(xList,yList,yListLow,yListHigh,color='blue',alpha=0.15,label=
     if dashes is not None: # because dashes=None produces an error
         kwargs['dashes'] = dashes
     pylab.plot(xList,yList,marker=marker,ls=ls,color=color,label=label,
-               clip_on=clip_on,ms=ms,mec=mec,mfc=mfc,**kwargs)
+               clip_on=clip_on,ms=ms,mec=mec,mfc=mfc,mew=mew,**kwargs)
     kwargs.pop('dashes',None)
     pylab.fill_between(xList,yListLow,yListHigh,color=color,alpha=alpha,**kwargs)
 
