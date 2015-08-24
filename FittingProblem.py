@@ -1446,7 +1446,7 @@ class FittingModel:
         newFigure=False,rowOffset=0,plotFirstN=None,linestyle=None,
         plotHiddenNodes=False,color=None,hspace=0.05,wspace=0.0,
         plotInitialConditions=False,ICmarker=None,markerSize=5.,
-        height_ratios=None,existingAxArray=None,**kwargs):
+        height_ratios=None,existingAxArray=None,yoffset=0.,**kwargs):
         """
         Returns 2D list of axes.
         
@@ -1546,7 +1546,7 @@ class FittingModel:
                         ax.get_xaxis().set_ticklabels([])
                     # plot continuous lines
                     modelTraj = self.evaluateVec(times,name,indepParams)
-                    returnList.append( pylab.plot(times,modelTraj,ls=lineFmt,
+                    returnList.append( pylab.plot(times,modelTraj+yoffset,ls=lineFmt,
                                                   lw=linewidth,color=colorToUse,      
                                                   **kwargs) )
                     
@@ -1561,7 +1561,7 @@ class FittingModel:
                         # plot data points
                         
                         dataTimes = data[name].keys()
-                        dataVals = [ data[name][time][0] for time in dataTimes ]
+                        dataVals = [ data[name][time][0]+yoffset for time in dataTimes ]
                         dataStds = [ data[name][time][1] for time in dataTimes ]
                         
                         returnList.append( pylab.errorbar(dataTimes,dataVals,
@@ -2086,208 +2086,209 @@ class SloppyCellFittingModel(FittingModel):
         J,JtJ = modelNoData.GetJandJtJ(self.getParameters())
         return JtJ
     
-    def plotResultsSloppyCell(self,fittingData,indepParamsList=[[]],
-        show_legend=False,numPoints=500,errorBars=True,exptsToPlot=None,
-        dataToPlot=None,numRows=None,fmt=None,plotHiddenNodes=True,
-        separateIndepParams=True,figHeight=8,figWidth=None,newFigure=True,
-        rowOffset=0,
-        plotDerivs=False,linestyle=None,plotInitialConditions=False,
-        marker=None,numCols=None,xmax=None,color=None,numYTicks=3,
-        hspace=0.05,wspace=0.0,ICmarker=None,ICmarkerSize=None,
-        height_ratios=None,**kwargs):
-        """
-        Note: exptsToPlot isn't currently used when numCols != 1.
-        
-        Returns 2D list of axes.
-        
-        separateIndepParams (True)      : 4.18.2012 plot each set of independent
-                                          parameters and each species in a 
-                                          separate subplot
-        numCols (None)                  : 4.17.2013 if set to 1, use a single
-                                          column for all independent parameters
-        numYTicks (3)                   : Force a given number of ticks on
-                                          each y-axis (use None for default)
-        height_ratios (None)            : Passed to Plotting.matplotlib.
-                                          gridspec.GridSpec
-        """
-        
-        
-        
-        dataModel = self._SloppyCellDataModel(fittingData,indepParamsList)
-        # may not need the following line if cost has already been evaluated
-        dataModel.cost(self.getParameters())
-        
-        calcColl = dataModel.GetCalculationCollection()
-        
-        # Get the time endpoints over which we want to integrate.
-        # (there may be a better way to do this...)
-        # 3.30.2012 Use the union of ranges that have been used for all vars.
-        timeEndpoints = [0.,0.]
-        for net in calcColl.values():
-            traj = getattr(net, 'trajectory')
-            timeEndpoints[0] = min(min(traj.timepoints),timeEndpoints[0])
-            timeEndpoints[1] = max(max(traj.timepoints),timeEndpoints[1])
-            
-        for net in calcColl.values():
-            # Explicitly include a lot of time points so we're sure to
-            # get nice smooth-looking curves.
-            times = scipy.linspace(timeEndpoints[0],timeEndpoints[-1],numPoints)
-            traj = Dynamics.integrate(net,times,return_derivs=True) #was net.integrate(times)
-            net.trajectory = traj
-            
-        # 4.18.2012
-        netIDList = [ self._SloppyCellNetID(ip) for ip in indepParamsList ]
-        
-        style = 'errorbars'
-            
-        if (numRows == None) and (not separateIndepParams): 
-            # plot everything on one subplot
-            return Plotting.plot_model_results(dataModel,                       
-                show_legend=show_legend,style=style,expts=exptsToPlot,
-                data_to_plot=dataToPlot,**kwargs)
-        else:
-            # assumes first dataset includes all species of interest
-            varsWithData = fittingData[0].keys()
-            if dataToPlot is None:
-                # sort in the order they're found in self.speciesNames
-                dataToPlotSorted = []
-                for name in self.speciesNames:
-                    if plotDerivs: fullName = (name,'time')
-                    else: fullName = name
-                    if name in varsWithData: dataToPlotSorted.append(fullName)
-                    elif plotHiddenNodes: dataToPlotSorted.append(fullName)
-            else:
-                dataToPlotSorted = dataToPlot
-                
-            cW = Plotting.ColorWheel()
-            #if separateIndepParams:
-            if numRows is None:
-                numRows = len(dataToPlotSorted)
-            if numCols is None:
-                numCols = len(indepParamsList)
-                
-            # set up figure
-            aspectRatioIndiv = (1. + scipy.sqrt(5))/2.
-            if separateIndepParams and newFigure:
-                indivHeight = float(figHeight)/float(numRows)
-                if figWidth is None:
-                    figWidth = aspectRatioIndiv*indivHeight*numCols
-                Plotting.figure(figsize=(figWidth,figHeight))
-                # want default (0.1) when figWidth is default (8.)
-                pad = min(0.1,0.1*8./figWidth)
-                
-                Plotting.subplots_adjust(wspace=wspace,hspace=hspace,           
-                    left=pad,right=1.0-pad)
-            
-            returnList = []
-            axArray = []
-            
-            # loop over species
-            for i,name in enumerate(dataToPlotSorted):
-              
-              ymins,ymaxs = [],[]
-              axList = []
-              
-              # increment colors
-              if fmt is None:
-                if name in varsWithData:
-                    colorWheelFmt = cW.next()
-                else: # 3.30.2012 plot hidden nodes gray by default
-                    colorWheelFmt = 'gray','o','-'
-              else:
-                colorWheelFmt = fmt
-              if color is not None:
-                colorWheelFmt = color,colorWheelFmt[1],colorWheelFmt[2]
-              if linestyle is not None:
-                colorWheelFmt = colorWheelFmt[0],colorWheelFmt[1],linestyle
-              if marker is not None:
-                colorWheelFmt = colorWheelFmt[0],marker,colorWheelFmt[2]
-    
-              # set up subplot grid
-              subplotGrid = Plotting.matplotlib.gridspec.GridSpec(          
-                numRows,numCols,height_ratios=height_ratios)
-    
-              # loop over independent parameter conditions
-              for j,netID in enumerate(netIDList):
-                    
-                if separateIndepParams:
-                    if numCols == 1:
-                        subplotIndex = 1+(i+rowOffset)*numCols
-                    else:
-                        subplotIndex = (j+1)+(i+rowOffset)*numCols
-                  
-                    if ((numRows==1) and (numCols==1)) and (not newFigure):
-                        # avoid assuming that we want subplot(1,1,1)
-                        ax = Plotting.gca()
-                    else:
-                        #ax = Plotting.subplot(numRows,numCols,subplotIndex)
-                        ax = Plotting.subplot(subplotGrid[subplotIndex-1])
-                  
-                    # Mess with ticks
-                    if numYTicks is not None:
-                        # wider tick spacing
-                        numticks = numYTicks
-                        ax.yaxis.set_major_locator(
-                            Plotting.matplotlib.ticker.LinearLocator(
-                            numticks=numticks))
-                    # remove y axes labels except for leftmost column
-                    if (j != 0) and (numCols>1): 
-                        ax.get_yaxis().set_ticklabels([])
-                    # remove x axes labels except for bottom row
-                    if i != len(dataToPlotSorted)-1: 
-                        ax.get_xaxis().set_ticklabels([])
-                    
-                else: 
-                    ax = Plotting.subplot(numRows,numCols,i+1)
-                axList.append(ax)
-                
-                returnList.append( Plotting.plot_model_results(dataModel,
-                    show_legend=show_legend,style=style,
-                    colorWheelFmt=colorWheelFmt,data_to_plot=[name],
-                    expts=['data'+netID],plot_data=errorBars,
-                    **kwargs) )
-    
-                if plotInitialConditions and (i<len(indepParamsList[j])):
-                    if ICmarker is None: ICmarker = colorWheelFmt[1]
-                    Plotting.plot([0],[indepParamsList[j][i]],
-                        marker=ICmarker,
-                        clip_on=False,ms=ICmarkerSize,zorder=5,                 
-                        mfc="None",mec=colorWheelFmt[0],mew=ICmarkerSize/3.)
-    
-                if j == 0:
-                    Plotting.ylabel(name)
-                
-                ranges = Plotting.axis()
-                ymins.append(ranges[2])
-                ymaxs.append(ranges[3])
-    
-                # if there is more than one column of subplots,
-                #    remove the last x tick label to prevent overlap
-                if (len(dataToPlotSorted) > 1)                                  \
-                  and (i == len(dataToPlotSorted)-1):
-                    xticks = ax.xaxis.get_ticklocs()
-                    ax.xaxis.set_ticks(xticks[:-1])
-        
-              axArray.append(axList)
-        
-              if xmax is not None:
-                Plotting.axis(xmax=xmax)
-              
-              if separateIndepParams:
-                # make y axes have same range
-                [ ax.axis(ymin=min(ymins),ymax=max(ymaxs)) for ax in axList ]
-                
-                # if there is more than one row of subplots,
-                #    remove last y tick label to prevent overlap
-                if len(axList)>1:
-                    ax0 = axList[0]
-                    yticks = ax0.yaxis.get_ticklocs()
-                    #print "yticks =",yticks
-                    ax0.yaxis.set_ticks(yticks[:-1])
-                    #print "ytl =", ytl
-                
-            return axArray #returnList
-    
+# old plotting function that used SloppyCell's plot_model_results
+#    def plotResultsSloppyCell(self,fittingData,indepParamsList=[[]],
+#        show_legend=False,numPoints=500,errorBars=True,exptsToPlot=None,
+#        dataToPlot=None,numRows=None,fmt=None,plotHiddenNodes=True,
+#        separateIndepParams=True,figHeight=8,figWidth=None,newFigure=True,
+#        rowOffset=0,
+#        plotDerivs=False,linestyle=None,plotInitialConditions=False,
+#        marker=None,numCols=None,xmax=None,color=None,numYTicks=3,
+#        hspace=0.05,wspace=0.0,ICmarker=None,ICmarkerSize=None,
+#        height_ratios=None,**kwargs):
+#        """
+#        Note: exptsToPlot isn't currently used when numCols != 1.
+#        
+#        Returns 2D list of axes.
+#        
+#        separateIndepParams (True)      : 4.18.2012 plot each set of independent
+#                                          parameters and each species in a 
+#                                          separate subplot
+#        numCols (None)                  : 4.17.2013 if set to 1, use a single
+#                                          column for all independent parameters
+#        numYTicks (3)                   : Force a given number of ticks on
+#                                          each y-axis (use None for default)
+#        height_ratios (None)            : Passed to Plotting.matplotlib.
+#                                          gridspec.GridSpec
+#        """
+#        
+#        
+#        
+#        dataModel = self._SloppyCellDataModel(fittingData,indepParamsList)
+#        # may not need the following line if cost has already been evaluated
+#        dataModel.cost(self.getParameters())
+#        
+#        calcColl = dataModel.GetCalculationCollection()
+#        
+#        # Get the time endpoints over which we want to integrate.
+#        # (there may be a better way to do this...)
+#        # 3.30.2012 Use the union of ranges that have been used for all vars.
+#        timeEndpoints = [0.,0.]
+#        for net in calcColl.values():
+#            traj = getattr(net, 'trajectory')
+#            timeEndpoints[0] = min(min(traj.timepoints),timeEndpoints[0])
+#            timeEndpoints[1] = max(max(traj.timepoints),timeEndpoints[1])
+#            
+#        for net in calcColl.values():
+#            # Explicitly include a lot of time points so we're sure to
+#            # get nice smooth-looking curves.
+#            times = scipy.linspace(timeEndpoints[0],timeEndpoints[-1],numPoints)
+#            traj = Dynamics.integrate(net,times,return_derivs=True) #was net.integrate(times)
+#            net.trajectory = traj
+#            
+#        # 4.18.2012
+#        netIDList = [ self._SloppyCellNetID(ip) for ip in indepParamsList ]
+#        
+#        style = 'errorbars'
+#            
+#        if (numRows == None) and (not separateIndepParams): 
+#            # plot everything on one subplot
+#            return Plotting.plot_model_results(dataModel,                       
+#                show_legend=show_legend,style=style,expts=exptsToPlot,
+#                data_to_plot=dataToPlot,**kwargs)
+#        else:
+#            # assumes first dataset includes all species of interest
+#            varsWithData = fittingData[0].keys()
+#            if dataToPlot is None:
+#                # sort in the order they're found in self.speciesNames
+#                dataToPlotSorted = []
+#                for name in self.speciesNames:
+#                    if plotDerivs: fullName = (name,'time')
+#                    else: fullName = name
+#                    if name in varsWithData: dataToPlotSorted.append(fullName)
+#                    elif plotHiddenNodes: dataToPlotSorted.append(fullName)
+#            else:
+#                dataToPlotSorted = dataToPlot
+#                
+#            cW = Plotting.ColorWheel()
+#            #if separateIndepParams:
+#            if numRows is None:
+#                numRows = len(dataToPlotSorted)
+#            if numCols is None:
+#                numCols = len(indepParamsList)
+#                
+#            # set up figure
+#            aspectRatioIndiv = (1. + scipy.sqrt(5))/2.
+#            if separateIndepParams and newFigure:
+#                indivHeight = float(figHeight)/float(numRows)
+#                if figWidth is None:
+#                    figWidth = aspectRatioIndiv*indivHeight*numCols
+#                Plotting.figure(figsize=(figWidth,figHeight))
+#                # want default (0.1) when figWidth is default (8.)
+#                pad = min(0.1,0.1*8./figWidth)
+#                
+#                Plotting.subplots_adjust(wspace=wspace,hspace=hspace,           
+#                    left=pad,right=1.0-pad)
+#            
+#            returnList = []
+#            axArray = []
+#            
+#            # loop over species
+#            for i,name in enumerate(dataToPlotSorted):
+#              
+#              ymins,ymaxs = [],[]
+#              axList = []
+#              
+#              # increment colors
+#              if fmt is None:
+#                if name in varsWithData:
+#                    colorWheelFmt = cW.next()
+#                else: # 3.30.2012 plot hidden nodes gray by default
+#                    colorWheelFmt = 'gray','o','-'
+#              else:
+#                colorWheelFmt = fmt
+#              if color is not None:
+#                colorWheelFmt = color,colorWheelFmt[1],colorWheelFmt[2]
+#              if linestyle is not None:
+#                colorWheelFmt = colorWheelFmt[0],colorWheelFmt[1],linestyle
+#              if marker is not None:
+#                colorWheelFmt = colorWheelFmt[0],marker,colorWheelFmt[2]
+#    
+#              # set up subplot grid
+#              subplotGrid = Plotting.matplotlib.gridspec.GridSpec(          
+#                numRows,numCols,height_ratios=height_ratios)
+#    
+#              # loop over independent parameter conditions
+#              for j,netID in enumerate(netIDList):
+#                    
+#                if separateIndepParams:
+#                    if numCols == 1:
+#                        subplotIndex = 1+(i+rowOffset)*numCols
+#                    else:
+#                        subplotIndex = (j+1)+(i+rowOffset)*numCols
+#                  
+#                    if ((numRows==1) and (numCols==1)) and (not newFigure):
+#                        # avoid assuming that we want subplot(1,1,1)
+#                        ax = Plotting.gca()
+#                    else:
+#                        #ax = Plotting.subplot(numRows,numCols,subplotIndex)
+#                        ax = Plotting.subplot(subplotGrid[subplotIndex-1])
+#                  
+#                    # Mess with ticks
+#                    if numYTicks is not None:
+#                        # wider tick spacing
+#                        numticks = numYTicks
+#                        ax.yaxis.set_major_locator(
+#                            Plotting.matplotlib.ticker.LinearLocator(
+#                            numticks=numticks))
+#                    # remove y axes labels except for leftmost column
+#                    if (j != 0) and (numCols>1): 
+#                        ax.get_yaxis().set_ticklabels([])
+#                    # remove x axes labels except for bottom row
+#                    if i != len(dataToPlotSorted)-1: 
+#                        ax.get_xaxis().set_ticklabels([])
+#                    
+#                else: 
+#                    ax = Plotting.subplot(numRows,numCols,i+1)
+#                axList.append(ax)
+#                
+#                returnList.append( Plotting.plot_model_results(dataModel,
+#                    show_legend=show_legend,style=style,
+#                    colorWheelFmt=colorWheelFmt,data_to_plot=[name],
+#                    expts=['data'+netID],plot_data=errorBars,
+#                    **kwargs) )
+#    
+#                if plotInitialConditions and (i<len(indepParamsList[j])):
+#                    if ICmarker is None: ICmarker = colorWheelFmt[1]
+#                    Plotting.plot([0],[indepParamsList[j][i]],
+#                        marker=ICmarker,
+#                        clip_on=False,ms=ICmarkerSize,zorder=5,                 
+#                        mfc="None",mec=colorWheelFmt[0],mew=ICmarkerSize/3.)
+#    
+#                if j == 0:
+#                    Plotting.ylabel(name)
+#                
+#                ranges = Plotting.axis()
+#                ymins.append(ranges[2])
+#                ymaxs.append(ranges[3])
+#    
+#                # if there is more than one column of subplots,
+#                #    remove the last x tick label to prevent overlap
+#                if (len(dataToPlotSorted) > 1)                                  \
+#                  and (i == len(dataToPlotSorted)-1):
+#                    xticks = ax.xaxis.get_ticklocs()
+#                    ax.xaxis.set_ticks(xticks[:-1])
+#        
+#              axArray.append(axList)
+#        
+#              if xmax is not None:
+#                Plotting.axis(xmax=xmax)
+#              
+#              if separateIndepParams:
+#                # make y axes have same range
+#                [ ax.axis(ymin=min(ymins),ymax=max(ymaxs)) for ax in axList ]
+#                
+#                # if there is more than one row of subplots,
+#                #    remove last y tick label to prevent overlap
+#                if len(axList)>1:
+#                    ax0 = axList[0]
+#                    yticks = ax0.yaxis.get_ticklocs()
+#                    #print "yticks =",yticks
+#                    ax0.yaxis.set_ticks(yticks[:-1])
+#                    #print "ytl =", ytl
+#                
+#            return axArray #returnList
+
     # 9.26.2012
     def plotDerivResults(self,fittingData,fittingDataDerivs,
         indepParamsList=[[]],newFigure=True,marker='o'):
