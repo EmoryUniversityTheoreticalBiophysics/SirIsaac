@@ -117,12 +117,14 @@ class FittingProblem:
         self.costDict = {}
         self.HessianDict = {}
         self.singValsDict = {}
-        self.oldLogLikelihoodDict = {}
         self.fitParametersDict = {}
         self.penaltyDict = {}
         self.numStiffSingValsDict = {}
         self.numParametersDict = {}
         self.fitAllDone = False
+        self.priorHessianDict = {}
+        self.priorSingValsDict = {}
+        self.logLikelihoodDict = {}
         
         self.perfectModel = perfectModel
         if self.perfectModel is not None:
@@ -271,21 +273,21 @@ class FittingProblem:
             self._UpdateDicts(name)
             
           # 5.6.2013 update old files if needed
-          if not hasattr(self,'newLogLikelihoodDict'):
+          if not hasattr(self,'logLikelihoodDict'):
               self._UpdateDicts(name)
-          if name not in self.newLogLikelihoodDict.keys():
+          if name not in self.logLikelihoodDict.keys():
               self._UpdateDicts(name)
     
           if self.verbose:
-              print "fittingProblem.fitAll: L =",self.newLogLikelihoodDict[name]
+              print "fittingProblem.fitAll: L =",self.logLikelihoodDict[name]
                 
           # 6.1.2012 stop after seeing stopFittingN models with worse logLikelihood
           orderedLs = []
           if not hasattr(self,'stopFittingN'):
               self.stopFittingN = 3
           for n in self.fittingModelNames:
-              if self.newLogLikelihoodDict.has_key(n):
-                  orderedLs.append(self.newLogLikelihoodDict[n])
+              if self.logLikelihoodDict.has_key(n):
+                  orderedLs.append(self.logLikelihoodDict[n])
           if (len(orderedLs) > self.stopFittingN):
             if max(orderedLs[-self.stopFittingN:]) < max(orderedLs):
               self.fitAllDone = True
@@ -314,8 +316,8 @@ class FittingProblem:
         uP,sP,vtP = scipy.linalg.svd( self.perfectPriorHessian )
         self.perfectSingVals = s
         self.perfectPriorSingVals = sP
-        self.perfectNewLogLikelihood =                                              \
-            self.newLogLikelihood( self.perfectCost, s, sP )
+        self.perfectLogLikelihood =                                              \
+            self.logLikelihood( self.perfectCost, s, sP )
         self.perfectPenalty = self.penalty( s, sP )
         self.perfectNumStiffSingVals = self.numStiffSingVals( s )
         self.perfectNumParameters = len( self.perfectFitParams )
@@ -329,11 +331,17 @@ class FittingProblem:
         try:
             u,s,vt = scipy.linalg.svd( self.HessianDict[name] )
             self.singValsDict[name] = s
+            if not hasattr(self,'logLikelihoodDict'):
+                # 8.25.2015 for back-compatibility
+                if hasattr(self,'newLogLikelihoodDict'):
+                    self.logLikelihoodDict = self.newLogLikelihoodDict
+                else:
+                    self.logLikelihoodDict = {}
             # 5.6.2013
             if not hasattr(self,'priorHessianDict'):
                 self.priorHessianDict = {}
                 self.priorSingValsDict = {}
-                self.newLogLikelihoodDict = {}
+                self.logLikelihoodDict = {}
             self.priorHessianDict[name] = fittingModel.currentHessianNoData(        \
                 self.fittingData,self.indepParamsList)
             uP,sP,vtP = scipy.linalg.svd( self.priorHessianDict[name] )
@@ -343,21 +351,21 @@ class FittingProblem:
             self.numStiffSingValsDict[name] =                                       \
                 self.numStiffSingVals( self.singValsDict[name] )
             # 5.2.2013
-            self.newLogLikelihoodDict[name] =                                       \
-                self.newLogLikelihood( self.costDict[name],self.singValsDict[name], \
+            self.logLikelihoodDict[name] =                                       \
+                self.logLikelihood( self.costDict[name],self.singValsDict[name], \
                                        self.priorSingValsDict[name] )
         except ValueError: # in case Hessian is infinite, etc.
             self.singValsDict[name] = None
             self.penaltyDict[name] = scipy.inf
             self.numStiffSingValsDict[name] = None
             # 5.2.2013
-            self.newLogLikelihoodDict[name] = scipy.inf
+            self.logLikelihoodDict[name] = scipy.inf
             self.priorSingValsDict[name] = None
             self.priorHessianDict[name] = None
         self.numParametersDict[name] = len( self.fitParametersDict[name] )
     
     # 5.2.2013
-    def newLogLikelihood( self,cost,singVals,priorSingVals ):
+    def logLikelihood( self,cost,singVals,priorSingVals ):
         """
         Calculate log-likelihood estimate based on cost (usu. sums of
         squared residuals), the singular values of the Hessian, and 
@@ -468,13 +476,6 @@ class FittingProblem:
         #if show_legend:
         #   Plotting.legend()
         #return plots
-    
-    # 11.7.2011
-    #def plotLogLikelihoods(self,**kwargs):
-    #    fitModelNames = filter(lambda name:                                     \
-    #        self.logLikelihoodDict.has_key(name), self.fittingModelNames)
-    #    return Plotting.plot(range(1,1+len(fitModelNames)),                     \
-    #        [self.logLikelihoodDict[n] for n in fitModelNames],**kwargs)
     
     def showImages(self,subplotConfig=None,showTitles=True):
         import Image
@@ -801,7 +802,7 @@ class FittingProblem:
             self.outOfSampleCorrelationDict = {}
         # we want only models that have actually been fit
         fitModelNames = filter(lambda name:                                         \
-            self.newLogLikelihoodDict.has_key(name), self.fittingModelNames)
+            self.logLikelihoodDict.has_key(name), self.fittingModelNames)
         for fName in fitModelNames:
             if verbose: print "calculateAllOutOfSampleCorrelelation:",fName
             f = self.fittingModelDict[fName]
@@ -819,19 +820,19 @@ class FittingProblem:
                             N-1 models to be worse before declaring
                             one the winner.)
         """
-        if not hasattr(self,'newLogLikelihoodDict'):
+        if not hasattr(self,'logLikelihoodDict'):
             print "maxLogLikelihoodName: no log-likelihoods.  Returning None."
             return None
         
         modelsThatHaveBeenFit = filter(                                             \
-            lambda name: self.newLogLikelihoodDict.has_key(name),                   \
+            lambda name: self.logLikelihoodDict.has_key(name),                      \
                                                         self.fittingModelNames)
         numModelsFit = len(modelsThatHaveBeenFit)
         if numModelsFit == 0:
             print "maxLogLikelihoodName: numModelsFit == 0.  Returning None."
             return None
         bestIndex = scipy.argsort(                                                  \
-            [self.newLogLikelihoodDict[n] for n in modelsThatHaveBeenFit ])[-1]
+            [self.logLikelihoodDict[n] for n in modelsThatHaveBeenFit ])[-1]
         bestModelName = self.fittingModelNames[bestIndex]
         
         if not self.fitAllDone:
@@ -1010,6 +1011,10 @@ class FittingProblem:
             self.perfectModel.noIndepParams = False
         else:
             self.perfectModel.noIndepParams = True
+
+        # 8.25.2015
+        if hasattr(self,'newLogLikelihoodDict'):
+            self.logLikelihoodDict = self.newLogLikelihoodDict
 
 
 class PowerLawFittingProblem(FittingProblem):

@@ -245,10 +245,10 @@ pylab.ylabel('X_1')
 # <codecell>
 
 for name in p.fittingModelNames:
-  if name in p.newLogLikelihoodDict.keys():
+  if name in p.logLikelihoodDict.keys():
     print name, ': #species =',len(p.fittingModelDict[name].speciesNames),\
                 ', #params =',p.numParametersDict[name],\
-                ', L =', p.newLogLikelihoodDict[name]
+                ', L =', p.logLikelihoodDict[name]
 print
 print 'Selected model:',p.maxLogLikelihoodName()
 
