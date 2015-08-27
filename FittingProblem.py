@@ -145,9 +145,13 @@ class FittingProblem:
         
         # 6.1.2012
         self.stopFittingN = stopFittingN
+        
+        # consistency checks
+        if len(fittingData) != len(indepParamsList):
+          raise Exception, "fittingData and indepParamsList must have same length"
     
     def fitAll(self,usePreviousParams=True,fitPerfectModel=False,resume=True,
-        **kwargs):
+        maxNumFit=None,**kwargs):
         """
         usePreviousParams       : if True, use the previous model's 
                                   parameters as a starting point. 
@@ -156,6 +160,9 @@ class FittingProblem:
                                   worse than the previous fit.
         resume (True)           : If True, skip fitting any models that
                                   have already been fit.
+        maxNumFit (None)        : Maximum number of models to fit.  Defaults
+                                  to the number of fittingModels in 
+                                  self.fittingModelNames.
         """
         oldFitParameters = []
         oldCost = scipy.inf
@@ -164,7 +171,9 @@ class FittingProblem:
             self.fitPerfectModel() 
             if self.saveFilename is not None:
                 self.writeToFile(self.saveFilename)
-            
+    
+        if maxNumFit is None: maxNumFit = len(self.fittingModelNames)
+    
         for name in self.fittingModelNames:
           fittingModel = self.fittingModelDict[name]
           # 4.18.2012
@@ -292,6 +301,9 @@ class FittingProblem:
             if max(orderedLs[-self.stopFittingN:]) < max(orderedLs):
               self.fitAllDone = True
               return
+          
+          # stop if we've reached maxNumFit
+          if len(orderedLs) >= maxNumFit: return
 
         self.fitAllDone = True
     
