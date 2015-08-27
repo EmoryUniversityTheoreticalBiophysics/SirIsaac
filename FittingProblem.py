@@ -2578,7 +2578,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
     
     def __init__(self,networkList,speciesNames=None,indepParamNames=[],
         includeRegularizer=False,logParams=True,useDeltaGamma=False,            
-        maxSVDeig=1e5,minSVDeig=0.,**kwargs):
+        maxSVDeig=1e5,minSVDeig=0.,optimizableICs=[],**kwargs):
         """
         maxSVDeig (1e5)        : Maximum singular value allowed in svdInverse
         minSVDeig (0.)       : Minimum singular value allowed in svdInverse
@@ -2594,8 +2594,9 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         self.useDeltaGamma = useDeltaGamma
         self.includeRegularizer = includeRegularizer
         SloppyCellNet = PowerLawNetwork.PowerLaw_Network_List(                  \
-            networkList,speciesNames,includeRegularizer=includeRegularizer,     \
-            logParams=logParams,useDeltaGamma=useDeltaGamma)
+            networkList,speciesNames,includeRegularizer=includeRegularizer,
+            logParams=logParams,useDeltaGamma=useDeltaGamma,
+            optimizableICs=optimizableICs)
             
         self.maxSVDeig,self.minSVDeig = maxSVDeig,minSVDeig
             
@@ -3819,7 +3820,11 @@ class PowerLawFittingModel_Complexity(PowerLawFittingModel):
             for inputName in inputNames:
               if inputName not in indepParamNames:
                 raise Exception, "inputName %s not in indepParamNames"%inputName
-        
+    
+        # output species whose initial conditions are not set by indepParams
+        # should have optimizable initial conditions
+        optimizableICs = filter(lambda n: n+"_init" not in indepParamNames,outputNames)
+    
         self.complexity = complexity
         self.numInputs = len(inputNames)
         self.numOutputs = len(outputNames)
@@ -3842,7 +3847,8 @@ class PowerLawFittingModel_Complexity(PowerLawFittingModel):
         self.speciesNames = speciesNames
         
         PowerLawFittingModel.__init__(self,self.networkList,                    
-            speciesNames=speciesNames,indepParamNames=indepParamNames,**kwargs)
+            speciesNames=speciesNames,indepParamNames=indepParamNames,
+            optimizableICs=optimizableICs,**kwargs)
             
 # 8.29.2012 
 class PowerLawFittingModel_FullyConnected(PowerLawFittingModel_Complexity):
