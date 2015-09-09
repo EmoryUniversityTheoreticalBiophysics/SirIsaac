@@ -205,14 +205,14 @@ def perfectModelEffectiveNumParams(fpdList,**kwargs):
     return calcForAllFpds(fpdList,effectiveNumParamsFunc,skip=False,**kwargs)
     
 def logLikelihoods(fpdList,**kwargs):
-    llFunc = lambda mName,fp: [ fp.newLogLikelihoodDict[name] for name in orderedFitNames(fp) ]
+    llFunc = lambda mName,fp: [ fp.logLikelihoodDict[name] for name in orderedFitNames(fp) ]
     return calcForAllFpds(fpdList,llFunc,**kwargs)
     
 def totalNumFunctionCalls(fpdList,**kwargs):
     """
     Sum of all cost calls plus grad calls over ALL models tested.
     """
-    totalFuncCallsFunc = lambda mName,fp: scipy.sum( [ scipy.sum(fp.fittingModelDict[name].numCostCallsList) + scipy.sum(fp.fittingModelDict[name].numGradCallsList) for name in fp.newLogLikelihoodDict.keys() ] )
+    totalFuncCallsFunc = lambda mName,fp: scipy.sum( [ scipy.sum(fp.fittingModelDict[name].numCostCallsList) + scipy.sum(fp.fittingModelDict[name].numGradCallsList) for name in fp.logLikelihoodDict.keys() ] )
     return calcForAllFpds(fpdList,totalFuncCallsFunc,skip=False,**kwargs)
 
 # updated 10.10.2013
@@ -240,7 +240,7 @@ def totalNumEvaluations(fpdList,stopFittingN=scipy.inf,                     \
                                   See notes 10.31.2013.
     """
     def totalFuncCallsFunc(mName,fp):
-        if hasattr(fp,'newLogLikelihoodDict'):
+        if hasattr(fp,'logLikelihoodDict') or hasattr(fp,'newLogLikelihoodDict'):
             keyList = orderedFitNames(fp,stopFittingN=stopFittingN)
         else:
             keyList = []
@@ -275,7 +275,7 @@ def totalWallTimesHours(fpdList,includedNames=None,**kwargs):
         includedNamesFunc = lambda name: True
     else:
         includedNamesFunc = lambda name: name in includedNames
-    totalWallTimeFunc = lambda mName,fp: scipy.sum( [ includedNamesFunc(name)*( scipy.sum(fp.fittingModelDict[name].ensTimeSecondsList) + scipy.sum(fp.fittingModelDict[name].minimizationTimeSecondsList) ) for name in fp.newLogLikelihoodDict.keys() ] )/3600.
+    totalWallTimeFunc = lambda mName,fp: scipy.sum( [ includedNamesFunc(name)*( scipy.sum(fp.fittingModelDict[name].ensTimeSecondsList) + scipy.sum(fp.fittingModelDict[name].minimizationTimeSecondsList) ) for name in fp.logLikelihoodDict.keys() ] )/3600.
     return calcForAllFpds(fpdList,totalWallTimeFunc,skip=False,**kwargs)
 
 def parallelWallTimesHours(fpdList,includedNames=None,**kwargs):
@@ -288,7 +288,7 @@ def parallelWallTimesHours(fpdList,includedNames=None,**kwargs):
         includedNamesFunc = lambda name: True
     else:
         includedNamesFunc = lambda name: name in includedNames
-    totalWallTimeFunc = lambda mName,fp: scipy.sum( [ includedNamesFunc(name)*( scipy.sum(fp.fittingModelDict[name].ensTimeSecondsList) + max(fp.fittingModelDict[name].minimizationTimeSecondsList) ) for name in fp.newLogLikelihoodDict.keys() ] )/3600.
+    totalWallTimeFunc = lambda mName,fp: scipy.sum( [ includedNamesFunc(name)*( scipy.sum(fp.fittingModelDict[name].ensTimeSecondsList) + max(fp.fittingModelDict[name].minimizationTimeSecondsList) ) for name in fp.logLikelihoodDict.keys() ] )/3600.
     return calcForAllFpds(fpdList,totalWallTimeFunc,skip=False,**kwargs)
 
 
@@ -300,14 +300,14 @@ def totalEnsembleTimesHours(fpdList,includedNames=None,**kwargs):
         includedNamesFunc = lambda name: True
     else:
         includedNamesFunc = lambda name: name in includedNames
-    totalEnsTimeFunc = lambda mName,fp: scipy.sum( [ includedNamesFunc(name)*( scipy.sum(fp.fittingModelDict[name].ensTimeSecondsList) ) for name in fp.newLogLikelihoodDict.keys() ] )/3600.
+    totalEnsTimeFunc = lambda mName,fp: scipy.sum( [ includedNamesFunc(name)*( scipy.sum(fp.fittingModelDict[name].ensTimeSecondsList) ) for name in fp.logLikelihoodDict.keys() ] )/3600.
     return calcForAllFpds(fpdList,totalEnsTimeFunc,skip=False,**kwargs)
     
 def totalMinimizationTimesHours(fpdList,**kwargs):
     """
     Sum of all minimization times over ALL models tested.
     """
-    totalMinTimeFunc = lambda mName,fp: scipy.sum( [ scipy.sum(fp.fittingModelDict[name].minimizationTimeSecondsList) for name in fp.newLogLikelihoodDict.keys() ] )/3600.
+    totalMinTimeFunc = lambda mName,fp: scipy.sum( [ scipy.sum(fp.fittingModelDict[name].minimizationTimeSecondsList) for name in fp.logLikelihoodDict.keys() ] )/3600.
     return calcForAllFpds(fpdList,totalMinTimeFunc,skip=False,**kwargs)
     
 def totalMinimizationTimesSeconds(fpdList,**kwargs):
@@ -483,11 +483,15 @@ def orderedFitNames(fp,stopFittingN=scipy.inf):
     stopFittingN (inf)      : Only include names of models up to
                               stopFittingN past the maxLogLikelihoodName
     """
+    # for back-compatibility
+    if (not hasattr(fp,'logLikelihoodDict')) and hasattr(fp,'newLogLikelihoodDict'):
+        fp.logLikelihoodDict = fp.newLogLikelihoodDict
+    
     # make list of names
     names = []
-    if hasattr(fp,'newLogLikelihoodDict'):
+    if hasattr(fp,'logLikelihoodDict'):
       for name in fp.fittingModelNames:
-        if fp.newLogLikelihoodDict.has_key(name):
+        if fp.logLikelihoodDict.has_key(name):
             names.append(name)
     #print "orderedFitNames: debug: ",names
 

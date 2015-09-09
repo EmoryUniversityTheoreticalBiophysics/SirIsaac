@@ -12,8 +12,8 @@ from scipy import random, log
 import copy
 import GaussianPrior
     
-def PowerLaw_Network_List(networkList,speciesNames=None,                        \
-    logParams=True,netid='PowerLaw_Network',logParamsInit=False,                \
+def PowerLaw_Network_List(networkList,speciesNames=None,
+    logParams=True,netid='PowerLaw_Network',optimizableICs=[],
     includeRegularizer=False,regStrength=0.,useDeltaGamma=False):
     """
     Defines a power-law network based on a connection list.
@@ -38,10 +38,13 @@ def PowerLaw_Network_List(networkList,speciesNames=None,                        
                       
     speciesNames    : list of species names (length n+m).  If None,
                       species are named X_i for i in range(n+m).
-    logParams       : if True, the optimizable multiplicative constants
+    logParams (True): if True, the optimizable multiplicative constants
                       (alpha and beta) and initial values are written 
                       as log_alpha, log_beta, etc. (to facilitate 
                       parameter searches)
+    optimizableICs ([])         : List of species whose initial conditions should
+                                  be optimizable.  (These initial conditions will
+                                  be defined in log space if logParams=True.)
     includeRegularizer (True)   : See notes 1.30.2013.  Regularization forces
                                   solutions to behave nicely (not go to zero
                                   or infinity).
@@ -85,6 +88,10 @@ def PowerLaw_Network_List(networkList,speciesNames=None,                        
     if speciesNames is None:
         speciesNames = [ 'X_'+str(i) for i in range(n) ]
     
+    for name in optimizableICs:
+      if name not in speciesNames:
+        raise Exception, "One or more optimizableICs are not found in speciesNames"
+    
     # add parameters
     for i in range(n):
       
@@ -122,10 +129,12 @@ def PowerLaw_Network_List(networkList,speciesNames=None,                        
                 isOptimizable=orderConnect['g']<connectionDict[j])
             net.addParameter('h_'+str(i)+'_'+str(j), defaultExpParam,           \
                 isOptimizable=orderConnect['h']<connectionDict[j])
-        
+      
+        # initial conditions
+        ICoptimizable = speciesNames[i] in optimizableICs
         net.addParameter(speciesNames[i]+'_init', defaultParam,                 \
-            isOptimizable=(notLog and order['xinit']<nodeType))
-        if logParamsInit:
+            isOptimizable=(ICoptimizable and notLog and order['xinit']<nodeType))
+        if ICoptimizable and logParams:
             net.addParameter('log_'+speciesNames[i]+'_init', log(defaultParam), \
                 isOptimizable=order['xinit']<nodeType)
             net.addAssignmentRule(speciesNames[i]+'_init',\

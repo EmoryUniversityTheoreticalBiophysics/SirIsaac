@@ -117,12 +117,14 @@ class FittingProblem:
         self.costDict = {}
         self.HessianDict = {}
         self.singValsDict = {}
-        self.oldLogLikelihoodDict = {}
         self.fitParametersDict = {}
         self.penaltyDict = {}
         self.numStiffSingValsDict = {}
         self.numParametersDict = {}
         self.fitAllDone = False
+        self.priorHessianDict = {}
+        self.priorSingValsDict = {}
+        self.logLikelihoodDict = {}
         
         self.perfectModel = perfectModel
         if self.perfectModel is not None:
@@ -143,9 +145,13 @@ class FittingProblem:
         
         # 6.1.2012
         self.stopFittingN = stopFittingN
+        
+        # consistency checks
+        if len(fittingData) != len(indepParamsList):
+          raise Exception, "fittingData and indepParamsList must have same length"
     
     def fitAll(self,usePreviousParams=True,fitPerfectModel=False,resume=True,
-        **kwargs):
+        maxNumFit=None,**kwargs):
         """
         usePreviousParams       : if True, use the previous model's 
                                   parameters as a starting point. 
@@ -154,6 +160,9 @@ class FittingProblem:
                                   worse than the previous fit.
         resume (True)           : If True, skip fitting any models that
                                   have already been fit.
+        maxNumFit (None)        : Maximum number of models to fit.  Defaults
+                                  to the number of fittingModels in 
+                                  self.fittingModelNames.
         """
         oldFitParameters = []
         oldCost = scipy.inf
@@ -162,7 +171,9 @@ class FittingProblem:
             self.fitPerfectModel() 
             if self.saveFilename is not None:
                 self.writeToFile(self.saveFilename)
-            
+    
+        if maxNumFit is None: maxNumFit = len(self.fittingModelNames)
+    
         for name in self.fittingModelNames:
           fittingModel = self.fittingModelDict[name]
           # 4.18.2012
@@ -271,25 +282,28 @@ class FittingProblem:
             self._UpdateDicts(name)
             
           # 5.6.2013 update old files if needed
-          if not hasattr(self,'newLogLikelihoodDict'):
+          if not hasattr(self,'logLikelihoodDict'):
               self._UpdateDicts(name)
-          if name not in self.newLogLikelihoodDict.keys():
+          if name not in self.logLikelihoodDict.keys():
               self._UpdateDicts(name)
     
           if self.verbose:
-              print "fittingProblem.fitAll: L =",self.newLogLikelihoodDict[name]
+              print "fittingProblem.fitAll: L =",self.logLikelihoodDict[name]
                 
           # 6.1.2012 stop after seeing stopFittingN models with worse logLikelihood
           orderedLs = []
           if not hasattr(self,'stopFittingN'):
               self.stopFittingN = 3
           for n in self.fittingModelNames:
-              if self.newLogLikelihoodDict.has_key(n):
-                  orderedLs.append(self.newLogLikelihoodDict[n])
+              if self.logLikelihoodDict.has_key(n):
+                  orderedLs.append(self.logLikelihoodDict[n])
           if (len(orderedLs) > self.stopFittingN):
             if max(orderedLs[-self.stopFittingN:]) < max(orderedLs):
               self.fitAllDone = True
               return
+          
+          # stop if we've reached maxNumFit
+          if len(orderedLs) >= maxNumFit: return
 
         self.fitAllDone = True
     
@@ -314,8 +328,8 @@ class FittingProblem:
         uP,sP,vtP = scipy.linalg.svd( self.perfectPriorHessian )
         self.perfectSingVals = s
         self.perfectPriorSingVals = sP
-        self.perfectNewLogLikelihood =                                              \
-            self.newLogLikelihood( self.perfectCost, s, sP )
+        self.perfectLogLikelihood =                                              \
+            self.logLikelihood( self.perfectCost, s, sP )
         self.perfectPenalty = self.penalty( s, sP )
         self.perfectNumStiffSingVals = self.numStiffSingVals( s )
         self.perfectNumParameters = len( self.perfectFitParams )
@@ -329,11 +343,17 @@ class FittingProblem:
         try:
             u,s,vt = scipy.linalg.svd( self.HessianDict[name] )
             self.singValsDict[name] = s
+            if not hasattr(self,'logLikelihoodDict'):
+                # 8.25.2015 for back-compatibility
+                if hasattr(self,'newLogLikelihoodDict'):
+                    self.logLikelihoodDict = self.newLogLikelihoodDict
+                else:
+                    self.logLikelihoodDict = {}
             # 5.6.2013
             if not hasattr(self,'priorHessianDict'):
                 self.priorHessianDict = {}
                 self.priorSingValsDict = {}
-                self.newLogLikelihoodDict = {}
+                self.logLikelihoodDict = {}
             self.priorHessianDict[name] = fittingModel.currentHessianNoData(        \
                 self.fittingData,self.indepParamsList)
             uP,sP,vtP = scipy.linalg.svd( self.priorHessianDict[name] )
@@ -343,21 +363,21 @@ class FittingProblem:
             self.numStiffSingValsDict[name] =                                       \
                 self.numStiffSingVals( self.singValsDict[name] )
             # 5.2.2013
-            self.newLogLikelihoodDict[name] =                                       \
-                self.newLogLikelihood( self.costDict[name],self.singValsDict[name], \
+            self.logLikelihoodDict[name] =                                       \
+                self.logLikelihood( self.costDict[name],self.singValsDict[name], \
                                        self.priorSingValsDict[name] )
         except ValueError: # in case Hessian is infinite, etc.
             self.singValsDict[name] = None
             self.penaltyDict[name] = scipy.inf
             self.numStiffSingValsDict[name] = None
             # 5.2.2013
-            self.newLogLikelihoodDict[name] = scipy.inf
+            self.logLikelihoodDict[name] = scipy.inf
             self.priorSingValsDict[name] = None
             self.priorHessianDict[name] = None
         self.numParametersDict[name] = len( self.fitParametersDict[name] )
     
     # 5.2.2013
-    def newLogLikelihood( self,cost,singVals,priorSingVals ):
+    def logLikelihood( self,cost,singVals,priorSingVals ):
         """
         Calculate log-likelihood estimate based on cost (usu. sums of
         squared residuals), the singular values of the Hessian, and 
@@ -408,223 +428,13 @@ class FittingProblem:
                 fig = Plotting.gcf()
                 fig.canvas.set_window_title(self.fittingModelNames[i]+extraInfo)
                 fig.suptitle(self.fittingModelNames[i]+extraInfo)
-            
-            
-    
-    def plotithEigenvector(self,fittingModelName,i,showTitle=True):
-        """
-        fittingModelName: name of fittingModel in the fittingProblem, 
-                          or an integer index of the name in the list 
-                          self.fittingModelNames
-        i               : 0 for stiffest, -1 for sloppiest
-        
-        (actually singular vector, not eigenvector)
-        """
-        if type(fittingModelName) != str:
-            fittingModelName = self.fittingModelNames[fittingModelName]
-        
-        try:
-            paramNames = self.fitParametersDict[fittingModelName].keys()
-        except:
-            paramNames = None
-            
-        u,s,vt = scipy.linalg.svd( self.HessianDict[fittingModelName] )
-            
-        Plotting.figure()
-        plot = Plotting.plot_eigvect(vt[i],labels=paramNames)
-        if showTitle:
-            Plotting.title(fittingModelName+", singular value = "+str(s[i]))
-        return plot
-    
-    def plotSingularValues(self,withPriors=True,newPlot=True,widths=0.9,       
-        labelRotation=0):
-        
-        if newPlot:
-            Plotting.figure()
-        
-        names = self.fittingModelNames
-        for i,name in enumerate(names):
-            m = self.fittingModelDict[name]
-            if withPriors:
-                if self.singValsDict.has_key(name):
-                    singVals = self.singValsDict[name]
-                else:
-                    #hess = m.currentHessian(self.fittingData,                  
-                    #self.indepParamsList)
-                    singVals = scipy.array([])
-            else:
-                fittingDataDerivs = getattr(self,'fittingDataDerivs',None)
-                hess = m.currentHessianNoPriors(self.fittingData,               
-                    self.indepParamsList,fittingDataDerivs=fittingDataDerivs)
-                u,singVals,vt = scipy.linalg.svd(hess)
-            Plotting.plot_eigval_spectrum(singVals,                             
-                offset=i,widths=widths)
-                
-        Plotting.xticks( 0.5 + scipy.arange(len(names)), names,                 
-            rotation=labelRotation )
-        
-        #plots = [ Plotting.semilogy(self.singValsDict[name],'o',label=name)    \
-        #   for name in self.fittingModelNames ]
-        #if show_legend:
-        #   Plotting.legend()
-        #return plots
-    
-    # 11.7.2011
-    #def plotLogLikelihoods(self,**kwargs):
-    #    fitModelNames = filter(lambda name:                                     \
-    #        self.logLikelihoodDict.has_key(name), self.fittingModelNames)
-    #    return Plotting.plot(range(1,1+len(fitModelNames)),                     \
-    #        [self.logLikelihoodDict[n] for n in fitModelNames],**kwargs)
-    
-    def showImages(self,subplotConfig=None,showTitles=True):
-        import Image
-        
-        if subplotConfig is not None:
-            subplotRows,subplotCols = subplotConfig
-        else:
-            subplotRows,subplotCols = 1,1
-            
-        for i,fittingModel in enumerate(self.fittingModelList):
-            curPosition = i%(subplotRows*subplotCols) + 1
-            if curPosition == 1:
-                Plotting.figure()
-            Plotting.subplot(subplotRows,subplotCols,curPosition)
-            if fittingModel.image != None:
-                im = Image.open(fittingModel.image)
-                Plotting.imshow(im)
-            if showTitles:
-                Plotting.title(self.fittingModelNames[i])
 
-    
-    def _allNonzeroSingVals(self):
-        if len(self.singValsDict.values()) == 0:
-            return []
-        else:
-            allSingVals = Plotting.concatenate(self.singValsDict.values())
-            return allSingVals[allSingVals.nonzero()]
-    
     # 4.18.2012 changed to save to dictionary of FittingProblems
     def writeToFile(self,filename):
         currentFitProbDict = Utility.load(filename)
         currentFitProbDict[self.saveKey] = self
         Utility.save(currentFitProbDict,filename)
         #Utility.save(self,filename)
-    
-    # 7.8.2009
-    def errorAtTime(self,fittingModelName,time,var,indepParams=None,            
-        useMemoization=True):
-        """
-        fittingModelName: name of fittingModel in the fittingProblem, 
-                          or an integer index of the name in the list 
-                          self.fittingModelNames
-        time            : time at which to check prediction error
-        indepParams     : indepParams at which to check prediction error
-                          (if None, defaults to self.indepParamsList[0])
-        """
-        if indepParams is None:
-            indepParams = self.indepParamsList[0]
-        
-        if self.perfectModel is None:
-            raise Exception,                                                    \
-                "No perfectModel has been defined for this fittingProblem."
-        
-        if type(fittingModelName) != str:
-            fittingModelName = self.fittingModelNames[fittingModelName]
-        fittingModel = self.fittingModelDict[fittingModelName]
-        
-        if useMemoization: # remember the values you've already calculated
-          if not hasattr(self,'modelEvalDict'):
-            self.modelEvalDict = {}
-          indepParamsT = tuple(indepParams)
-          name = fittingModelName
-          
-          if self.modelEvalDict.has_key((time,var,indepParamsT)):
-            actualValue = self.modelEvalDict[(time,var,indepParamsT)]
-          else:
-            actualValue = self.perfectModel.evaluate(time,var,indepParams)
-            self.modelEvalDict[(time,var,indepParamsT)] = actualValue
-          
-          if self.modelEvalDict.has_key((name,time,var,indepParamsT)):
-            predictedValue = self.modelEvalDict[(name,time,var,indepParamsT)]
-          else:
-            predictedValue = fittingModel.evaluate(time,var,indepParams)
-            self.modelEvalDict[(name,time,var,indepParamsT)] = predictedValue
-        
-        else:
-          predictedValue = fittingModel.evaluate(time,var,indepParams)
-          actualValue = self.perfectModel.evaluate(time,var,indepParams)
-        
-        return predictedValue - actualValue
-
-    def clearMemoization(self):
-        """
-        Clear memoized values.
-        """
-        if hasattr(self,'modelEvalDict'):
-            delattr(self,'modelEvalDict')
-    
-    
-    def calculateIntegratedError(self,fittingModel,timeInterval,var,
-        indepParams=None,numPoints=513,fitParams=None,ens=None,average=True,
-        retall=True):
-        """
-        Uses scipy.integrate.romb (Romberg integration) and evaluateVec.
-        
-        ens             : If given, the error will be calculated for the
-                        : average output over the ensemble of parameters given.
-        retall          : If True, return errorValue,times,outputs,perfectOutputs
-        """
-        
-        # ****** copied from errorAtTime
-        if indepParams is None:
-            indepParams = self.indepParamsList[0]
-        
-        if self.perfectModel is None:
-            raise Exception,                                                    \
-                "No perfectModel has been defined for this fittingProblem."
-        
-        if fitParams is not None:
-            fittingModel.initializeParameters(fitParams)
-        
-        # Romberg integrator insists that numPoints = 2**integer + 1
-        numPoints = 2**(scipy.ceil(scipy.log2(numPoints-1))) + 1
-        
-        times = scipy.linspace(timeInterval[0],timeInterval[1],numPoints)
-        dt = times[1] - times[0]
-
-        # First integrate perfect model
-        # 7.30.2009 a necessary addition...
-        self.perfectModel.initializeParameters(self.perfectParams)
-        perfectOutput = self.perfectModel.evaluateVec(times,var,indepParams)
-
-        # Integrate model (or average ensemble of models)
-        if ens is not None:
-          # find average trajectory over the ensemble for the given indepParams
-          ensembleTrajs = Ensembles.ensemble_trajs(                             \
-            fittingModel._SloppyCellNet(indepParams),times,ens)
-          modelOutput = Ensembles.traj_ensemble_quantiles(                      \
-            ensembleTrajs,(0.5,))[0].get_var_traj(var)
-        else:
-          try:
-            modelOutput = fittingModel.evaluateVec(times,var,indepParams)
-          except Utility.SloppyCellException:
-            print "FittingProblem.calculateIntegratedError: Warning:"
-            print "  Error in integrating model output.  Returning nan."
-            if retall:
-              return scipy.nan,times,scipy.repeat(scipy.nan,len(times)),perfectOutput
-            else:
-              return scipy.nan
-
-        errors = ( modelOutput - perfectOutput )**2
-        integratedError = scipy.integrate.romb(errors,dt)
-            
-        if average:
-          integratedError = integratedError / (timeInterval[1]-timeInterval[0])
-        
-        if retall:
-          return integratedError,times,modelOutput,perfectOutput
-        else:
-          return integratedError
 
     # 2.29.2012
     def correlationWithPerfectModel(self,fittingModel,timeInterval,
@@ -801,7 +611,7 @@ class FittingProblem:
             self.outOfSampleCorrelationDict = {}
         # we want only models that have actually been fit
         fitModelNames = filter(lambda name:                                         \
-            self.newLogLikelihoodDict.has_key(name), self.fittingModelNames)
+            self.logLikelihoodDict.has_key(name), self.fittingModelNames)
         for fName in fitModelNames:
             if verbose: print "calculateAllOutOfSampleCorrelelation:",fName
             f = self.fittingModelDict[fName]
@@ -819,19 +629,19 @@ class FittingProblem:
                             N-1 models to be worse before declaring
                             one the winner.)
         """
-        if not hasattr(self,'newLogLikelihoodDict'):
+        if not hasattr(self,'logLikelihoodDict'):
             print "maxLogLikelihoodName: no log-likelihoods.  Returning None."
             return None
         
         modelsThatHaveBeenFit = filter(                                             \
-            lambda name: self.newLogLikelihoodDict.has_key(name),                   \
+            lambda name: self.logLikelihoodDict.has_key(name),                      \
                                                         self.fittingModelNames)
         numModelsFit = len(modelsThatHaveBeenFit)
         if numModelsFit == 0:
             print "maxLogLikelihoodName: numModelsFit == 0.  Returning None."
             return None
         bestIndex = scipy.argsort(                                                  \
-            [self.newLogLikelihoodDict[n] for n in modelsThatHaveBeenFit ])[-1]
+            [self.logLikelihoodDict[n] for n in modelsThatHaveBeenFit ])[-1]
         bestModelName = self.fittingModelNames[bestIndex]
         
         if not self.fitAllDone:
@@ -902,7 +712,7 @@ class FittingProblem:
         return plots
     
     # 9.11.2013
-    def plotBestModelResults(self,modelName=None,maxIndex=-3,verbose=True,
+    def plotBestModelResults(self,modelName=None,maxIndex=-4,verbose=True,
         **kwargs):
         """
         See getBestModel and plotModelResults
@@ -911,80 +721,8 @@ class FittingProblem:
             verbose=verbose)
         return self.plotModelResults(m,**kwargs)
     
-    # 4.19.2012
-    def saveBestModelAnalysis(self,filenamePrefix=None,openFiles=True,         
-        modelName=None,showWeights=False,**kwargs):
-        """
-        modelName (None)         : Defaults to max log likelihood model name.
-        """
-        if modelName is None: name = self.maxLogLikelihoodName()
-        else: name = modelName
-        
-        # set up the filenamePrefix
-        if filenamePrefix is None:
-            if self.saveFilename is None:
-                raise Exception, "No filenamePrefix or self.saveFilename."
-            i = self.saveFilename.find('_')
-            filenamePrefix = self.saveFilename[:i] + '_' + name.replace(' ','_')
-            if hasattr(self,'saveKey'):
-                filenamePrefix = filenamePrefix + '_' + str(self.saveKey)
-                    
-        self.plotBestModelResults(filename=filenamePrefix+"_plotResults.png",
-            modelName=modelName,**kwargs)
-        if hasattr(self,'networkFigureBestModel'):
-            self.networkFigureBestModel(filenamePrefix+"_networkFigure",        
-                modelName=modelName,showWeights=showWeights)
-        
-        print "Model name:",name
-        print "Num. params:",self.numParametersDict[name]
-        print "Num. stiff sing. vals.:",self.numStiffSingValsDict[name]
-        
-        #if doOutOfSample:
-        #    self.calculateAllOutOfSampleCorrelelation(XXX
-        if openFiles:
-            call(["open",filenamePrefix+"_plotResults.png"])
-            call(["open",filenamePrefix+"_networkFigure.png"])
-    
-    def _calculateIntegratedErrorSlow(self,fittingModel,timeInterval,var,       
-        indepParams=None,useMemoization=True,average=True):
-        """
-        Uses scipy.integrate.quadrature and evaluateVec.
-        """
-        
-        if indepParams is None:
-            indepParams = self.indepParamsList[0]
-        
-        if self.perfectModel is None:
-            raise Exception,                                                        \
-                "No perfectModel has been defined for this fittingProblem."
 
-        errorFunc = lambda times: ( fittingModel.evaluateVec(times,var,indepParams) \
-            - self.perfectModel.evaluateVec(times,var,indepParams) )**2
-        integratedError,err =                                                       \
-            scipy.integrate.quadrature(errorFunc,timeInterval[0],timeInterval[1])
-            
-        if average:
-          integratedError = integratedError / (timeInterval[1]-timeInterval[0])
-          err = err / (timeInterval[1]-timeInterval[0])
-            
-        return integratedError,err
-        
-    def _calculateIntegratedErrorSlower(self,fittingModelName,timeInterval,var, 
-        indepParams=None,useMemoization=True,average=True):
-        """
-        Uses scipy.integrate.quad and evaluate.
-        """
-        errorFunc = lambda time: ( self.errorAtTime(fittingModelName,           
-            time,var,indepParams,useMemoization) )**2
-        integratedError,err =                                                       \
-            scipy.integrate.quad(errorFunc,timeInterval[0],timeInterval[1])
-            
-        if average:
-          integratedError = integratedError / (timeInterval[1]-timeInterval[0])
-          err = err / (timeInterval[1]-timeInterval[0])
-            
-        return integratedError,err
-                            
+
     def _fixOldVersion(self):
         """
         To update old versions: indepParams -> indepParamsList
@@ -1010,6 +748,10 @@ class FittingProblem:
             self.perfectModel.noIndepParams = False
         else:
             self.perfectModel.noIndepParams = True
+
+        # 8.25.2015
+        if hasattr(self,'newLogLikelihoodDict'):
+            self.logLikelihoodDict = self.newLogLikelihoodDict
 
 
 class PowerLawFittingProblem(FittingProblem):
@@ -2085,209 +1827,6 @@ class SloppyCellFittingModel(FittingModel):
             **kwargs)
         J,JtJ = modelNoData.GetJandJtJ(self.getParameters())
         return JtJ
-    
-# old plotting function that used SloppyCell's plot_model_results
-#    def plotResultsSloppyCell(self,fittingData,indepParamsList=[[]],
-#        show_legend=False,numPoints=500,errorBars=True,exptsToPlot=None,
-#        dataToPlot=None,numRows=None,fmt=None,plotHiddenNodes=True,
-#        separateIndepParams=True,figHeight=8,figWidth=None,newFigure=True,
-#        rowOffset=0,
-#        plotDerivs=False,linestyle=None,plotInitialConditions=False,
-#        marker=None,numCols=None,xmax=None,color=None,numYTicks=3,
-#        hspace=0.05,wspace=0.0,ICmarker=None,ICmarkerSize=None,
-#        height_ratios=None,**kwargs):
-#        """
-#        Note: exptsToPlot isn't currently used when numCols != 1.
-#        
-#        Returns 2D list of axes.
-#        
-#        separateIndepParams (True)      : 4.18.2012 plot each set of independent
-#                                          parameters and each species in a 
-#                                          separate subplot
-#        numCols (None)                  : 4.17.2013 if set to 1, use a single
-#                                          column for all independent parameters
-#        numYTicks (3)                   : Force a given number of ticks on
-#                                          each y-axis (use None for default)
-#        height_ratios (None)            : Passed to Plotting.matplotlib.
-#                                          gridspec.GridSpec
-#        """
-#        
-#        
-#        
-#        dataModel = self._SloppyCellDataModel(fittingData,indepParamsList)
-#        # may not need the following line if cost has already been evaluated
-#        dataModel.cost(self.getParameters())
-#        
-#        calcColl = dataModel.GetCalculationCollection()
-#        
-#        # Get the time endpoints over which we want to integrate.
-#        # (there may be a better way to do this...)
-#        # 3.30.2012 Use the union of ranges that have been used for all vars.
-#        timeEndpoints = [0.,0.]
-#        for net in calcColl.values():
-#            traj = getattr(net, 'trajectory')
-#            timeEndpoints[0] = min(min(traj.timepoints),timeEndpoints[0])
-#            timeEndpoints[1] = max(max(traj.timepoints),timeEndpoints[1])
-#            
-#        for net in calcColl.values():
-#            # Explicitly include a lot of time points so we're sure to
-#            # get nice smooth-looking curves.
-#            times = scipy.linspace(timeEndpoints[0],timeEndpoints[-1],numPoints)
-#            traj = Dynamics.integrate(net,times,return_derivs=True) #was net.integrate(times)
-#            net.trajectory = traj
-#            
-#        # 4.18.2012
-#        netIDList = [ self._SloppyCellNetID(ip) for ip in indepParamsList ]
-#        
-#        style = 'errorbars'
-#            
-#        if (numRows == None) and (not separateIndepParams): 
-#            # plot everything on one subplot
-#            return Plotting.plot_model_results(dataModel,                       
-#                show_legend=show_legend,style=style,expts=exptsToPlot,
-#                data_to_plot=dataToPlot,**kwargs)
-#        else:
-#            # assumes first dataset includes all species of interest
-#            varsWithData = fittingData[0].keys()
-#            if dataToPlot is None:
-#                # sort in the order they're found in self.speciesNames
-#                dataToPlotSorted = []
-#                for name in self.speciesNames:
-#                    if plotDerivs: fullName = (name,'time')
-#                    else: fullName = name
-#                    if name in varsWithData: dataToPlotSorted.append(fullName)
-#                    elif plotHiddenNodes: dataToPlotSorted.append(fullName)
-#            else:
-#                dataToPlotSorted = dataToPlot
-#                
-#            cW = Plotting.ColorWheel()
-#            #if separateIndepParams:
-#            if numRows is None:
-#                numRows = len(dataToPlotSorted)
-#            if numCols is None:
-#                numCols = len(indepParamsList)
-#                
-#            # set up figure
-#            aspectRatioIndiv = (1. + scipy.sqrt(5))/2.
-#            if separateIndepParams and newFigure:
-#                indivHeight = float(figHeight)/float(numRows)
-#                if figWidth is None:
-#                    figWidth = aspectRatioIndiv*indivHeight*numCols
-#                Plotting.figure(figsize=(figWidth,figHeight))
-#                # want default (0.1) when figWidth is default (8.)
-#                pad = min(0.1,0.1*8./figWidth)
-#                
-#                Plotting.subplots_adjust(wspace=wspace,hspace=hspace,           
-#                    left=pad,right=1.0-pad)
-#            
-#            returnList = []
-#            axArray = []
-#            
-#            # loop over species
-#            for i,name in enumerate(dataToPlotSorted):
-#              
-#              ymins,ymaxs = [],[]
-#              axList = []
-#              
-#              # increment colors
-#              if fmt is None:
-#                if name in varsWithData:
-#                    colorWheelFmt = cW.next()
-#                else: # 3.30.2012 plot hidden nodes gray by default
-#                    colorWheelFmt = 'gray','o','-'
-#              else:
-#                colorWheelFmt = fmt
-#              if color is not None:
-#                colorWheelFmt = color,colorWheelFmt[1],colorWheelFmt[2]
-#              if linestyle is not None:
-#                colorWheelFmt = colorWheelFmt[0],colorWheelFmt[1],linestyle
-#              if marker is not None:
-#                colorWheelFmt = colorWheelFmt[0],marker,colorWheelFmt[2]
-#    
-#              # set up subplot grid
-#              subplotGrid = Plotting.matplotlib.gridspec.GridSpec(          
-#                numRows,numCols,height_ratios=height_ratios)
-#    
-#              # loop over independent parameter conditions
-#              for j,netID in enumerate(netIDList):
-#                    
-#                if separateIndepParams:
-#                    if numCols == 1:
-#                        subplotIndex = 1+(i+rowOffset)*numCols
-#                    else:
-#                        subplotIndex = (j+1)+(i+rowOffset)*numCols
-#                  
-#                    if ((numRows==1) and (numCols==1)) and (not newFigure):
-#                        # avoid assuming that we want subplot(1,1,1)
-#                        ax = Plotting.gca()
-#                    else:
-#                        #ax = Plotting.subplot(numRows,numCols,subplotIndex)
-#                        ax = Plotting.subplot(subplotGrid[subplotIndex-1])
-#                  
-#                    # Mess with ticks
-#                    if numYTicks is not None:
-#                        # wider tick spacing
-#                        numticks = numYTicks
-#                        ax.yaxis.set_major_locator(
-#                            Plotting.matplotlib.ticker.LinearLocator(
-#                            numticks=numticks))
-#                    # remove y axes labels except for leftmost column
-#                    if (j != 0) and (numCols>1): 
-#                        ax.get_yaxis().set_ticklabels([])
-#                    # remove x axes labels except for bottom row
-#                    if i != len(dataToPlotSorted)-1: 
-#                        ax.get_xaxis().set_ticklabels([])
-#                    
-#                else: 
-#                    ax = Plotting.subplot(numRows,numCols,i+1)
-#                axList.append(ax)
-#                
-#                returnList.append( Plotting.plot_model_results(dataModel,
-#                    show_legend=show_legend,style=style,
-#                    colorWheelFmt=colorWheelFmt,data_to_plot=[name],
-#                    expts=['data'+netID],plot_data=errorBars,
-#                    **kwargs) )
-#    
-#                if plotInitialConditions and (i<len(indepParamsList[j])):
-#                    if ICmarker is None: ICmarker = colorWheelFmt[1]
-#                    Plotting.plot([0],[indepParamsList[j][i]],
-#                        marker=ICmarker,
-#                        clip_on=False,ms=ICmarkerSize,zorder=5,                 
-#                        mfc="None",mec=colorWheelFmt[0],mew=ICmarkerSize/3.)
-#    
-#                if j == 0:
-#                    Plotting.ylabel(name)
-#                
-#                ranges = Plotting.axis()
-#                ymins.append(ranges[2])
-#                ymaxs.append(ranges[3])
-#    
-#                # if there is more than one column of subplots,
-#                #    remove the last x tick label to prevent overlap
-#                if (len(dataToPlotSorted) > 1)                                  \
-#                  and (i == len(dataToPlotSorted)-1):
-#                    xticks = ax.xaxis.get_ticklocs()
-#                    ax.xaxis.set_ticks(xticks[:-1])
-#        
-#              axArray.append(axList)
-#        
-#              if xmax is not None:
-#                Plotting.axis(xmax=xmax)
-#              
-#              if separateIndepParams:
-#                # make y axes have same range
-#                [ ax.axis(ymin=min(ymins),ymax=max(ymaxs)) for ax in axList ]
-#                
-#                # if there is more than one row of subplots,
-#                #    remove last y tick label to prevent overlap
-#                if len(axList)>1:
-#                    ax0 = axList[0]
-#                    yticks = ax0.yaxis.get_ticklocs()
-#                    #print "yticks =",yticks
-#                    ax0.yaxis.set_ticks(yticks[:-1])
-#                    #print "ytl =", ytl
-#                
-#            return axArray #returnList
 
     # 9.26.2012
     def plotDerivResults(self,fittingData,fittingDataDerivs,
@@ -3039,7 +2578,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
     
     def __init__(self,networkList,speciesNames=None,indepParamNames=[],
         includeRegularizer=False,logParams=True,useDeltaGamma=False,            
-        maxSVDeig=1e5,minSVDeig=0.,**kwargs):
+        maxSVDeig=1e5,minSVDeig=0.,optimizableICs=[],**kwargs):
         """
         maxSVDeig (1e5)        : Maximum singular value allowed in svdInverse
         minSVDeig (0.)       : Minimum singular value allowed in svdInverse
@@ -3055,8 +2594,9 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         self.useDeltaGamma = useDeltaGamma
         self.includeRegularizer = includeRegularizer
         SloppyCellNet = PowerLawNetwork.PowerLaw_Network_List(                  \
-            networkList,speciesNames,includeRegularizer=includeRegularizer,     \
-            logParams=logParams,useDeltaGamma=useDeltaGamma)
+            networkList,speciesNames,includeRegularizer=includeRegularizer,
+            logParams=logParams,useDeltaGamma=useDeltaGamma,
+            optimizableICs=optimizableICs)
             
         self.maxSVDeig,self.minSVDeig = maxSVDeig,minSVDeig
             
@@ -4280,7 +3820,11 @@ class PowerLawFittingModel_Complexity(PowerLawFittingModel):
             for inputName in inputNames:
               if inputName not in indepParamNames:
                 raise Exception, "inputName %s not in indepParamNames"%inputName
-        
+    
+        # output species whose initial conditions are not set by indepParams
+        # should have optimizable initial conditions
+        optimizableICs = filter(lambda n: n+"_init" not in indepParamNames,outputNames)
+    
         self.complexity = complexity
         self.numInputs = len(inputNames)
         self.numOutputs = len(outputNames)
@@ -4303,7 +3847,8 @@ class PowerLawFittingModel_Complexity(PowerLawFittingModel):
         self.speciesNames = speciesNames
         
         PowerLawFittingModel.__init__(self,self.networkList,                    
-            speciesNames=speciesNames,indepParamNames=indepParamNames,**kwargs)
+            speciesNames=speciesNames,indepParamNames=indepParamNames,
+            optimizableICs=optimizableICs,**kwargs)
             
 # 8.29.2012 
 class PowerLawFittingModel_FullyConnected(PowerLawFittingModel_Complexity):

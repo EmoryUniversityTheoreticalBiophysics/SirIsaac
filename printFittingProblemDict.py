@@ -33,7 +33,7 @@ for k in scipy.sort(fpd.keys()):
     print ""
     print "Log-likelihoods"
     for name in names:
-        print name,fp.newLogLikelihoodDict[name]
+        print name,fp.logLikelihoodDict[name]
     print ""
     
     print ""

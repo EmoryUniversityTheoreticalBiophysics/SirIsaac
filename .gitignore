@@ -47,3 +47,14 @@ stdout_stderr_*
 
 # Mathematica files
 *.nb
+
+# zip files
+*.zip
+
+# text files
+*.txt
+# but include the simple example data file
+!simpleExample_data.txt
+
+# other code
+othercode/*
