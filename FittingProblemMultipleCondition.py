@@ -35,19 +35,23 @@ class FittingProblemMultipleCondition(FittingProblem):
     """
     def __init__(self,fittingDataMultiple,fittingModelList,
                  indepParamsListMultiple=None,saveFilename=None,
-                 saveKey=-1,**kwargs):
+                 saveKey=-1,smallerBestParamsDictMultiple=None,**kwargs):
 
         if indepParamsListMultiple is None:
             indepParamsListMultiple = [ [[]] for fd in fittingDataMultiple ]
+        if smallerBestParamsDictMultiple is None:
+            smallerBestParamsDictMultiple = [ {} for fd in fittingDataMultiple ]
 
         # Each condition gets a separate fittingProblem.  These are stored in
         # self.fittingProblemList.
         self.fittingProblemList = [ \
             FittingProblem(fittingData,fittingModelList,
-                                          indepParamsList=indepParamsList,
-                                          **kwargs) \
-            for fittingData,indepParamsList in \
-                zip(fittingDataMultiple,indepParamsListMultiple) ]
+                           indepParamsList=indepParamsList,
+                           smallerBestParamsDict=smallerBestParamsDict,
+                           **kwargs) \
+            for fittingData,indepParamsList,smallerBestParamsDict in \
+                zip(fittingDataMultiple,indepParamsListMultiple,
+                    smallerBestParamsDictMultiple) ]
             
         # all daughter classes should call generalSetup
         self.generalSetup(saveFilename,saveKey)
@@ -173,19 +177,24 @@ class PowerLawFittingProblemMultipleCondition(FittingProblemMultipleCondition):
     """
     
     def __init__(self,complexityList,fittingDataMultiple,indepParamsListMultiple=None,
-                 saveFilename=None,saveKey=-1,**kwargs):
+                 saveFilename=None,saveKey=-1,smallerBestParamsDictMultiple=None,
+                 **kwargs):
 
         if indepParamsListMultiple is None:
             indepParamsListMultiple = [ [[]] for fd in fittingDataMultiple ]
+        if smallerBestParamsDictMultiple is None:
+            smallerBestParamsDictMultiple = [ {} for fd in fittingDataMultiple ]
 
         # Each condition gets a separate fittingProblem.  These are stored in
         # self.fittingProblemList.
         self.fittingProblemList = [ \
             PowerLawFittingProblem(complexityList,fittingData,
-                                                  indepParamsList=indepParamsList,
-                                                  **kwargs) \
-            for fittingData,indepParamsList in \
-                zip(fittingDataMultiple,indepParamsListMultiple) ]
+                                   indepParamsList=indepParamsList,
+                                   smallerBestParamsDict=smallerBestParamsDict,
+                                   **kwargs) \
+            for fittingData,indepParamsList,smallerBestParamsDict in \
+                zip(fittingDataMultiple,indepParamsListMultiple,
+                    smallerBestParamsDictMultiple) ]
 
         # all daughter classes should call generalSetup
         self.generalSetup(saveFilename,saveKey)
@@ -193,8 +202,8 @@ class PowerLawFittingProblemMultipleCondition(FittingProblemMultipleCondition):
     def networkFigureBestModel(self,filenameMultiple,maxIndex=-4,modelName=None,
                                **kwargs):
         """
-        Make one network figure for each condition.
-        See documentation for FittingProblem.PowerLawFittingProblem.networkFigureBestModel.
+        Make one network figure for each condition.  See documentation for
+        FittingProblem.PowerLawFittingProblem.networkFigureBestModel.
         
         filenameMultiple        : A list of filenames, one for each condition.
         """
@@ -215,19 +224,24 @@ class CTSNFittingProblemMultipleCondition(FittingProblemMultipleCondition):
     """
     
     def __init__(self,complexityList,fittingDataMultiple,indepParamsListMultiple=None,
-                 saveFilename=None,saveKey=-1,**kwargs):
+                 saveFilename=None,saveKey=-1,smallerBestParamsDictMultiple=None,
+                 **kwargs):
         
         if indepParamsListMultiple is None:
             indepParamsListMultiple = [ [[]] for fd in fittingDataMultiple ]
+        if smallerBestParamsDictMultiple is None:
+            smallerBestParamsDictMultiple = [ {} for fd in fittingDataMultiple ]
         
         # Each condition gets a separate fittingProblem.  These are stored in
         # self.fittingProblemList.
         self.fittingProblemList = [ \
            CTSNFittingProblem(complexityList,fittingData,
-                                                 indepParamsList=indepParamsList,
-                                                 **kwargs) \
-           for fittingData,indepParamsList in \
-                zip(fittingDataMultiple,indepParamsListMultiple) ]
+                              indepParamsList=indepParamsList,
+                              smallerBestParamsDict=smallerBestParamsDict,
+                              **kwargs) \
+           for fittingData,indepParamsList,smallerBestParamsDict in \
+                zip(fittingDataMultiple,indepParamsListMultiple,
+                    smallerBestParamsDictMultiple) ]
            
         # all daughter classes should call generalSetup
         self.generalSetup(saveFilename,saveKey)
@@ -235,8 +249,8 @@ class CTSNFittingProblemMultipleCondition(FittingProblemMultipleCondition):
     def networkFigureBestModel(self,filenameMultiple,maxIndex=-4,modelName=None,
                                **kwargs):
         """
-        Make one network figure for each condition.
-        See documentation for FittingProblem.CTSNFittingProblem.networkFigureBestModel.
+        Make one network figure for each condition.  See documentation for 
+        FittingProblem.CTSNFittingProblem.networkFigureBestModel.
         
         filenameMultiple        : A list of filenames, one for each condition.
         """
