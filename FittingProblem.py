@@ -408,7 +408,7 @@ class FittingProblem:
     
     def plotResults(self,showTitles=True,showInfo=True,
         errorBars=True,exptsToPlot=None,plotDerivs=False,indices=None,
-        **kwargs):
+        plotOnlyFitModels=True,**kwargs):
         """
         indices (None)          : If a list of indepParamsList indices, plots
                                   only these indices.  Otherwise plots
@@ -417,8 +417,14 @@ class FittingProblem:
         if not self.fitAllDone:
             print "FittingProblem.plotResults warning: "                            \
                  +"some or all fits have not yet been performed."
-            
-        for i,name in enumerate(self.fittingModelNames):
+    
+        if plotOnlyFitModels:
+            modelNames = filter(lambda n: n in self.logLikelihoodDict.keys(),
+                                self.fittingModelNames)
+        else:
+            modelNames = self.fittingModelNames
+    
+        for i,name in enumerate(modelNames):
             fittingModel = self.fittingModelDict[name]
             self.plotModelResults(fittingModel,indices=indices,**kwargs)
             
