@@ -76,6 +76,11 @@ class FittingProblemMultipleCondition(FittingProblem):
         self.perfectParams = f.perfectParams
         self.stopFittingN = f.stopFittingN
 
+        # disable stopFittingN for individual fittingProblems;
+        # this is controlled at the multipleCondition level
+        for f in self.fittingProblemList:
+            f.stopFittingN = scipy.inf
+
     def fitAll(self,**kwargs):
         """
         See documentation for FittingProblem.fitAll.
