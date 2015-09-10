@@ -10,6 +10,9 @@
 # attempt to fit the model, the results of fitting, ...
 #
 
+# 9.9.2015 directory needed for direct calling using MPI?
+SIRISAACDIR = '/Users/bdaniels/anaconda/lib/python2.7/site-packages/SirIsaac/'
+
 from SloppyCell.ReactionNetworks import *
 import PowerLawNetwork
 reload(PowerLawNetwork)
@@ -1731,7 +1734,7 @@ class SloppyCellFittingModel(FittingModel):
         
         # call mpi
         stdoutFile = open(prefix+"stdout.txt",'w')
-        call([ "mpirun","-np",str(numprocs),"python","localFitParallel.py",     
+        call([ "mpirun","-np",str(numprocs),"python",SIRISAACDIR+"localFitParallel.py",
               inputDictFilename ], stderr=stdoutFile,stdout=stdoutFile)
         stdoutFile.close()
         os.remove(inputDictFilename)
@@ -2528,7 +2531,7 @@ class EnsembleGenerator():
           # call mpi
           stdoutFile = open(prefix+"stdout.txt",'w')
           call([ "mpirun","-np",str(numprocs),"python",
-                "generateEnsembleParallel.py",inputDictFilename ],              
+                SIRISAACDIR+"generateEnsembleParallel.py",inputDictFilename ],
                 stderr=stdoutFile,stdout=stdoutFile)
           stdoutFile.close()
           os.remove(inputDictFilename)
