@@ -10,6 +10,16 @@
 
 from FittingProblem import *
 
+def directoryPrefix(fileNumString,conditioni,numTimepoints):
+    return fileNumString+'_fitProbs/N'+str(numTimepoints)+'/condition'+str(conditioni)+'/'
+
+def createDirectoryStructure(fileNumString,numConditions,numTimepointsList):
+    os.mkdir(fileNumString+'_fitProbs/')
+    for numTimepoints in numTimepointsList:
+      os.mkdir(fileNumString+'_fitProbs/N'+str(numTimepoints))
+      for i in range(numConditions):
+        os.mkdir(directoryPrefix(fileNumString,i,numTimepoints))
+
 class FittingProblemMultipleCondition(FittingProblem):
     """
     Setup for fitting datasets taken under multiple experimental conditions.
