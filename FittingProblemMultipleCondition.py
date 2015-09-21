@@ -120,6 +120,10 @@ class FittingProblemMultipleCondition(FittingProblem):
             self.logLikelihoodDict[name] = -(costMultiple + penaltyMultiple)
             self.numParametersDict = self.fittingProblemList[0].numParametersDict
     
+            # Save to file
+            if self.saveFilename is not None:
+                self.writeToFile(self.saveFilename)
+
             # Check whether we're done
             # 6.1.2012 stop after seeing stopFittingN models with worse logLikelihood
             orderedLs = []
@@ -220,8 +224,13 @@ class PowerLawFittingProblemMultipleCondition(FittingProblemMultipleCondition):
         Make one network figure for each condition.  See documentation for
         FittingProblem.PowerLawFittingProblem.networkFigureBestModel.
         
-        filenameMultiple        : A list of filenames, one for each condition.
+        filenameMultiple        : A list of filenames, one for each condition,
+                                  or a single string that will be appended with
+                                  'condition0', 'condition1', etc.
         """
+        if type(filenameMultiple) == str:
+            filenameMultiple = [ filenameMultiple+'_condition'+str(i) \
+                                for i in range(len(self.fittingProblemList)) ]
         if modelName is None:
             modelName = self.maxLogLikelihoodName(maxIndex=maxIndex)
         return [ fp.networkFigureBestModel(filename,modelName=modelName,**kwargs) \
@@ -267,8 +276,13 @@ class CTSNFittingProblemMultipleCondition(FittingProblemMultipleCondition):
         Make one network figure for each condition.  See documentation for 
         FittingProblem.CTSNFittingProblem.networkFigureBestModel.
         
-        filenameMultiple        : A list of filenames, one for each condition.
+        filenameMultiple        : A list of filenames, one for each condition,
+                                  or a single string that will be appended with
+                                  'condition0', 'condition1', etc.
         """
+        if type(filenameMultiple) == str:
+            filenameMultiple = [ filenameMultiple+'_condition'+str(i) \
+                                 for i in range(len(self.fittingProblemList)) ]
         if modelName is None:
             modelName = self.maxLogLikelihoodName(maxIndex=maxIndex)
         return [ fp.networkFigureBestModel(filename,modelName=modelName,**kwargs) \
