@@ -1197,7 +1197,8 @@ class FittingModel:
         newFigure=False,rowOffset=0,plotFirstN=None,linestyle=None,
         plotHiddenNodes=False,color=None,hspace=0.05,wspace=0.0,
         plotInitialConditions=False,ICmarker=None,markerSize=5.,
-        height_ratios=None,existingAxArray=None,yoffset=0.,**kwargs):
+        height_ratios=None,existingAxArray=None,yoffset=0.,
+        figsize=None,**kwargs):
         """
         Returns 2D list of axes.
         
@@ -1211,7 +1212,7 @@ class FittingModel:
         **kwargs passed to pylab.plot.
         """
         if newFigure:
-            Plotting.figure()
+            Plotting.figure(figsize=figsize)
         
         if maxTime is None:
             allDataTimes = scipy.concatenate([ scipy.concatenate([                \
