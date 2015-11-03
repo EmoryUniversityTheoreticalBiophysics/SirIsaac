@@ -67,7 +67,7 @@ maxiterDefault = None
 cutoffDefault = 1.
 verboseDefault = False
 
-def UpdateOldFitProbDict(fitProbDict):
+def UpdateOldFitProbDict(fitProbDict,recalculateCost=False):
     for p in fitProbDict.values():
         p._fixOldVersion()
         # the following line only for SloppyCell networks
@@ -75,7 +75,7 @@ def UpdateOldFitProbDict(fitProbDict):
             m.net.constraints = {}
         p.perfectModel.net.constraints = {}
         for name in p.fittingModelNames:
-            p._UpdateDicts(name)
+            p._UpdateDicts(name,calculateCost=recalculateCost)
 
 class FittingProblem:
     """
@@ -262,27 +262,7 @@ class FittingProblem:
             oldCost = newCost
             oldFitParameters = newFitParameters
             
-            if self.fittingDataDerivs is None:
-                #self.fitParametersDict[name] = newFitParameters
-                self.costDict[name] =                                               \
-                    fittingModel.currentCost(self.fittingData,self.indepParamsList, \
-                        fittingDataDerivs=fittingDataDerivs,                        \
-                        includePriors=includePriors)
-                if includePriors:
-                  self.HessianDict[name] =                                          \
-                    fittingModel.currentHessian(self.fittingData,                   \
-                        self.indepParamsList,fittingDataDerivs=fittingDataDerivs)
-                else:
-                  self.HessianDict[name] =                                          \
-                    fittingModel.currentHessianNoPriors(self.fittingData,           \
-                        self.indepParamsList,fittingDataDerivs=fittingDataDerivs)
-            else: # when fitting derivatives
-                #self.costDict[name] = scipy.inf
-                self.costDict[name] = fittingModel.currentCost_deriv(               \
-                    self.fittingData,self.indepParamsList,fittingDataDerivs,        \
-                    includePriors=includePriors)
-                self.HessianDict[name] = None
-            self._UpdateDicts(name)
+            self._UpdateDicts(name,includePriors=includePriors)
             
           # 5.6.2013 update old files if needed
           if not hasattr(self,'logLikelihoodDict'):
@@ -340,8 +320,32 @@ class FittingProblem:
         if self.saveFilename is not None:
             self.writeToFile(self.saveFilename)
     
-    def _UpdateDicts(self,name):
+    def _UpdateDicts(self,name,calculateCost=True,includePriors=True):
+        
         fittingModel = self.fittingModelDict[name]
+        
+        if calculateCost:
+            # calculate cost and hessian
+            if self.fittingDataDerivs is None:
+                #self.fitParametersDict[name] = newFitParameters
+                self.costDict[name] =                                               \
+                    fittingModel.currentCost(self.fittingData,self.indepParamsList,
+                        fittingDataDerivs=None,includePriors=includePriors)
+                if includePriors:
+                  self.HessianDict[name] =                                          \
+                    fittingModel.currentHessian(self.fittingData,
+                        self.indepParamsList,fittingDataDerivs=None)
+                else:
+                  self.HessianDict[name] =                                          \
+                    fittingModel.currentHessianNoPriors(self.fittingData,
+                        self.indepParamsList,fittingDataDerivs=None)
+            else: # when fitting derivatives
+                #self.costDict[name] = scipy.inf
+                self.costDict[name] = fittingModel.currentCost_deriv(               \
+                    self.fittingData,self.indepParamsList,self.fittingDataDerivs,
+                    includePriors=includePriors)
+                self.HessianDict[name] = None
+    
         self.fitParametersDict[name] = fittingModel.getParameters()
         try:
             u,s,vt = scipy.linalg.svd( self.HessianDict[name] )
