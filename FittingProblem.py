@@ -129,6 +129,13 @@ class FittingProblem:
         self.priorSingValsDict = {}
         self.logLikelihoodDict = {}
         
+        if len(self.fittingData) != len(self.indepParamsList):
+            raise Exception, "Length of indepParamsList must equal length of fittingData"
+        if len(scipy.shape(self.indepParamsList)) != 2:
+            raise Exception, "indepParamsList must be two-dimensional"
+        if scipy.shape(self.indepParamsList)[1] != len(self.indepParamNames):
+            raise Exception, "Length of indepParamNames must equal length of second dimension of indepParamsList"
+        
         self.perfectModel = perfectModel
         if self.perfectModel is not None:
           self.perfectParams = self.perfectModel.getParameters()
