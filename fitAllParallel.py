@@ -10,6 +10,7 @@
 import scipy
 import time, copy, os
 from SirIsaac.simplePickle import load,save
+from SirIsaac.SloppyCellTest import testCcompiling
 
 def directoryPrefix(fileNumString,conditioni,numTimepoints):
     return fileNumString+'_fitProbs/N'+str(numTimepoints)+'/condition'+str(conditioni)+'/'
@@ -336,7 +337,7 @@ def initializeFitAllParallel(fullFittingProblem,fileNumString,
                                 [fullFittingProblem])
     
     if fullFittingProblem.saveFilename is not None:
-        configString = fullFittingProblem.saveFilename[5:]
+        configString = fullFittingProblem.saveFilename[4:-4]
     else:
         configString = ''
 
@@ -414,7 +415,7 @@ def initializeFitAllParallel(fullFittingProblem,fileNumString,
 
 
 
-def runFitAllParallelWorker(fitProbDataFilename,endTime=None,verbose=True):
+def runFitAllParallelWorker(fileNumString,endTime=None,verbose=True):
     """
     Each worker node runs this function to look for and perform work.
     
@@ -424,7 +425,7 @@ def runFitAllParallelWorker(fitProbDataFilename,endTime=None,verbose=True):
     """
 
     # check that the fitProbData file exists
-    if not fitProbDataFilename in os.listdir('.'):
+    if not fileNumString+"_fitProbData.dat" in os.listdir('.'):
         raise Exception, "fitProbData database file not found: "+str(fitProbDatFilename)
 
     # 9.24.2013 make sure SloppyCell C compiling is working
