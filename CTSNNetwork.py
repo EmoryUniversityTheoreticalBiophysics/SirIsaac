@@ -87,7 +87,7 @@ def CTSN_List(networkList,speciesNames=None,                                    
         
         if logParams:
             net.addParameter('log_tau_'+str(i), log(defaultLogParam),           \
-                isOptimizable=order['tau']<nodeType)
+                isOptimizable=order['tau']<nodeType,typicalValue=1.)
             net.addAssignmentRule('tau_'+str(i),'exp(log_tau_'+str(i)+')')
         
         # connect to others
