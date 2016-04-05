@@ -1947,7 +1947,7 @@ class SloppyCellFittingModel(FittingModel):
             return scipy.array([                                                \
                 [ traj.get_var_val(v,time) for time in times ] for v in var ])
     
-    def _SloppyCellNet(self,indepParams=[]):
+    def _SloppyCellNet(self,indepParams=[],i=0):
         """
         Returns SloppyCell network with the given independent parameters.
         """
@@ -1955,17 +1955,17 @@ class SloppyCellFittingModel(FittingModel):
         
         if not self.noIndepParams:
             # we do have independent parameters to set
-            newNet.set_id(self._SloppyCellNetID(indepParams))
+            newNet.set_id(self._SloppyCellNetID(indepParams,i))
             for name,value in zip(self.indepParamNames,indepParams):
                 newNet.setInitialVariableValue(name,value)
         
         return newNet
         
-    def _SloppyCellNetID(self,indepParams):
+    def _SloppyCellNetID(self,indepParams,i):
         indepParamsID = str(zip(self.indepParamNames,indepParams))              \
             .replace("'","").replace(" ","").replace(",","_")                   \
             .replace(".","_").replace("[","_").replace("]","_")                 \
-            .replace("(","_").replace(")","_")
+            .replace("(","_").replace(")","_")+str(i)
         if len(indepParamsID) > 50: # can't have overly long file names
             # Let's pray we don't have hash conflicts.
             # If we ever do, SloppyCell should complain that
@@ -2017,7 +2017,7 @@ class SloppyCellFittingModel(FittingModel):
         # make a copy
         # of the SloppyCell network for each experimental condition
         for i,indepParams,d in zip(range(len(data)),indepParamsList,data):
-            newNet = self._SloppyCellNet(indepParams)
+            newNet = self._SloppyCellNet(indepParams,i)
             newNetID = newNet.get_id()
             newExpt = Experiment(exptID+newNetID)
             
