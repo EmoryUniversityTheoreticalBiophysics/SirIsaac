@@ -368,12 +368,16 @@ def initializeFitAllParallel(fullFittingProblem,fileNumString,
     for N in Nlist:
         fitProbDataList = []
         for i,fittingProblem in enumerate(fittingProblemList):
-            fittingData = fittingProblemList[i].fittingData
+            fittingData = fittingProblem.fittingData
             fittingDataSubset = dataSubset(fittingData,N,seed=timeOrderSeed+i,
                                            maxNumIndepParams=minNumIndepParams)
+            indepParamsListSubset = \
+                fittingProblem.indepParamsList[:len(fittingDataSubset)]
 
             newFittingProblem = copy.deepcopy(fittingProblem)
-            newFittingProblem.fittingData = fittingDataSubset
+            newFittingProblem.setData(fittingDataSubset,
+                                      indepParamsListSubset,
+                                      newFittingProblem.indepParamNames)
             newFittingProblem.saveKey = N
             #fittingProblemListNew.append(newFittingProblem)
 

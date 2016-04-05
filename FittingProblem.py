@@ -109,9 +109,8 @@ class FittingProblem:
             fittingModelNames =                                                 \
                 [ 'Model '+str(i+1) for i in range(len(fittingModelList)) ]
         
-        self.fittingData = fittingData
-        self.indepParamsList = indepParamsList
-        self.indepParamNames = indepParamNames
+        self.setData(fittingData,indepParamsList,indepParamNames)
+        
         self.fittingModelList = fittingModelList
         self.fittingModelNames = fittingModelNames
         self.cutoff = singValCutoff
@@ -128,13 +127,6 @@ class FittingProblem:
         self.priorHessianDict = {}
         self.priorSingValsDict = {}
         self.logLikelihoodDict = {}
-        
-        if len(self.fittingData) != len(self.indepParamsList):
-            raise Exception, "Length of indepParamsList must equal length of fittingData"
-        if len(scipy.shape(self.indepParamsList)) != 2:
-            raise Exception, "indepParamsList must be two-dimensional"
-        if scipy.shape(self.indepParamsList)[1] != len(self.indepParamNames):
-            raise Exception, "Length of indepParamNames must equal length of second dimension of indepParamsList"
         
         self.perfectModel = perfectModel
         if self.perfectModel is not None:
@@ -155,11 +147,26 @@ class FittingProblem:
         
         # 6.1.2012
         self.stopFittingN = stopFittingN
+
+    def setData(self,fittingData,indepParamsList,indepParamNames):
         
         # consistency checks
         if len(fittingData) != len(indepParamsList):
-          raise Exception, "fittingData and indepParamsList must have same length"
+            raise Exception, "Length of indepParamsList must equal length of fittingData"
+        if len(scipy.shape(indepParamsList)) != 2:
+            raise Exception, "indepParamsList must be two-dimensional"
+        if scipy.shape(indepParamsList)[1] != len(indepParamNames):
+            raise Exception, "Length of indepParamNames must equal length of second dimension of indepParamsList"
+        
+        for d in fittingData:
+            if d.values()[0].keys() == [0]:
+              raise Exception, "Data for given independent parameters cannot consist of a single timepoint at t=0.  See https://github.com/EmoryUniversityTheoreticalBiophysics/SirIsaac/issues/5"
     
+        self.fittingData = fittingData
+        self.indepParamsList = indepParamsList
+        self.indepParamNames = indepParamNames
+
+
     def fitAll(self,usePreviousParams=True,fitPerfectModel=False,resume=True,
         maxNumFit=None,**kwargs):
         """
