@@ -384,7 +384,7 @@ def initializeFitAllParallel(fullFittingProblem,fileNumString,
 
             # in fitProbData, store only info necessary to decide which
             # fittingProblem to work on next
-            fitProb = fittingProblem
+            fitProb = newFittingProblem
             fittingStateDictInitial = \
                 dict( [ (name,'unstarted') for name in fitProb.fittingModelNames ])
             pData = {'logLikelihoodDict': fitProb.logLikelihoodDict,
@@ -397,13 +397,14 @@ def initializeFitAllParallel(fullFittingProblem,fileNumString,
             fitProbDataList.append(pData)
 
         p = fullFittingProblem
-        pDataMultiple = {'logLikelihoodDict': p.logLikelihoodDict,
-                     'fitAllDone': p.fitAllDone,
-                     'fittingModelNames': p.fittingModelNames,
-                     'fitProbDataList': fitProbDataList,
-                     'stopFittingN': p.stopFittingN,
-                     'saveFilename': p.saveFilename,
-                     'saveKey': p.saveKey,
+        cp = copy.deepcopy
+        pDataMultiple = {'logLikelihoodDict': cp(p.logLikelihoodDict),
+                     'fitAllDone': cp(p.fitAllDone),
+                     'fittingModelNames': cp(p.fittingModelNames),
+                     'fitProbDataList': cp(fitProbDataList),
+                     'stopFittingN': cp(p.stopFittingN),
+                     'saveFilename': cp(p.saveFilename),
+                     'saveKey': cp(p.saveKey),
                      }
         fitProbData[N] = pDataMultiple
         save(fitProbData,fileNumString+'_fitProbData.dat')
