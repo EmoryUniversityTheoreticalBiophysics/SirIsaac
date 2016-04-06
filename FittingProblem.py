@@ -696,11 +696,13 @@ class FittingProblem:
         
     # 9.11.2013, 4.19.2012
     def plotModelResults(self,model,filename=None,indices=None,
-        plotFittingData=True,**kwargs):
+        plotFittingData=True,outOfSampleData=None,**kwargs):
         """
         indices (None)          : If a list of indepParamsList indices, plots
                                   only these indices.  Otherwise plots
                                   all conditions in indepParamsList.
+        outOfSampleData (None)  : Provide fittingData including out-of-sample
+                                  timepoints to plot them on the same axes
         """
         # choose the indices we want
         if indices is None:
@@ -708,11 +710,18 @@ class FittingProblem:
         fittingData = [ self.fittingData[i] for i in indices ]
         indepParamsList = [ self.indepParamsList[i] for i in indices ]
         
+        # handle out-of-sample data if given
+        if outOfSampleData is not None:
+            if len(outOfSampleData) != len(self.fittingData):
+                raise Exception, "Length of outOfSampleData must match length of self.fittingData"
+            outData = [ outOfSampleData[i] for i in indices ]
+        
         m = model
         
         # plot model results
         plots = m.plotResults(fittingData,indepParamsList,                      
-            plotFittingData=plotFittingData,**kwargs)
+            plotFittingData=plotFittingData,
+            outOfSampleData=outData,**kwargs)
         
         # plot perfectModel results if relevant
         if self.perfectModel is not None:
@@ -722,7 +731,7 @@ class FittingProblem:
                 indepParamsList,fmt=[[0.65,0.65,0.65],'','-'],
                 numRows=len(m.speciesNames),linewidth=0.5,                      
                 dataToPlot=speciesToPlot,newFigure=False,rowOffset=ni)
-        
+            
         # 7.12.2012 worm data
         # speedDict must have been imported using importWormData_George
         #if self.saveFilename.find('wormData') >= 0:
@@ -1216,7 +1225,7 @@ class FittingModel:
         plotHiddenNodes=False,color=None,hspace=0.05,wspace=0.0,
         plotInitialConditions=False,ICmarker=None,markerSize=5.,
         height_ratios=None,existingAxArray=None,yoffset=0.,
-        figsize=None,**kwargs):
+        figsize=None,outOfSampleData=None,**kwargs):
         """
         Returns 2D list of axes.
         
@@ -1226,6 +1235,7 @@ class FittingModel:
                               indepParams / fittingData combinations
                               (hack to avoid calling MATLAB)
         existingAxArray (None)  : Use to plot on an existing axis array.
+        outOfSampleData (None)  : Use to plot out of sample data.
         
         **kwargs passed to pylab.plot.
         """
@@ -1243,6 +1253,9 @@ class FittingModel:
             N = min(len(fittingData),len(indepParamsList))
         else:
             N = plotFirstN
+        
+        if outOfSampleData is None:
+            outOfSampleData = [ None for d in fittingData ]
         
         if not plotSeparately: # plot everything on one subplot
             raise Exception, "Error: plotSeparately=False not implemented"
@@ -1294,7 +1307,8 @@ class FittingModel:
                 else:
                     colorToUse = color
                 j = -1
-                for data,indepParams in zip(fittingData[:N],indepParamsList[:N]):
+                for data,indepParams,outData in \
+                    zip(fittingData[:N],indepParamsList[:N],outOfSampleData[:N]):
                     j += 1
                     
                     if existingAxArray is None:
@@ -1337,6 +1351,16 @@ class FittingModel:
                         returnList.append( pylab.errorbar(dataTimes,dataVals,
                               yerr=dataStds,marker=marker,mfc=colorToUse,ls='',       
                               ecolor='k',ms=markerSize,barsabove=True) )
+                        
+                        if outData is not None:
+                            # plot out-of-sample data points
+                            dataTimes = outData[name].keys()
+                            dataVals = [ outData[name][time][0]+yoffset \
+                                         for time in dataTimes ]
+                            dataStds = [ outData[name][time][1] for time in dataTimes ]
+                            
+                            returnList.append( pylab.plot(dataTimes,dataVals,
+                                  marker=',',mfc=colorToUse,ls='') )
                     
                     ranges = Plotting.axis()
                     ymins.append(ranges[2])
