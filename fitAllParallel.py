@@ -11,6 +11,7 @@ import scipy
 import time, copy, os
 from SirIsaac.simplePickle import load,save
 from SirIsaac.SloppyCellTest import testCcompiling
+from SirIsaac.FittingProblemMultipleCondition import *
 
 def directoryPrefix(fileNumString,conditioni,numTimepoints):
     return fileNumString+'_fitProbs/N'+str(numTimepoints)+'/condition'+str(conditioni)+'/'
@@ -230,12 +231,18 @@ def countFitProbData(fileNumString):
     print "  ",started,"running"
     print "  ",unstarted,"unstarted"
 
-def combineFitProbs(fileNumString):
+def combineFitProbs(fileNumString,saveEach=False):
     """
-    Combine fittingProblems saved in the parallel file structure
-    into a single fittingProblemDict.
+    Combine fittingProblems from multiple conditions saved in the 
+    parallel file structure into a single fittingProblemDict.
+    
+    For now, only combines and writes fittingProblems for which
+    fitAllDone = True.
     
     Warning: Overwrites any current top-level fitProbDict file.
+    
+    saveEach (False)        : If True, save data for each numTimepoints
+                              in a separate file.
     """
     fitProbData = loadFitProbData(fileNumString)
     saveFilename = fitProbData.values()[0]['saveFilename']
@@ -243,30 +250,35 @@ def combineFitProbs(fileNumString):
     
     fpdMultiple = {}
     for numTimepoints in scipy.sort(fitProbData.keys()):
-      p = fitProbData[numTimepoints]
-      
-      fpList = []
-      for conditioni in range(len(p['fitProbDataList'])):
-        fp = loadFitProb(saveFilename,fileNumString,conditioni,numTimepoints)
-        fpList.append(fp)
-      # make new multiple condition fitting problem by starting
-      # with an empty fitting problem and inserting the fittingProblemList
-      saveKey = p['saveKey']
-      fp.stopFittingN = p['stopFittingN']
-      fpMultiple = FittingProblemMultipleCondition([],[],saveFilename=None,
-                                                   saveKey=saveKey,fp0=fp)
-      fpMultiple.fittingProblemList = fpList
+      if fitProbData[numTimepoints]['fitAllDone']:
+          p = fitProbData[numTimepoints]
+          
+          fpList = []
+          for conditioni in range(len(p['fitProbDataList'])):
+            fp = loadFitProb(saveFilename,fileNumString,conditioni,numTimepoints)
+            fpList.append(fp)
+          # make new multiple condition fitting problem by starting
+          # with an empty fitting problem and inserting the fittingProblemList
+          saveKey = p['saveKey']
+          fp.stopFittingN = p['stopFittingN']
+          fpMultiple = FittingProblemMultipleCondition([],[],saveFilename=None,
+                                                       saveKey=saveKey,fp0=fp)
+          fpMultiple.fittingProblemList = fpList
 
-      # Populate the logLikelihoodDict, etc by running fitAll.
-      fpMultiple.fitAll()
-      
-      fpdMultiple[numTimepoints] = fpMultiple
-      
-      print "combineFitProbs: Done with numTimepoints =",numTimepoints
+          # Populate the logLikelihoodDict, etc by running fitAll.
+          fpMultiple.fitAll()
+          
+          fpdMultiple[numTimepoints] = fpMultiple
+          
+          print "combineFitProbs: Done with numTimepoints =",numTimepoints
 
-      save({numTimepoints:fpMultiple},saveFilename[:-4]+'numTimepoints_'+str(numTimepoints))
+          if saveEach:
+              save({numTimepoints:fpMultiple},saveFilename[:-4]+'_numTimepoints_'+str(numTimepoints)+'.dat')
 
-    #save(fpdMultiple,saveFilename)
+    if not saveEach:
+        save(fpdMultiple,saveFilename[:-4]+'_combined.dat')
+
+
 
 def dataSubset(fittingData,numDatapoints,seed=345,maxNumIndepParams=None):
     """
