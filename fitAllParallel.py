@@ -54,8 +54,37 @@ def saveFitProbData(fitProbData,fileNumString):
     except IOError:
         print "saveFitProbData: WARNING Unable to save fitProbData file."
 
+def setLock(fileNumString):
+    save(1,fileNumString+'_fileLocked.dat')
+
+def removeLock(fileNumString):
+    os.remove(fileNumString+'_fileLocked.dat')
+
+def waitForUnlocked(fileNumString,maxIter=100):
+    lockFilename = fileNumString+'_fileLocked.dat'
+    i = 0
+    while lockFilename in os.listdir('.'):
+        print "waitForUnlocked: Waiting for another process to unlock fitProbData file..."
+        # wait a bit
+        time.sleep(1.+5.*scipy.rand())
+
+        i += 1
+        if i > maxIter:
+            raise Exception, "Waiting too long for lock on fitProbData file."
+
+def lockAndLoadFitProbData(fileNumString):
+    waitForUnlocked(fileNumString)
+    setLock(fileNumString)
+    return loadFitProbData(fileNumString)
+
+def saveAndUnlockFitProbData(fitProbData,fileNumString):
+    saveFitProbData(fitProbData,fileNumString)
+    removeLock(fileNumString)
+
 def updateFitProbData(fitProb,fileNumString,conditioni,numTimepoints,modelj):
-    fitProbData = loadFitProbData(fileNumString)
+    
+    fitProbData = lockAndLoadFitProbData(fileNumString)
+    
     if fitProbData is not None:
         pDataMultiple = fitProbData[numTimepoints]
         pData = pDataMultiple['fitProbDataList'][conditioni]
@@ -85,7 +114,7 @@ def updateFitProbData(fitProb,fileNumString,conditioni,numTimepoints,modelj):
                     if max(orderedLs[-stopFittingN:]) < max(orderedLs):
                         pDataMultiple['fitAllDone'] = True
 
-    saveFitProbData(fitProbData,fileNumString)
+    saveAndUnlockFitProbData(fitProbData,fileNumString)
 
 # note: getState and setState are somewhat slow due to sorting
 def getState(fitProbData,conditioni,numTimepointsi,modelj):
@@ -109,19 +138,21 @@ def assignWork(fileNumString):
         time.sleep(1.+scipy.rand())
         
         # load current fitProbData
-        fitProbData = loadFitProbData(fileNumString)
+        fitProbData = lockAndLoadFitProbData(fileNumString)
         if fitProbData is None:
             print "assignWork: Error loading fitProbData"
+            removeLock(fileNumString)
         else:
             # find unstarted work to be done
             conditioni,numTimepointsi,modelj = findWork(fitProbData)
+            if conditioni is None: removeLock(fileNumString)
     
     # mark work as started
     setState(fitProbData,conditioni,numTimepointsi,modelj,'started')
     
     # save updated fitProbData
-    saveFitProbData(fitProbData,fileNumString)
-
+    saveAndUnlockFitProbData(fitProbData,fileNumString)
+    
     return conditioni,numTimepointsi,modelj
 
 def findWork(fitProbData):
@@ -169,13 +200,13 @@ def resetFitProbData(fileNumString):
     """
     Set all 'started' work to 'unstarted'.  (Leave 'finished' alone.)
     """
-    fitProbData = loadFitProbData(fileNumString)
+    fitProbData = lockAndLoadFitProbData(fileNumString)
     for pMultiple in fitProbData.values():
         for p in pMultiple['fitProbDataList']:
             for name in p['fittingStateDict'].keys():
                 if p['fittingStateDict'][name] == 'started':
                     p['fittingStateDict'][name] = 'unstarted'
-    saveFitProbData(fitProbData,fileNumString)
+    saveAndUnlockFitProbData(fitProbData,fileNumString)
 
 def setStopFittingN(fileNumString,stopFittingN,resetFitAllDone=True):
     """
@@ -184,11 +215,11 @@ def setStopFittingN(fileNumString,stopFittingN,resetFitAllDone=True):
     resetFitAllDone (True)  : If True, set all fitAllDone to False.
                               If False, leave all fitAllDone alone.
     """
-    fitProbData = loadFitProbData(fileNumString)
+    fitProbData = lockAndLoadFitProbData(fileNumString)
     for pMultiple in fitProbData.values():
         pMultiple['stopFittingN'] = stopFittingN
         if resetFitAllDone: pMultiple['fitAllDone'] = False
-    saveFitProbData(fitProbData,fileNumString)
+    saveAndUnlockFitProbData(fitProbData,fileNumString)
 
 def countFitProbData(fileNumString):
     """
