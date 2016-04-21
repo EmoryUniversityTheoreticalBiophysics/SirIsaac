@@ -991,11 +991,12 @@ class CTSNFittingProblem(FittingProblem):
             self.convFlagDict[name] = self.fittingModelDict[name].convFlag
             
     def networkFigureBestModel(self,filename,modelName=None,indepParamMax=None, 
-        swapSign=False,**kwargs):
+        swapSign=False,weightScale=1.,**kwargs):
         """
         Passes on kwargs to networkList2DOT.
         
         indepParamMax (None)    : List of maximum values for indep params
+        weightScale (1.)        : Divide edge weights by weightScale
         """
         bestModel = self.getBestModel(modelName=modelName)
         
@@ -1008,7 +1009,7 @@ class CTSNFittingProblem(FittingProblem):
         netList = bestModel.networkList
         for nodeIndex in range(len(netList)):
           for neighborIndex in netList[nodeIndex][1].keys():
-            p = params.getByKey('w_'+str(nodeIndex)+'_'+str(neighborIndex))
+            p = params.getByKey('w_'+str(nodeIndex)+'_'+str(neighborIndex))/weightScale
             if neighborIndex < bestModel.numInputs:
               p = p*indepParamMax[neighborIndex]
             if swapSign: param = -p
