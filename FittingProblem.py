@@ -715,6 +715,8 @@ class FittingProblem:
             if len(outOfSampleData) != len(self.fittingData):
                 raise Exception, "Length of outOfSampleData must match length of self.fittingData"
             outData = [ outOfSampleData[i] for i in indices ]
+        else:
+            outData = None
         
         m = model
         
@@ -1222,10 +1224,11 @@ class FittingModel:
         plotSeparately=True,fmt=None,numPoints=500,minTime=0.,maxTime=None,
         dataToPlot=None,plotFittingData=False,linewidth=1.,numRows=None,
         newFigure=False,rowOffset=0,plotFirstN=None,linestyle=None,
-        plotHiddenNodes=False,color=None,hspace=0.05,wspace=0.0,
+        plotHiddenNodes=False,plotIndepParams=False,
+        color=None,hspace=0.05,wspace=0.0,
         plotInitialConditions=False,ICmarker=None,markerSize=5.,
         height_ratios=None,existingAxArray=None,yoffset=0.,
-        figsize=None,outOfSampleData=None,**kwargs):
+        figsize=None,outOfSampleData=None,outColor='k',**kwargs):
         """
         Returns 2D list of axes.
         
@@ -1269,8 +1272,9 @@ class FittingModel:
                 for name in self.speciesNames:
                     #if plotDerivs: fullName = (name,'time')
                     #else: fullName = name
-                    if name in varsWithData: dataToPlotSorted.append(name)
-                    elif plotHiddenNodes: dataToPlotSorted.append(name)
+                    if (name in varsWithData) or \
+                       ((name in self.indepParamNames) and plotIndepParams) or \
+                       ((name not in self.indepParamNames) and plotHiddenNodes):dataToPlotSorted.append(name)
             else:
                 dataToPlotSorted = dataToPlot
             
@@ -1352,15 +1356,15 @@ class FittingModel:
                               yerr=dataStds,marker=marker,mfc=colorToUse,ls='',       
                               ecolor='k',ms=markerSize,barsabove=True) )
                         
-                        if outData is not None:
-                            # plot out-of-sample data points
-                            dataTimes = outData[name].keys()
-                            dataVals = [ outData[name][time][0]+yoffset \
-                                         for time in dataTimes ]
-                            dataStds = [ outData[name][time][1] for time in dataTimes ]
-                            
-                            returnList.append( pylab.plot(dataTimes,dataVals,
-                                  marker=',',mfc=colorToUse,ls='') )
+                    if (outData is not None) and (name in varsWithData):
+                        # plot out-of-sample data points
+                        dataTimes = outData[name].keys()
+                        dataVals = [ outData[name][time][0]+yoffset \
+                                     for time in dataTimes ]
+                        dataStds = [ outData[name][time][1] for time in dataTimes ]
+                        
+                        returnList.append( pylab.plot(dataTimes,dataVals,
+                              marker='.',color=outColor,ls='',zorder=-1) )
                     
                     ranges = Plotting.axis()
                     ymins.append(ranges[2])
