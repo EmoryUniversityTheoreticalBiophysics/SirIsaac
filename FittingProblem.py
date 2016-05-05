@@ -2050,6 +2050,10 @@ class SloppyCellFittingModel(FittingModel):
         exptList = []
         netList = []
         
+        # compile SloppyCell net in C before making copies
+        # to avoid duplication of effort
+        self.net.compile()
+        
         # make a copy
         # of the SloppyCell network for each experimental condition
         for i,indepParams,d in zip(range(len(data)),indepParamsList,data):
