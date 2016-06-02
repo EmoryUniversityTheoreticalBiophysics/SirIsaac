@@ -991,12 +991,13 @@ class CTSNFittingProblem(FittingProblem):
             self.convFlagDict[name] = self.fittingModelDict[name].convFlag
             
     def networkFigureBestModel(self,filename,modelName=None,indepParamMax=None, 
-        swapSign=False,weightScale=1.,**kwargs):
+        swapSign=False,weightScale=1.,selfConnections=True,**kwargs):
         """
         Passes on kwargs to networkList2DOT.
         
         indepParamMax (None)    : List of maximum values for indep params
         weightScale (1.)        : Divide edge weights by weightScale
+        selfConnections (False) : If True, draw self interactions
         """
         bestModel = self.getBestModel(modelName=modelName)
         
@@ -1006,7 +1007,7 @@ class CTSNFittingProblem(FittingProblem):
         
         # 7.26.2012 also pass edge parameters
         params = bestModel.getParameters()
-        netList = bestModel.networkList
+        netList = copy.deepcopy( bestModel.networkList )
         for nodeIndex in range(len(netList)):
           for neighborIndex in netList[nodeIndex][1].keys():
             p = params.getByKey('w_'+str(nodeIndex)+'_'+str(neighborIndex))/weightScale
@@ -1015,6 +1016,15 @@ class CTSNFittingProblem(FittingProblem):
             if swapSign: param = -p
             else: param = p
             netList[nodeIndex][1][neighborIndex] = param
+            
+        # 6.2.2016 also pass self-weight parameters
+        if selfConnections:
+            for nodeIndex in range(bestModel.numInputs,len(netList)):
+                if params.has_key('wself_'+str(nodeIndex)):
+                    p = params.getByKey('wself_'+str(nodeIndex))/weightScale
+                    if swapSign: param = -p
+                    else: param = p
+                    netList[nodeIndex][1][nodeIndex] = param
         #print netList
             
         return networkList2DOT(netList,bestModel.speciesNames,    \
@@ -4286,7 +4296,7 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,
     speciesColors=None,Xcolor='gray',skipIndependentNodes=False,
     showWeights=False,smallWidthStyle='solid',
     nodeDiameter=0.75,plotDiameter=200.,fontsize=24,                        
-    minPenWidth = 0.3,maxPenWidth = 10.,**kwargs):
+    minPenWidth = 0.3,maxPenWidth = 10.,startAngle=scipy.pi/2.,**kwargs):
     """
     Uses pygraphviz to create a DOT file from the given networkList.
     
@@ -4294,6 +4304,7 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,
     showWeights (False)     : True to label edges with weights
     nodeDiameter (0.75)     : Linear size of nodes (units?)
     plotDiameter (200.)     : Linear size of plot (units?)
+    startAngle (pi/2.)      : Angular position of first node
     
     (See also analyzeSparsenessProblem.drawNetworkFromMatrix 
      for more examples of pygraphviz usage.  See also
@@ -4346,8 +4357,10 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,
     
     twoPi = 2.*scipy.pi
     radius = plotDiameter/2.
-    xList = [ str(radius*scipy.cos(twoPi*i/positionNum)) for i in positionIndices ]
-    yList = [ str(radius*scipy.sin(twoPi*i/positionNum)) for i in positionIndices ] 
+    xList = [ str(radius*scipy.cos(startAngle - twoPi*i/positionNum)) \
+              for i in positionIndices ]
+    yList = [ str(radius*scipy.sin(startAngle - twoPi*i/positionNum)) \
+              for i in positionIndices ]
     
     # add nodes
     for i,name,color,x,y in zip(range(num),allNames,allColors,xList,yList):
