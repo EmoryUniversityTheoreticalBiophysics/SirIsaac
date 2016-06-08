@@ -4,13 +4,13 @@
 # <markdowncell>
 
 # *Note: This file is provided in two formats: 
-# Python (simpleExample.py) and an iPython 
+# Python (simpleExample.py) and a Jupyter iPython 
 # notebook (simpleExample.ipynb).  The 
 # iPython notebook opens in a web browser and 
 # includes plots in an interactive format.  To 
 # open the .ipynb file, run:*
 #     
-#     ipython notebook --pylab=inline simpleExample.ipynb
+#     jupyter notebook simpleExample.ipynb
 # 
 # *To run the .py file in iPython at the command line, run:*
 # 

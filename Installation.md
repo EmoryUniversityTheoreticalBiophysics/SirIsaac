@@ -18,7 +18,7 @@ the first three packages above at once, including
 
 These systems also have the added benefit of coming
 prepackaged with other useful software such as
-iPython.
+iPython and Jupyter.
 
 ### Install SloppyCell
 
@@ -89,13 +89,13 @@ run by descending into the SirIsaac directory and running
 To further help you get up and running, 
 code to fit and analyze a simple example dataset 
 using SirIsaac is provided in two formats: 
-Python (simpleExample.py) and an iPython 
+Python (simpleExample.py) and a Jupyter iPython 
 notebook (simpleExample.ipynb).  The 
 iPython notebook opens in a web browser and 
 includes plots in an interactive format.  To 
 open the .ipynb file, run:
     
-    ipython notebook --pylab=inline simpleExample.ipynb
+    jupyter notebook simpleExample.ipynb
 
 To run the .py file in iPython at the command line, run:
 
