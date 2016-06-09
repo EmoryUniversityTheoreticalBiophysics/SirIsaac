@@ -962,9 +962,9 @@ class CTSNFittingProblem(FittingProblem):
             graphListImages = [ None for complexity in complexityList ]
             
         fittingModelList = [                                                    \
-          CTSNFittingModel(complexity,outputNames=outputNames,
+          CTSNFittingModel(complexity,outputNames=copy.copy(outputNames),
             switchSigmoid=switchSigmoid,
-            indepParamNames=indepParamNames,image=image,
+            indepParamNames=copy.copy(indepParamNames),image=image,
             priorSigma=priorSigma,avegtol=avegtol,maxiter=maxiter,ensGen=ensGen,
             verbose=verbose,includeDerivs=includeDerivs,
             useClampedPreminimization=useClampedPreminimization,                
