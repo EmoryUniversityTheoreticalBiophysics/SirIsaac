@@ -4415,6 +4415,7 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,
         filename = filename + ".dot"
     G.write(filename)
     #call(["neato","-n1","-o"+filename[:-4]+".png","-Tpng",filename])
+    # TO DO: Catch errors from neato call
     call(["neato","-n2","-o"+filename[:-4]+".pdf","-Tpdf","-Gsplines=true",filename])
     return G
     
