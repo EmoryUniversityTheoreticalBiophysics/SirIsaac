@@ -324,8 +324,8 @@ def dataSubset(fittingData,numDatapoints,seed=345,maxNumIndepParams=None):
     if maxNumIndepParams is None: maxNumIndepParams = numIndepParams
     numDatapoints = int(numDatapoints)
     for i in range(min(numDatapoints,maxNumIndepParams)):
-        varNames = fittingData[i].keys()
-        allTimes = fittingData[i][varNames[0]].keys()
+        varNames = scipy.sort( fittingData[i].keys() )
+        allTimes = scipy.sort( fittingData[i][varNames[0]].keys() )
         
         possibleIndices = range(len(allTimes))
         scipy.random.shuffle(possibleIndices)
