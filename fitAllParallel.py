@@ -221,7 +221,7 @@ def setStopFittingN(fileNumString,stopFittingN,resetFitAllDone=True):
         if resetFitAllDone: pMultiple['fitAllDone'] = False
     saveAndUnlockFitProbData(fitProbData,fileNumString)
 
-def countFitProbData(fileNumString):
+def countFitProbData(fileNumString,printAll=False):
     """
     Print the current status of model fitting.
     """
@@ -237,6 +237,7 @@ def countFitProbData(fileNumString):
             line += 'done '
         else:
             line += '     '
+        subsetUnstarted = True
         for p in pMultiple['fitProbDataList']:
             indFinished,indStarted = 0,0
             for name in p['fittingModelNames']:
@@ -244,16 +245,19 @@ def countFitProbData(fileNumString):
                 if s == 'finished':
                     finished += 1
                     indFinished += 1
+                    subsetUnstarted = False
                 if s == 'started':
                     started += 1
                     indStarted += 1
+                    subsetUnstarted = False
                 if s == 'unstarted': unstarted += 1
             line += str(indFinished)
             if indStarted > 0:
                 line += '('+str(indStarted)+') '
             else:
                 line += '    '
-        print line
+        if (not subsetUnstarted) or printAll:
+            print line
     print ""
     print "Data subsets:"
     print "  ",finishedSubsets,"of",totalSubsets,"finished"
