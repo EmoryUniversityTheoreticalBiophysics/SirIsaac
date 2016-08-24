@@ -345,7 +345,7 @@ def dataSubset(fittingData,numDatapoints,seed=345,maxNumIndepParams=None):
 
 def initializeFitAllParallel(fullFittingProblem,fileNumString,
     deltaNumDatapoints=2,maxTimesPerIndepParam=None,timeOrderSeed=123,
-    verbose=True):
+    verbose=True,numIndepParams=None):
     """
     Creates data structure on disk for keeping track of fitting over increasing
     amounts of data and multiple conditions.
@@ -373,6 +373,10 @@ def initializeFitAllParallel(fullFittingProblem,fileNumString,
                                   (per condition) between successive fits.
     maxTimesPerIndepParam (None): The maximum number of timepoints used
                                   per independent parameter.
+    numIndepParams (None)       : Number of independent parameter
+                                  combinations (trials) to use in-sample per
+                                  condition.  Defaults to the minimum
+                                  number available over conditions.
     """
     # (only one fittingProblem if there are not multiple conditions)
     fittingProblemList = getattr(fullFittingProblem,
@@ -394,11 +398,14 @@ def initializeFitAllParallel(fullFittingProblem,fileNumString,
         numIndepParamsList.append(len(fittingProblem.fittingData))
         for d in fittingProblem.fittingData:
             numTimepointsList.append(len(d.values()[0]))
-    minNumIndepParams = min(numIndepParamsList)
+    if numIndepParams is None:
+        numIndepParams = min(numIndepParamsList)
+    elif numIndepParams > min(numIndepParamsList):
+        raise Exception
     minNumTimepoints = min(numTimepointsList)
     if maxTimesPerIndepParam is not None:
         minNumTimepoints = min(minNumTimepoints,maxTimesPerIndepParam)
-    maxN = minNumIndepParams*minNumTimepoints
+    maxN = numIndepParams*minNumTimepoints
 
     Nlist = range(deltaNumDatapoints,maxN,deltaNumDatapoints)
     Nlist = Nlist + [maxN]
@@ -413,7 +420,7 @@ def initializeFitAllParallel(fullFittingProblem,fileNumString,
         for i,fittingProblem in enumerate(fittingProblemList):
             fittingData = fittingProblem.fittingData
             fittingDataSubset = dataSubset(fittingData,N,seed=timeOrderSeed+i,
-                                           maxNumIndepParams=minNumIndepParams)
+                                           maxNumIndepParams=numIndepParams)
             indepParamsListSubset = \
                 fittingProblem.indepParamsList[:len(fittingDataSubset)]
 
