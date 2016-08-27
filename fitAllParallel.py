@@ -16,6 +16,9 @@ from SirIsaac.FittingProblemMultipleCondition import *
 def directoryPrefix(fileNumString,conditioni,numTimepoints):
     return fileNumString+'_fitProbs/N'+str(numTimepoints)+'/condition'+str(conditioni)+'/'
 
+def directoryPrefixNonly(fileNumString,numTimepoints):
+    return fileNumString+'_fitProbs/N'+str(numTimepoints)+'/'
+
 def createDirectoryStructure(fileNumString,numConditions,numTimepointsList):
     os.mkdir(fileNumString+'_fitProbs/')
     for numTimepoints in numTimepointsList:
@@ -221,19 +224,19 @@ def setStopFittingN(fileNumString,stopFittingN,resetFitAllDone=True):
         if resetFitAllDone: pMultiple['fitAllDone'] = False
     saveAndUnlockFitProbData(fitProbData,fileNumString)
 
-def countFitProbData(fileNumString,printAll=False):
+def countFitProbData(fileNumString,printReport=True,printAll=False):
     """
     Print the current status of model fitting.
     """
     fitProbData = loadFitProbData(fileNumString)
     totalSubsets = len(fitProbData.values())
-    finishedSubsets = 0
+    finishedSubsets = []
     finished,started,unstarted = 0,0,0
     for numTimepoints in scipy.sort(fitProbData.keys()):
         line = str(numTimepoints) + ' '
         pMultiple = fitProbData[numTimepoints]
         if pMultiple['fitAllDone']:
-            finishedSubsets += 1
+            finishedSubsets.append(numTimepoints)
             line += 'done '
         else:
             line += '     '
@@ -257,16 +260,20 @@ def countFitProbData(fileNumString,printAll=False):
             else:
                 line += '    '
         if (not subsetUnstarted) or printAll:
-            print line
-    print ""
-    print "Data subsets:"
-    print "  ",finishedSubsets,"of",totalSubsets,"finished"
-    print "Individual models:"
-    print "  ",finished,"finished"
-    print "  ",started,"running"
-    print "  ",unstarted,"unstarted"
+            if printReport: print line
 
-def combineFitProbs(fileNumString,saveEach=False):
+    if printReport:
+        print ""
+        print "Data subsets:"
+        print "  ",len(finishedSubsets),"of",totalSubsets,"finished"
+        print "Individual models:"
+        print "  ",finished,"finished"
+        print "  ",started,"running"
+        print "  ",unstarted,"unstarted"
+    else:
+        return finishedSubsets
+
+def combineFitProbs(fileNumString): #,saveEach=False):
     """
     Combine fittingProblems from multiple conditions saved in the 
     parallel file structure into a single fittingProblemDict.
@@ -285,7 +292,16 @@ def combineFitProbs(fileNumString,saveEach=False):
     
     fpdMultiple = {}
     for numTimepoints in scipy.sort(fitProbData.keys()):
-      if fitProbData[numTimepoints]['fitAllDone']:
+    
+      Nfilename = directoryPrefixNonly(fileNumString,numTimepoints)+'/'+saveFilename
+      
+      if os.path.exists(Nfilename):
+          # combineFitProbs has already been run for this N
+          # (and may contain outOfSampleCost)
+          fpdMultiple[numTimepoints] = load(Nfilename)
+          print "combineFitProbs: Done with numTimepoints =",numTimepoints
+          
+      elif fitProbData[numTimepoints]['fitAllDone']:
           p = fitProbData[numTimepoints]
           
           fpList = []
@@ -305,13 +321,15 @@ def combineFitProbs(fileNumString,saveEach=False):
           
           fpdMultiple[numTimepoints] = fpMultiple
           
+          save(fpMultiple,Nfilename)
+          
           print "combineFitProbs: Done with numTimepoints =",numTimepoints
 
-          if saveEach:
-              save({numTimepoints:fpMultiple},saveFilename[:-4]+'_numTimepoints_'+str(numTimepoints)+'.dat')
 
-    if not saveEach:
-        save(fpdMultiple,saveFilename[:-4]+'_combined.dat')
+          #if saveEach:
+          #    save({numTimepoints:fpMultiple},saveFilename[:-4]+'_numTimepoints_'+str(numTimepoints)+'.dat')
+
+    save(fpdMultiple,saveFilename[:-4]+'_combined.dat')
 
 
 
