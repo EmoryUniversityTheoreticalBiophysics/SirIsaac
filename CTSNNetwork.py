@@ -23,7 +23,7 @@ def CTSN_List(networkList,speciesNames=None,                                    
     d X_i / d t  =  
       1/tau_i * ( -X_i + sum_j=1^n w_i_j xi(y_j+theta_j) )
     
-    w and tau are given the default value of 1, and xinit and theta
+    tau is given the default value of 1, and xinit, theta, and w
     parameters are by default 0.
     
     Right now, inputs come into the sum as w_i_j*input_j.

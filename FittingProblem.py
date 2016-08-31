@@ -2038,7 +2038,7 @@ class SloppyCellFittingModel(FittingModel):
                                           (Hopefully useful for faster 
                                           minimization in large models with 
                                           data for lots of species.)
-        removeLogForPriors (True)       : If a parameter name starts with "log",
+        removeLogForPriors (True)       : If a parameter name starts with "log_",
                                           use GaussianPriorExp
         fittingDataDerivs (None)        : see notes 9/14/2012
         disableIntegration (True)       : Only used when fittingDataDerivs is given.
