@@ -116,6 +116,9 @@ def updateFitProbData(fitProb,fileNumString,conditioni,numTimepoints,modelj):
                 if (len(orderedLs) > stopFittingN):
                     if max(orderedLs[-stopFittingN:]) < max(orderedLs):
                         pDataMultiple['fitAllDone'] = True
+            if len(orderedLs) == len(pDataMultiple['fittingModelNames']):
+                # every fittingModel has been fit
+                pDataMultiple['fitAllDone'] = True
 
     saveAndUnlockFitProbData(fitProbData,fileNumString)
 
