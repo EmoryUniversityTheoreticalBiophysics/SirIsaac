@@ -276,7 +276,18 @@ def countFitProbData(fileNumString,printReport=True,printAll=False):
     else:
         return finishedSubsets
 
-def combineFitProbs(fileNumString): #,saveEach=False):
+def makeFpdLean(fpd):
+    """
+    Modify in place to create a stripped-down version of fpd 
+    that doesn't include the models.
+    """
+    for N in scipy.sort(fpd.keys()):
+        fp = fpd[N]
+        for f in fp.fittingProblemList:
+            f.fittingModelDict = {}
+            f.fittingModelList = []
+
+def combineFitProbs(fileNumString,saveCombined=True,combinedLean=True):
     """
     Combine fittingProblems from multiple conditions saved in the 
     parallel file structure into a single fittingProblemDict.
@@ -284,16 +295,16 @@ def combineFitProbs(fileNumString): #,saveEach=False):
     For now, only combines and writes fittingProblems for which
     fitAllDone = True.
     
-    Warning: Overwrites any current top-level fitProbDict file.
-    
-    saveEach (False)        : If True, save data for each numTimepoints
-                              in a separate file.
+    saveCombined (True) : Overwrites any current top-level fitProbDict file
+                          with a combined fitProbDict containing all 
+                          numTimepoints.  Set to False to minimize memory use.
+    combinedLean (True) : Combined fpd is saved without models to save memory.
     """
     fitProbData = loadFitProbData(fileNumString)
     saveFilename = fitProbData.values()[0]['saveFilename']
     #save({},saveFilename)
     
-    fpdMultiple = {}
+    if saveCombined: fpdMultiple = {}
     for numTimepoints in scipy.sort(fitProbData.keys()):
     
       Nfilename = directoryPrefixNonly(fileNumString,numTimepoints)+'/'+saveFilename
@@ -301,7 +312,7 @@ def combineFitProbs(fileNumString): #,saveEach=False):
       if os.path.exists(Nfilename):
           # combineFitProbs has already been run for this N
           # (and may contain outOfSampleCost)
-          fpdMultiple[numTimepoints] = load(Nfilename)
+          if saveCombined: fpdMultiple[numTimepoints] = load(Nfilename)
           print "combineFitProbs: Done with numTimepoints =",numTimepoints
           
       elif fitProbData[numTimepoints]['fitAllDone']:
@@ -322,7 +333,7 @@ def combineFitProbs(fileNumString): #,saveEach=False):
           # Populate the logLikelihoodDict, etc by running fitAll.
           fpMultiple.fitAll()
           
-          fpdMultiple[numTimepoints] = fpMultiple
+          if saveCombined: fpdMultiple[numTimepoints] = fpMultiple
           
           save(fpMultiple,Nfilename)
           
@@ -332,7 +343,10 @@ def combineFitProbs(fileNumString): #,saveEach=False):
           #if saveEach:
           #    save({numTimepoints:fpMultiple},saveFilename[:-4]+'_numTimepoints_'+str(numTimepoints)+'.dat')
 
-    save(fpdMultiple,saveFilename[:-4]+'_combined.dat')
+    if saveCombined:
+        if combinedLean:
+            makeFpdLean(fpdMultiple)
+        save(fpdMultiple,saveFilename[:-4]+'_combined.dat')
 
 
 
