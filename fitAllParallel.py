@@ -287,7 +287,8 @@ def makeFpdLean(fpd):
             f.fittingModelDict = {}
             f.fittingModelList = []
 
-def combineFitProbs(fileNumString,saveCombined=True,combinedLean=True):
+def combineFitProbs(fileNumString,saveCombined=True,combinedLean=True,
+                    reset=False):
     """
     Combine fittingProblems from multiple conditions saved in the 
     parallel file structure into a single fittingProblemDict.
@@ -299,6 +300,8 @@ def combineFitProbs(fileNumString,saveCombined=True,combinedLean=True):
                           with a combined fitProbDict containing all 
                           numTimepoints.  Set to False to minimize memory use.
     combinedLean (True) : Combined fpd is saved without models to save memory.
+    reset (False)       : If True, overwrite any existing combined fitProbDicts.
+                          This erases any existing outOfSampleCost information.
     """
     fitProbData = loadFitProbData(fileNumString)
     saveFilename = fitProbData.values()[0]['saveFilename']
@@ -309,7 +312,7 @@ def combineFitProbs(fileNumString,saveCombined=True,combinedLean=True):
     
       Nfilename = directoryPrefixNonly(fileNumString,numTimepoints)+'/'+saveFilename
       
-      if os.path.exists(Nfilename):
+      if os.path.exists(Nfilename) and not reset:
           # combineFitProbs has already been run for this N
           # (and may contain outOfSampleCost)
           if saveCombined: fpdMultiple[numTimepoints] = load(Nfilename)
