@@ -311,14 +311,15 @@ def combineFitProbs(fileNumString,saveCombined=True,combinedLean=True,
     for numTimepoints in scipy.sort(fitProbData.keys()):
     
       Nfilename = directoryPrefixNonly(fileNumString,numTimepoints)+'/'+saveFilename
+      fileExists = os.path.exists(Nfilename)
       
-      if os.path.exists(Nfilename) and not reset:
+      if fileExists and not reset:
           # combineFitProbs has already been run for this N
           # (and may contain outOfSampleCost)
           if saveCombined: fpdMultiple[numTimepoints] = load(Nfilename)
           print "combineFitProbs: Done with numTimepoints =",numTimepoints
-          
-      elif fitProbData[numTimepoints]['fitAllDone']:
+      
+      elif fitProbData[numTimepoints]['fitAllDone'] or (fileExists and reset):
           p = fitProbData[numTimepoints]
           
           fpList = []
