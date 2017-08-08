@@ -300,8 +300,9 @@ def combineFitProbs(fileNumString,saveCombined=True,combinedLean=True,
                           with a combined fitProbDict containing all 
                           numTimepoints.  Set to False to minimize memory use.
     combinedLean (True) : Combined fpd is saved without models to save memory.
-    reset (False)       : If True, overwrite any existing combined fitProbDicts.
-                          This erases any existing outOfSampleCost information.
+    reset (False)       : If True, overwrite or delete any existing combined 
+                          fitProbDicts.  This erases any existing 
+                          outOfSampleCost information.
     """
     fitProbData = loadFitProbData(fileNumString)
     saveFilename = fitProbData.values()[0]['saveFilename']
@@ -319,7 +320,7 @@ def combineFitProbs(fileNumString,saveCombined=True,combinedLean=True,
           if saveCombined: fpdMultiple[numTimepoints] = load(Nfilename)
           print "combineFitProbs: Done with numTimepoints =",numTimepoints
       
-      elif fitProbData[numTimepoints]['fitAllDone'] or (fileExists and reset):
+      elif fitProbData[numTimepoints]['fitAllDone']:
           p = fitProbData[numTimepoints]
           
           fpList = []
@@ -343,9 +344,10 @@ def combineFitProbs(fileNumString,saveCombined=True,combinedLean=True,
           
           print "combineFitProbs: Done with numTimepoints =",numTimepoints
 
-
-          #if saveEach:
-          #    save({numTimepoints:fpMultiple},saveFilename[:-4]+'_numTimepoints_'+str(numTimepoints)+'.dat')
+      elif fileExists and reset:
+          # then an old combined file exists -- erase it to reset
+          os.remove(Nfilename)
+          print "combineFitProbs: Reset removed file for numTimepoints =",numTimepoints
 
     if saveCombined:
         if combinedLean:
