@@ -87,53 +87,65 @@ class FittingProblemMultipleCondition(FittingProblem):
         for f in self.fittingProblemList:
             f.stopFittingN = scipy.inf
 
-    def fitAll(self,**kwargs):
+    def fitAll(self,onlyCombine=False,**kwargs):
         """
         See documentation for FittingProblem.fitAll.
+        
+        onlyCombine (False)     : If True, only loop through existing fits
+                                  to combine them into multiple condition fits.
         """
         
         # Loop over complexity
         for i,name in enumerate(self.fittingModelNames):
             
+            modelDone = True
+            
             # For each condition, fit model of the given complexity
             costMultiple = 0.
             penaltyMultiple = 0.
             for fittingProblem in self.fittingProblemList:
-                fittingProblem.fitAll(maxNumFit=i+1,**kwargs)
-                costMultiple += fittingProblem.costDict[name]
-                penaltyMultiple += fittingProblem.penaltyDict[name]
+                if not onlyCombine:
+                    fittingProblem.fitAll(maxNumFit=i+1,**kwargs)
             
+                # add individual condition costs and penalties
+                if name in fittingProblem.costDict:
+                    costMultiple += fittingProblem.costDict[name]
+                    penaltyMultiple += fittingProblem.penaltyDict[name]
+                    # *******************************************************
+                    print "single condition cost: ",fittingProblem.costDict[name]
+                    # *******************************************************
+                else:
+                    modelDone = False
+            
+            if modelDone:
                 # *******************************************************
-                print "single condition cost: ",fittingProblem.costDict[name]
+                print "total cost: ",costMultiple
                 # *******************************************************
-            # *******************************************************
-            print "total cost: ",costMultiple
-            # *******************************************************
-    
-            # Record total cost and penalty
-            self.costDict[name] = costMultiple
-            self.penaltyDict[name] = penaltyMultiple
-            self.logLikelihoodDict[name] = -(costMultiple + penaltyMultiple)
-            self.numParametersDict = self.fittingProblemList[0].numParametersDict
-    
-            # Save to file
-            if self.saveFilename is not None:
-                self.writeToFile(self.saveFilename)
+        
+                # Record total cost and penalty
+                self.costDict[name] = costMultiple
+                self.penaltyDict[name] = penaltyMultiple
+                self.logLikelihoodDict[name] = -(costMultiple + penaltyMultiple)
+                self.numParametersDict = self.fittingProblemList[0].numParametersDict
+        
+                # Save to file
+                if self.saveFilename is not None:
+                    self.writeToFile(self.saveFilename)
 
-            # Check whether we're done
-            # 6.1.2012 stop after seeing stopFittingN models with worse logLikelihood
-            orderedLs = []
-            if not hasattr(self,'stopFittingN'):
-                self.stopFittingN = 3
-            for n in self.fittingModelNames:
-                if self.logLikelihoodDict.has_key(n):
-                    orderedLs.append(self.logLikelihoodDict[n])
-            if (len(orderedLs) > self.stopFittingN):
-                if max(orderedLs[-self.stopFittingN:]) < max(orderedLs):
-                    self.fitAllDone = True
-                    return
+                # Check whether we're done
+                # 6.1.2012 stop after seeing stopFittingN models with worse logLikelihood
+                orderedLs = []
+                if not hasattr(self,'stopFittingN'):
+                    self.stopFittingN = 3
+                for n in self.fittingModelNames:
+                    if self.logLikelihoodDict.has_key(n):
+                        orderedLs.append(self.logLikelihoodDict[n])
+                if (len(orderedLs) > self.stopFittingN):
+                    if max(orderedLs[-self.stopFittingN:]) < max(orderedLs):
+                        self.fitAllDone = True
+                        return
 
-        self.fitAllDone = True
+        #self.fitAllDone = True
     
     def fitPerfectModel(self,**kwargs):
         for fittingProblem in self.fittingProblemList:
