@@ -287,39 +287,88 @@ def makeFpdLean(fpd):
             f.fittingModelDict = {}
             f.fittingModelList = []
 
+# 10.4.2017
+def subsetsWithFits(fileNumString,onlyNew=False):
+    """
+    Find data subsets (N) that have models that have been fit to
+    all conditions.
+    
+    onlyNew (False)         : Optionally include only subsets that have
+                              fits that are not included in the current
+                              combined fitProbs.
+    """
+    fpd = loadFitProbData(fileNumString)
+    saveFilename = fpd.values()[0]['saveFilename']
+    
+    Nlist = []
+    for N in scipy.sort(fpd.keys()):
+        # find models that have been fit to all conditions
+        if len(fpd[N]['fitProbDataList']) == 1:
+            fitModels = fpd[N]['fitProbDataList'][0]['logLikelihoodDict'].keys()
+        else:
+            fitModels = scipy.intersect1d([ fp['logLikelihoodDict'].keys() \
+                                            for fp in fpd[N]['fittingProblemList'] ])
+        if onlyNew:
+            Nfilename = directoryPrefixNonly(fileNumString,N)+'/'+saveFilename
+            fileExists = os.path.exists(Nfilename)
+            if not fileExists: # no combined file exists
+                if len(fitModels) > 0:
+                    Nlist.append(N)
+            else: # check which fit models are currently included in the saved file
+                fpMultiple = load(Nfilename)
+                fitModelsSaved = fpMultiple.logLikelihoodDict.keys()
+                if len(scipy.intersect1d(fitModels,fitModelsSaved)) < len(fitModels):
+                    Nlist.append(N)
+        else:
+            if len(fitModels) > 0:
+                Nlist.append(N)
+    return Nlist
+
+
 def combineFitProbs(fileNumString,saveCombined=True,combinedLean=True,
                     reset=False):
     """
     Combine fittingProblems from multiple conditions saved in the 
     parallel file structure into a single fittingProblemDict.
     
-    For now, only combines and writes fittingProblems for which
-    fitAllDone = True.
+    Currently only includes data from models that have been fit to
+    all conditions.
     
     saveCombined (True) : Overwrites any current top-level fitProbDict file
                           with a combined fitProbDict containing all 
                           numTimepoints.  Set to False to minimize memory use.
     combinedLean (True) : Combined fpd is saved without models to save memory.
-    reset (False)       : If True, overwrite any existing combined fitProbDicts.
-                          This erases any existing outOfSampleCost information.
+    reset (False)       : If True, overwrite or delete any existing combined 
+                          fitProbDicts.  This erases any existing 
+                          outOfSampleCost information.
     """
     fitProbData = loadFitProbData(fileNumString)
     saveFilename = fitProbData.values()[0]['saveFilename']
     #save({},saveFilename)
     
     if saveCombined: fpdMultiple = {}
-    for numTimepoints in scipy.sort(fitProbData.keys()):
+    
+    fitSubsets = subsetsWithFits(fileNumString)
+    subsetsToCombine = subsetsWithFits(fileNumString,onlyNew=not reset)
+    
+    for numTimepoints in fitSubsets:
     
       Nfilename = directoryPrefixNonly(fileNumString,numTimepoints)+'/'+saveFilename
       fileExists = os.path.exists(Nfilename)
       
-      if fileExists and not reset:
-          # combineFitProbs has already been run for this N
-          # (and may contain outOfSampleCost)
-          if saveCombined: fpdMultiple[numTimepoints] = load(Nfilename)
-          print "combineFitProbs: Done with numTimepoints =",numTimepoints
+      if fileExists and reset:
+          # then an old combined file exists -- erase it to reset
+          os.remove(Nfilename)
+          fileExists = False
+          print "combineFitProbs: Reset removed file for numTimepoints =",numTimepoints
       
-      elif fitProbData[numTimepoints]['fitAllDone'] or (fileExists and reset):
+      if numTimepoints in subsetsToCombine: # combine
+          oldOutOfSampleCostDict = {}
+          if fileExists: # grab any out-of-sample cost data
+              fpMultiple = load(Nfilename)
+              if hasattr(fpMultiple,'outOfSampleCostDict'):
+                  oldOutOfSampleCostDict = fpMultiple.outOfSampleCostDict
+          
           p = fitProbData[numTimepoints]
           
           fpList = []
@@ -333,19 +382,23 @@ def combineFitProbs(fileNumString,saveCombined=True,combinedLean=True,
           fpMultiple = FittingProblemMultipleCondition([],[],saveFilename=None,
                                                        saveKey=saveKey,fp0=fp)
           fpMultiple.fittingProblemList = fpList
+          fpMultiple.outOfSampleCostDict = oldOutOfSampleCostDict
 
           # Populate the logLikelihoodDict, etc by running fitAll.
-          fpMultiple.fitAll()
+          fpMultiple.fitAll(onlyCombine=True)
           
           if saveCombined: fpdMultiple[numTimepoints] = fpMultiple
           
           save(fpMultiple,Nfilename)
           
           print "combineFitProbs: Done with numTimepoints =",numTimepoints
+      
+      else: # no new fits to combine; just load from file
+      
+          if saveCombined: fpdMultiple[numTimepoints] = load(Nfilename)
+          print "combineFitProbs: Done with numTimepoints =",numTimepoints
+      
 
-
-          #if saveEach:
-          #    save({numTimepoints:fpMultiple},saveFilename[:-4]+'_numTimepoints_'+str(numTimepoints)+'.dat')
 
     if saveCombined:
         if combinedLean:
