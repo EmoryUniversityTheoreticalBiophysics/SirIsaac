@@ -32,7 +32,9 @@
 # <codecell>
 
 import scipy, pylab
-import FittingProblem
+import SirIsaac
+import SirIsaac.FittingProblem
+import SirIsaac.FittingProblem.EnsembleGenerator
 
 # <markdowncell>
 
@@ -124,7 +126,7 @@ totalSteps = 1e3
 keepSteps = 10
 seeds = (1,1) # use a fixed random seed
 ensTemperature = 100.
-ensGen = FittingProblem.EnsembleGenerator( totalSteps, keepSteps,
+ensGen = SirIsaac.FittingProblem.EnsembleGenerator( totalSteps, keepSteps,
     temperature=ensTemperature, seeds=seeds )
 
 # Parameters that control when local fitting stops.
@@ -140,7 +142,7 @@ numprocs = 10
 # We'll only use a subset of our data to make the example run faster
 N = 20
 
-p = FittingProblem.PowerLawFittingProblem( complexityList, 
+p = SirIsaac.FittingProblem.PowerLawFittingProblem( complexityList, 
     sirIsaacData[:N], indepParamsList=indepParamsList[:N], 
     outputNames=outputNames, indepParamNames=indepParamNames, 
     ensGen=ensGen, avegtol=avegtol, maxiter=maxiter,
@@ -163,7 +165,7 @@ p = FittingProblem.PowerLawFittingProblem( complexityList,
 
 # <codecell>
 
-p = FittingProblem.load('simpleExample_savedFittingProblem.data')
+p = SirIsaac.FittingProblem.load('simpleExample_savedFittingProblem.data')
 
 # <markdowncell>
 
@@ -206,7 +208,7 @@ print m.getParameters()
 # <codecell>
 
 m = p.getBestModel()
-FittingProblem.IO.eqns_TeX_file(m.net,filename='simpleExample_selectedModel.tex')
+SirIsaac.FittingProblem.IO.eqns_TeX_file(m.net,filename='simpleExample_selectedModel.tex')
 
 # <markdowncell>
 
@@ -234,7 +236,7 @@ pylab.figure(figsize=(4,4))
 times = scipy.linspace(0,1,1000)
 xdata = m.evaluateVec(times,'x',p.indepParamsList[0])
 X1data = m.evaluateVec(times,'X_1',p.indepParamsList[0])
-FittingProblem.Plotting.plot(xdata,X1data)
+SirIsaac.FittingProblem.Plotting.plot(xdata,X1data)
 pylab.xlabel('x')
 pylab.ylabel('X_1')
 
@@ -308,6 +310,6 @@ f = lambda x0,t: 1.5 + 0.5*scipy.sin(4.*scipy.pi*t + scipy.arcsin(2.*x0 - 3.))
 for i,indepParams in enumerate(scipy.array(indepParamsList)[indicesToPlot]):
     times = scipy.linspace(0,1,100)
     x0 = indepParams[0]
-    FittingProblem.Plotting.sca(axArray[0][i])
-    FittingProblem.Plotting.plot(times,f(x0,times),'k:')
+    SirIsaac.FittingProblem.Plotting.sca(axArray[0][i])
+    SirIsaac.FittingProblem.Plotting.plot(times,f(x0,times),'k:')
 
