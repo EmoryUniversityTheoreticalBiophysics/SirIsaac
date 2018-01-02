@@ -5,5 +5,3 @@
 #
 # This file makes SirIsaac importable as a Python package.
 #
-
-from FittingProblem import *
