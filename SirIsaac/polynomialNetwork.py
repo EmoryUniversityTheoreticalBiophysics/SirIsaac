@@ -5,7 +5,7 @@
 #
 # SloppyCell network that does not have any ODEs, but simply
 # consists of an nth degree polynomial.
-# (Branched from LaguerreNetwork.py)
+# (Branched from laguerreNetwork.py)
 #
 
 from SloppyCell.ReactionNetworks import *

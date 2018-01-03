@@ -15,8 +15,7 @@
 # ********************************************
 #
 
-import FittingProblem
-reload(FittingProblem)
+import fittingProblem
 from simulateYeastOscillator import *
 from simplePickle import load,save
 import pylab

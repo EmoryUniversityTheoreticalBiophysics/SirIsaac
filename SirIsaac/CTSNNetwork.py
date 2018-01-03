@@ -5,13 +5,13 @@
 #
 # A SloppyCell implementation of CTSNs (continuous-time sigmoidal networks).
 # 
-# (modeled after PowerLawNetwork.py)
+# (modeled after powerLawNetwork.py)
 
 
 from SloppyCell.ReactionNetworks import *
 from scipy import random, log
 import copy
-import GaussianPrior
+import gaussianPrior
 
 def CTSN_List(networkList,speciesNames=None,                                    \
     logParams=True,netid='CTSN',switchSigmoid=False,xiNegative=False):

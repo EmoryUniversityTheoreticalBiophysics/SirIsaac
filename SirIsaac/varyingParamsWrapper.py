@@ -1,4 +1,4 @@
-# VaryingParamsWrapper.py
+# varyingParamsWrapper.py
 #
 # Bryan Daniels
 # 7.14.2009

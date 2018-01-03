@@ -5,7 +5,7 @@
 #
 # Sets up yeast oscillator as a 19-dimensional power-law network.
 
-from FittingProblem import *
+from fittingProblem import *
 
 class PowerLawFittingModel_yeastOscillator(PowerLawFittingModel_FullyConnected):
     """

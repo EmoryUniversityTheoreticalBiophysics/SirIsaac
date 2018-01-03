@@ -16,21 +16,22 @@ import os
 SIRISAACDIR = os.path.abspath(os.path.dirname(__file__))
 
 from SloppyCell.ReactionNetworks import *
-import PowerLawNetwork
-import TranscriptionNetwork
-import LaguerreNetwork
-import PolynomialNetwork
-import PhosphorylationFit_netModel
+import powerLawNetwork
+import transcriptionNetwork
+import laguerreNetwork
+import polynomialNetwork
+import phosphorylationFit_netModel
 import CTSNNetwork
-import PlanetaryNetwork
-import SimplePhosphorylationNetwork
-import SimpleSinusoidalNetwork
-import VaryingParamsWrapper
-import GaussianPrior
-import Optimize
+import planetaryNetwork
+import simplePhosphorylationNetwork
+import simpleSinusoidalNetwork
+import varyingParamsWrapper
+import gaussianPrior
+import optimize
 import scipy.linalg
 import io, os
 import time
+import fakeData
 
 try:
     from pygraphviz import * # for network figures
@@ -1397,7 +1398,7 @@ class SloppyCellFittingModel(FittingModel):
     A general SloppyCell Network that will be used to fit data
     under a set of experimental conditions.
 
-    Uses Levenberg-Marquardt (Optimize.fmin_lm) to fit.
+    Uses Levenberg-Marquardt (optimize.fmin_lm) to fit.
 
     (Note: SloppyCell uses the word "model" in a different way.)
 
@@ -1735,9 +1736,9 @@ class SloppyCellFittingModel(FittingModel):
         #dataModel = self._SloppyCellDataModel(fittingData,indepParamsList)
         if hasattr(self,'minimizeInLog'):
           if self.minimizeInLog:
-            minimizerList.append( Optimize.fmin_lm_log_params )
+            minimizerList.append( optimize.fmin_lm_log_params )
         else:
-            minimizerList.append( Optimize.fmin_lm )
+            minimizerList.append( optimize.fmin_lm )
 
         for minimizer in minimizerList:
             try:
@@ -2140,10 +2141,10 @@ class SloppyCellFittingModel(FittingModel):
 
                 # Create and add SloppyCell prior
                 if removeLogForPriors and (paramName[:4]=="log_"):
-                    res = GaussianPrior.GaussianPriorExp('%s_prior' % paramName,
+                    res = gaussianPrior.GaussianPriorExp('%s_prior' % paramName,
                         paramName, 0., sigma)
                 else:
-                    res = GaussianPrior.GaussianPrior('%s_prior' % paramName,
+                    res = gaussianPrior.GaussianPrior('%s_prior' % paramName,
                         paramName, 0., sigma)
                 m.AddResidual(res)
 
@@ -2618,7 +2619,7 @@ class EnsembleGenerator():
 class TranscriptionNetworkFittingModel(SloppyCellFittingModel):
     def __init__(self,outputName='output',indepParamNames=[],**kwargs):
 
-        SloppyCellNet = TranscriptionNetwork.TranscriptionNetworkZiv()
+        SloppyCellNet = transcriptionNetwork.TranscriptionNetworkZiv()
 
         # generalSetup should be run by all daughter classes
         self.generalSetup(SloppyCellNet,indepParamNames,**kwargs)
@@ -2654,7 +2655,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         #speciesNames[1:numInputs+1] = indepParamNames
         self.useDeltaGamma = useDeltaGamma
         self.includeRegularizer = includeRegularizer
-        SloppyCellNet = PowerLawNetwork.PowerLaw_Network_List(                  \
+        SloppyCellNet = powerLawNetwork.PowerLaw_Network_List(                  \
             networkList,speciesNames,includeRegularizer=includeRegularizer,
             logParams=logParams,useDeltaGamma=useDeltaGamma,
             optimizableICs=optimizableICs)
@@ -2789,7 +2790,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
               # 2.26.2013 this is the way I was doing it in runFittingProblem.py
 
               # () generate species values
-              fakeData = []
+              fakeDataRuns = []
               for i,runVals in enumerate(runList):
                 newNet = originalNet.copy()
                 for runVar,runVal in zip(runVars,runVals):
@@ -2798,17 +2799,17 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                 for var in outputVars:
                     # do individually so every var is
                     # measured at the same (random) time
-                    fakeDataSingleRun.update( FakeData.noisyFakeData(newNet,
+                    fakeDataSingleRun.update( fakeData.noisyFakeData(newNet,
                         numPoints,timeInterval,seed=int(timeAndNoiseSeed*1e5+i),
                         vars=[var],noiseFracSize=noiseFracSize,randomX=randomX,
                         includeEndpoints=includeEndpoints) )
-                fakeData.append( fakeDataSingleRun )
+                fakeDataRuns.append( fakeDataSingleRun )
 
 
               # () calculate derivatives (9.27.2012 back to numerically...)
               fittingDataDerivs = []
               scipy.random.seed(int(timeAndNoiseSeed*1e4+i))
-              for runVals,conditionData in zip(runList,fakeData):
+              for runVals,conditionData in zip(runList,fakeDataRuns):
                 conditionDerivs = {}
                 for var in conditionData.keys():
                     varDerivs = {}
@@ -4029,14 +4030,14 @@ class PowerLawFittingModel_FullyConnected(PowerLawFittingModel_Complexity):
 
 class PowerLawFittingModel_planetary(PowerLawFittingModel_FullyConnected):
     """
-    Planetary network set up as a PowerLawNetwork.
+    Planetary network set up as a powerLawNetwork.
     """
 
     definitionDict = {} # not used here; used in PowerLawFittingModel_yeastOscillator
 
     def __init__(self,prune=True,**kwargs):
         """
-        Planetary network set up as a PowerLawNetwork.
+        Planetary network set up as a powerLawNetwork.
         """
         self.speciesNames = scipy.array(['r','drdt','theta'])
         self.ICnames = [ name+"init" for name in self.speciesNames ]
@@ -4420,13 +4421,13 @@ class LaguerreFittingModel(SloppyCellFittingModel):
     def __init__(self,degree,polynomialDegreeList=None,outputName='output',
         indepParamNames=[],**kwargs):
 
-        SloppyCellNet = LaguerreNetwork.LaguerreNetwork(degree,outputName)
+        SloppyCellNet = laguerreNetwork.LaguerreNetwork(degree,outputName)
         priorSigma = None # assuming we won't want priors for Lauguerre fitting?
 
         if polynomialDegreeList is not None:
             # currently supports a single input
             inputName = indepParamNames[0]
-            SloppyCellNet = VaryingParamsWrapper.VaryingParamsNet_Polynomial(   \
+            SloppyCellNet = varyingParamsWrapper.VaryingParamsNet_Polynomial(   \
                 SloppyCellNet,polynomialDegreeList,inputName )
 
         # generalSetup should be run by all daughter classes
@@ -4444,13 +4445,13 @@ class PolynomialFittingModel(SloppyCellFittingModel):
     def __init__(self,degree,polynomialDegreeList=None,outputName='output',
         indepParamNames=[],**kwargs):
 
-        SloppyCellNet = PolynomialNetwork.PolynomialNetwork(degree,outputName)
+        SloppyCellNet = polynomialNetwork.PolynomialNetwork(degree,outputName)
         priorSigma = None # assuming we won't want priors for polynomial fitting?
 
         if polynomialDegreeList is not None:
             # currently supports a single input
             inputName = indepParamNames[0]
-            SloppyCellNet = VaryingParamsWrapper.VaryingParamsNet_Polynomial(   \
+            SloppyCellNet = varyingParamsWrapper.VaryingParamsNet_Polynomial(   \
                 SloppyCellNet,polynomialDegreeList,inputName )
 
         # generalSetup should be run by all daughter classes
@@ -4471,7 +4472,7 @@ class SimplePhosphorylationFittingModel(SloppyCellFittingModel):
         indepParamNames=['k23p'],offset=1.,offsetName='totalPhos_init',
         **kwargs):
 
-        net = SimplePhosphorylationNetwork.SimplePhosphorylationNetwork(        \
+        net = simplePhosphorylationNetwork.SimplePhosphorylationNetwork(        \
             outputName=outputName,inputName=inputName,offset=offset,            \
             offsetName=offsetName)
         priorSigma = None # assuming we won't want priors?
@@ -4508,7 +4509,7 @@ class PhosphorylationFittingModel(SloppyCellFittingModel):
         # these shouldn't matter since we're using the SloppyCell implementation
         endTime,nSteps = 10,10
 
-        phosModel = PhosphorylationFit_netModel.netModel(n,rules,endTime,nSteps,\
+        phosModel = phosphorylationFit_netModel.netModel(n,rules,endTime,nSteps,\
             MichaelisMenten=MichaelisMenten)
         params = scipy.ones( phosModel.numParams )
         SloppyCellNet = IO.from_SBML_file(phosModel.writeSBML(params))
@@ -4524,7 +4525,7 @@ class PhosphorylationFittingModel(SloppyCellFittingModel):
         if polynomialDegreeList is not None:
             # currently supports a single input
             inputName = indepParamNames[0]
-            SloppyCellNet = VaryingParamsWrapper.VaryingParamsNet_Polynomial(   \
+            SloppyCellNet = varyingParamsWrapper.VaryingParamsNet_Polynomial(   \
                 SloppyCellNet,polynomialDegreeList,inputName )
 
         # generalSetup should be run by all daughter classes
@@ -4615,7 +4616,7 @@ class PlanetaryFittingModel(SloppyCellFittingModel):
         self.indepParamNames = indepParamNames
         self.speciesNames = ['r','theta']
 
-        SloppyCellNet = PlanetaryNetwork.Planetary_net(r_init=r_init)
+        SloppyCellNet = planetaryNetwork.Planetary_net(r_init=r_init)
 
         # generalSetup should be run by all daughter classes
         self.generalSetup(SloppyCellNet,indepParamNames,**kwargs)
@@ -4628,7 +4629,7 @@ class SimpleSinusoidalFittingModel(SloppyCellFittingModel):
         output(t) = [outputName]_init - A sin(phi) + A sin(omega t + phi)
         """
 
-        net = SimpleSinusoidalNetwork.SimpleSinusoidalNetwork(                  \
+        net = simpleSinusoidalNetwork.SimpleSinusoidalNetwork(                  \
             outputNameList)
         #priorSigma = None # assuming we won't want priors?
 

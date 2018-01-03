@@ -1,11 +1,11 @@
-# SimpleSinusoidalNetwork.py
+# simpleSinusoidalNetwork.py
 #
 # Bryan Daniels
 # 5.16.2015
 #
 # SloppyCell network that does not have any ODEs, but
 # consists of a simple sinusoidal model.
-# (Branched from PolynomialNetwork.py)
+# (Branched from polynomialNetwork.py)
 #
 
 from SloppyCell.ReactionNetworks import *

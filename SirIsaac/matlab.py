@@ -1,4 +1,4 @@
-# MATLAB.py
+# matlab.py
 # 
 # Bryan Daniels
 # 7.18.2011, 8.19.2011
