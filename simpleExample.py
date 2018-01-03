@@ -32,7 +32,7 @@
 # <codecell>
 
 import scipy, pylab
-from SirIsaac import FittingProblem, EnsembleGenerator, PowerLawFittingProblem, Plotting, load
+from SirIsaac.fittingProblem import EnsembleGenerator, PowerLawFittingProblem, Plotting, load, save
 
 # <markdowncell>
 
@@ -135,7 +135,7 @@ maxiter = 100
 priorSigma = 3.
 
 # If you have pypar installed, you can run on multiple processors
-numprocs = 10
+numprocs = 1
 
 # We'll only use a subset of our data to make the example run faster
 N = 20
@@ -157,14 +157,13 @@ p = PowerLawFittingProblem( complexityList,
 
 # <codecell>
 
-#p.fitAll()
-#
-#FittingProblem.save(p,'simpleExample_savedFittingProblem.data')
+p.fitAll()
+
+save(p, 'simpleExample_savedFittingProblem.data')
 
 # <codecell>
 
-import pdb; pdb.set_trace()
-p = load('simpleExample_savedFittingProblem.data')
+# p = load('simpleExample_savedFittingProblem.data')
 
 # <markdowncell>
 
