@@ -21,7 +21,7 @@ import transcriptionNetwork
 import laguerreNetwork
 import polynomialNetwork
 import phosphorylationFit_netModel
-import CTSNNetwork
+import ctsnNetwork
 import planetaryNetwork
 import simplePhosphorylationNetwork
 import simpleSinusoidalNetwork
@@ -4590,7 +4590,7 @@ class CTSNFittingModel(SloppyCellFittingModel):
         self.switchSigmoid = switchSigmoid
         self.xiNegative = xiNegative
 
-        SloppyCellNet = CTSNNetwork.CTSN_List(self.networkList,self.speciesNames,
+        SloppyCellNet = ctsnNetwork.CTSN_List(self.networkList,self.speciesNames,
             switchSigmoid=switchSigmoid,xiNegative=xiNegative)
 
         #if initialParameters is not None:
