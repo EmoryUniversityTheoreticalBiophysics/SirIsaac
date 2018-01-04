@@ -32,7 +32,7 @@
 # <codecell>
 
 import scipy, pylab
-from SirIsaac.fittingProblem import EnsembleGenerator, PowerLawFittingProblem, Plotting, load, save
+from SirIsaac.fittingProblem import *
 
 # <markdowncell>
 
@@ -157,13 +157,13 @@ p = PowerLawFittingProblem( complexityList,
 
 # <codecell>
 
-p.fitAll()
-
-save(p, 'simpleExample_savedFittingProblem.data')
+# p.fitAll()
+#
+# save(p, 'simpleExample_savedFittingProblem.data')
 
 # <codecell>
 
-# p = load('simpleExample_savedFittingProblem.data')
+p = load('simpleExample_savedFittingProblem.data')
 
 # <markdowncell>
 
@@ -178,6 +178,7 @@ save(p, 'simpleExample_savedFittingProblem.data')
 
 pylab.figure(figsize=(20,2))
 p.plotBestModelResults(plotInitialConditions=True,indices=range(10));
+pylab.show()
 
 # <markdowncell>
 
@@ -189,6 +190,7 @@ pylab.figure(figsize=(20,2))
 m = p.getBestModel()
 m.plotResults(sirIsaacData[20:30],indepParamsList[20:30],
               plotInitialConditions=True,plotFittingData=True);
+pylab.show()
 
 # <markdowncell>
 
@@ -223,6 +225,7 @@ pylab.figure(figsize=(20,6))
 m = p.getBestModel()
 m.plotResults(p.fittingData[:10],p.indepParamsList[:10],
               plotInitialConditions=True,plotHiddenNodes=True);
+pylab.show()
 
 # <markdowncell>
 
@@ -237,6 +240,7 @@ X1data = m.evaluateVec(times,'X_1',p.indepParamsList[0])
 Plotting.plot(xdata,X1data)
 pylab.xlabel('x')
 pylab.ylabel('X_1')
+pylab.show()
 
 # <markdowncell>
 
@@ -262,12 +266,14 @@ pylab.figure(figsize=(20,2))
 m2 = p.fittingModelDict['Model 10']
 m2.plotResults(sirIsaacData[:10],indepParamsList[:10],
               plotInitialConditions=True,plotFittingData=True);
+pylab.show()
 
 # <codecell>
 
 pylab.figure(figsize=(20,2))
 m2.plotResults(sirIsaacData[30:40],indepParamsList[30:40],
               plotInitialConditions=True,plotFittingData=True);
+pylab.show()
 
 # <markdowncell>
 
@@ -310,4 +316,4 @@ for i,indepParams in enumerate(scipy.array(indepParamsList)[indicesToPlot]):
     x0 = indepParams[0]
     Plotting.sca(axArray[0][i])
     Plotting.plot(times,f(x0,times),'k:')
-
+pylab.show()
