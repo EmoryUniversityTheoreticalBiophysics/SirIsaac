@@ -42,7 +42,7 @@ from SirIsaac.fittingProblem import *
 # <markdowncell>
 
 # In the example data file, we have four columns, each with 100 data points, listing:
-# 
+#
 # * Initial condition *x_init*
 # * Measurement time *t*
 # * Measurement value *x*
@@ -157,9 +157,9 @@ p = PowerLawFittingProblem( complexityList,
 
 # <codecell>
 
-# p.fitAll()
-#
-# save(p, 'simpleExample_savedFittingProblem.data')
+p.fitAll()
+
+save(p, 'simpleExample_savedFittingProblem.data')
 
 # <codecell>
 
