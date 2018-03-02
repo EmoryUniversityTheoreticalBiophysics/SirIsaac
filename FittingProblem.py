@@ -1481,7 +1481,17 @@ class SloppyCellFittingModel(FittingModel):
         # 7.24.2009
         for name in indepParamNames:
             self.net.set_var_optimizable(name,False)
-            
+
+    def recompile(self):
+        """
+        Recompile the code SloppyCell uses to evaluate the model.
+        
+        This is sometimes necessary when loading models that were 
+        created in different environments.
+        """
+        self.net._last_structure = ()
+        self.net.compile()
+
     def getParameters(self):
         return self.net.GetParameters()
         
