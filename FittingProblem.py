@@ -1010,12 +1010,15 @@ class CTSNFittingProblem(FittingProblem):
         netList = copy.deepcopy( bestModel.networkList )
         for nodeIndex in range(len(netList)):
           for neighborIndex in netList[nodeIndex][1].keys():
-            p = params.getByKey('w_'+str(nodeIndex)+'_'+str(neighborIndex))/weightScale
-            if neighborIndex < bestModel.numInputs:
-              p = p*indepParamMax[neighborIndex]
-            if swapSign: param = -p
-            else: param = p
-            netList[nodeIndex][1][neighborIndex] = param
+            if params.has_key('w_'+str(nodeIndex)+'_'+str(neighborIndex)):
+                p = params.getByKey('w_'+str(nodeIndex)+'_'+str(neighborIndex))/weightScale
+                if neighborIndex < bestModel.numInputs:
+                  p = p*indepParamMax[neighborIndex]
+                if swapSign: param = -p
+                else: param = p
+                netList[nodeIndex][1][neighborIndex] = param
+            else: # remove edge from netList if the corresponding parameter is not present
+                netList[nodeIndex][1].pop(neighborIndex)
             
         # 6.2.2016 also pass self-weight parameters
         if selfConnections:
