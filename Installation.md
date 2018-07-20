@@ -49,7 +49,7 @@ You should see a bunch of files being downloaded.  Next,
 build the Fortran libraries by changing into the new 'sloppycell-git' 
 directory and running setup.py:
 
-    cd sloppycell-git
+    cd SloppyCell
     sudo python setup.py build install --install-lib=..
 
 (prefacing by sudo if necessary for write privileges).  (If you
@@ -58,9 +58,7 @@ get the error 'No module named _daskr' when trying to
 import SirIsaac.FittingProblem.)  If this is successful, you'll 
 eventually see something like 
 
-    Installed /sw/lib/python2.7/site-packages/SloppyCell-CVS-py2.7-macosx-10.7-x86_64.egg
-    Processing dependencies for SloppyCell==CVS
-    Finished processing dependencies for SloppyCell==CVS
+    Finished processing dependencies for SloppyCell==1.1.0.dev1
 
 
 ## Install SirIsaac
