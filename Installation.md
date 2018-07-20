@@ -43,7 +43,7 @@ site-packages folder, usually found within a directory such as
 In the simplest case, you can anonymously 'clone' the latest version 
 by changing to the above directory and running
 
-    git clone git://git.code.sf.net/p/sloppycell/git sloppycell-git
+    git clone https://github.com/GutenkunstLab/SloppyCell.git
 
 You should see a bunch of files being downloaded.  Next,
 build the Fortran libraries by changing into the new 'sloppycell-git' 
