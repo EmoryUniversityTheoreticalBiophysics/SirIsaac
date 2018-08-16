@@ -22,7 +22,7 @@ iPython and Jupyter.
 
 ### Install SloppyCell
 
-As of February 2014, SirIsaac depends on the latest
+As of 2018, SirIsaac depends on the latest
 developer version of SloppyCell.  This software is
 available through a git repository.
 We describe here one typical way to download and 
@@ -46,7 +46,7 @@ by changing to the above directory and running
     git clone https://github.com/GutenkunstLab/SloppyCell.git
 
 You should see a bunch of files being downloaded.  Next,
-build the Fortran libraries by changing into the new 'sloppycell-git' 
+build the Fortran libraries by changing into the new 'SloppyCell' 
 directory and running setup.py:
 
     cd SloppyCell
