@@ -10,6 +10,9 @@
 # attempt to fit the model, the results of fitting, ...
 #
 
+# 9.9.2015 directory needed for direct calling using MPI?
+SIRISAACDIR = '/Users/bdaniels/anaconda/lib/python2.7/site-packages/SirIsaac/'
+
 from SloppyCell.ReactionNetworks import *
 import PowerLawNetwork
 reload(PowerLawNetwork)
@@ -64,7 +67,7 @@ maxiterDefault = None
 cutoffDefault = 1.
 verboseDefault = False
 
-def UpdateOldFitProbDict(fitProbDict):
+def UpdateOldFitProbDict(fitProbDict,recalculateCost=False):
     for p in fitProbDict.values():
         p._fixOldVersion()
         # the following line only for SloppyCell networks
@@ -72,7 +75,7 @@ def UpdateOldFitProbDict(fitProbDict):
             m.net.constraints = {}
         p.perfectModel.net.constraints = {}
         for name in p.fittingModelNames:
-            p._UpdateDicts(name)
+            p._UpdateDicts(name,calculateCost=recalculateCost)
 
 class FittingProblem:
     """
@@ -106,9 +109,8 @@ class FittingProblem:
             fittingModelNames =                                                 \
                 [ 'Model '+str(i+1) for i in range(len(fittingModelList)) ]
         
-        self.fittingData = fittingData
-        self.indepParamsList = indepParamsList
-        self.indepParamNames = indepParamNames
+        self.setData(fittingData,indepParamsList,indepParamNames)
+        
         self.fittingModelList = fittingModelList
         self.fittingModelNames = fittingModelNames
         self.cutoff = singValCutoff
@@ -145,11 +147,26 @@ class FittingProblem:
         
         # 6.1.2012
         self.stopFittingN = stopFittingN
+
+    def setData(self,fittingData,indepParamsList,indepParamNames):
         
         # consistency checks
         if len(fittingData) != len(indepParamsList):
-          raise Exception, "fittingData and indepParamsList must have same length"
+            raise Exception, "Length of indepParamsList must equal length of fittingData"
+        if len(scipy.shape(indepParamsList)) != 2:
+            raise Exception, "indepParamsList must be two-dimensional"
+        if scipy.shape(indepParamsList)[1] != len(indepParamNames):
+            raise Exception, "Length of indepParamNames must equal length of second dimension of indepParamsList"
+        
+        for d in fittingData:
+            if d.values()[0].keys() == [0]:
+              raise Exception, "Data for given independent parameters cannot consist of a single timepoint at t=0.  See https://github.com/EmoryUniversityTheoreticalBiophysics/SirIsaac/issues/5"
     
+        self.fittingData = fittingData
+        self.indepParamsList = indepParamsList
+        self.indepParamNames = indepParamNames
+
+
     def fitAll(self,usePreviousParams=True,fitPerfectModel=False,resume=True,
         maxNumFit=None,**kwargs):
         """
@@ -259,27 +276,7 @@ class FittingProblem:
             oldCost = newCost
             oldFitParameters = newFitParameters
             
-            if self.fittingDataDerivs is None:
-                #self.fitParametersDict[name] = newFitParameters
-                self.costDict[name] =                                               \
-                    fittingModel.currentCost(self.fittingData,self.indepParamsList, \
-                        fittingDataDerivs=fittingDataDerivs,                        \
-                        includePriors=includePriors)
-                if includePriors:
-                  self.HessianDict[name] =                                          \
-                    fittingModel.currentHessian(self.fittingData,                   \
-                        self.indepParamsList,fittingDataDerivs=fittingDataDerivs)
-                else:
-                  self.HessianDict[name] =                                          \
-                    fittingModel.currentHessianNoPriors(self.fittingData,           \
-                        self.indepParamsList,fittingDataDerivs=fittingDataDerivs)
-            else: # when fitting derivatives
-                #self.costDict[name] = scipy.inf
-                self.costDict[name] = fittingModel.currentCost_deriv(               \
-                    self.fittingData,self.indepParamsList,fittingDataDerivs,        \
-                    includePriors=includePriors)
-                self.HessianDict[name] = None
-            self._UpdateDicts(name)
+            self._UpdateDicts(name,includePriors=includePriors)
             
           # 5.6.2013 update old files if needed
           if not hasattr(self,'logLikelihoodDict'):
@@ -337,8 +334,32 @@ class FittingProblem:
         if self.saveFilename is not None:
             self.writeToFile(self.saveFilename)
     
-    def _UpdateDicts(self,name):
+    def _UpdateDicts(self,name,calculateCost=True,includePriors=True):
+        
         fittingModel = self.fittingModelDict[name]
+        
+        if calculateCost:
+            # calculate cost and hessian
+            if self.fittingDataDerivs is None:
+                #self.fitParametersDict[name] = newFitParameters
+                self.costDict[name] =                                               \
+                    fittingModel.currentCost(self.fittingData,self.indepParamsList,
+                        fittingDataDerivs=None,includePriors=includePriors)
+                if includePriors:
+                  self.HessianDict[name] =                                          \
+                    fittingModel.currentHessian(self.fittingData,
+                        self.indepParamsList,fittingDataDerivs=None)
+                else:
+                  self.HessianDict[name] =                                          \
+                    fittingModel.currentHessianNoPriors(self.fittingData,
+                        self.indepParamsList,fittingDataDerivs=None)
+            else: # when fitting derivatives
+                #self.costDict[name] = scipy.inf
+                self.costDict[name] = fittingModel.currentCost_deriv(               \
+                    self.fittingData,self.indepParamsList,self.fittingDataDerivs,
+                    includePriors=includePriors)
+                self.HessianDict[name] = None
+    
         self.fitParametersDict[name] = fittingModel.getParameters()
         try:
             u,s,vt = scipy.linalg.svd( self.HessianDict[name] )
@@ -405,7 +426,7 @@ class FittingProblem:
     
     def plotResults(self,showTitles=True,showInfo=True,
         errorBars=True,exptsToPlot=None,plotDerivs=False,indices=None,
-        **kwargs):
+        plotOnlyFitModels=True,**kwargs):
         """
         indices (None)          : If a list of indepParamsList indices, plots
                                   only these indices.  Otherwise plots
@@ -414,8 +435,14 @@ class FittingProblem:
         if not self.fitAllDone:
             print "FittingProblem.plotResults warning: "                            \
                  +"some or all fits have not yet been performed."
-            
-        for i,name in enumerate(self.fittingModelNames):
+    
+        if plotOnlyFitModels:
+            modelNames = filter(lambda n: n in self.logLikelihoodDict.keys(),
+                                self.fittingModelNames)
+        else:
+            modelNames = self.fittingModelNames
+    
+        for i,name in enumerate(modelNames):
             fittingModel = self.fittingModelDict[name]
             self.plotModelResults(fittingModel,indices=indices,**kwargs)
             
@@ -669,11 +696,13 @@ class FittingProblem:
         
     # 9.11.2013, 4.19.2012
     def plotModelResults(self,model,filename=None,indices=None,
-        plotFittingData=True,**kwargs):
+        plotFittingData=True,outOfSampleData=None,**kwargs):
         """
         indices (None)          : If a list of indepParamsList indices, plots
                                   only these indices.  Otherwise plots
                                   all conditions in indepParamsList.
+        outOfSampleData (None)  : Provide fittingData including out-of-sample
+                                  timepoints to plot them on the same axes
         """
         # choose the indices we want
         if indices is None:
@@ -681,11 +710,20 @@ class FittingProblem:
         fittingData = [ self.fittingData[i] for i in indices ]
         indepParamsList = [ self.indepParamsList[i] for i in indices ]
         
+        # handle out-of-sample data if given
+        if outOfSampleData is not None:
+            if len(outOfSampleData) != len(self.fittingData):
+                raise Exception, "Length of outOfSampleData must match length of self.fittingData"
+            outData = [ outOfSampleData[i] for i in indices ]
+        else:
+            outData = None
+        
         m = model
         
         # plot model results
         plots = m.plotResults(fittingData,indepParamsList,                      
-            plotFittingData=plotFittingData,**kwargs)
+            plotFittingData=plotFittingData,
+            outOfSampleData=outData,**kwargs)
         
         # plot perfectModel results if relevant
         if self.perfectModel is not None:
@@ -695,7 +733,7 @@ class FittingProblem:
                 indepParamsList,fmt=[[0.65,0.65,0.65],'','-'],
                 numRows=len(m.speciesNames),linewidth=0.5,                      
                 dataToPlot=speciesToPlot,newFigure=False,rowOffset=ni)
-        
+            
         # 7.12.2012 worm data
         # speedDict must have been imported using importWormData_George
         #if self.saveFilename.find('wormData') >= 0:
@@ -924,9 +962,9 @@ class CTSNFittingProblem(FittingProblem):
             graphListImages = [ None for complexity in complexityList ]
             
         fittingModelList = [                                                    \
-          CTSNFittingModel(complexity,outputNames=outputNames,
+          CTSNFittingModel(complexity,outputNames=copy.copy(outputNames),
             switchSigmoid=switchSigmoid,
-            indepParamNames=indepParamNames,image=image,
+            indepParamNames=copy.copy(indepParamNames),image=image,
             priorSigma=priorSigma,avegtol=avegtol,maxiter=maxiter,ensGen=ensGen,
             verbose=verbose,includeDerivs=includeDerivs,
             useClampedPreminimization=useClampedPreminimization,                
@@ -953,11 +991,13 @@ class CTSNFittingProblem(FittingProblem):
             self.convFlagDict[name] = self.fittingModelDict[name].convFlag
             
     def networkFigureBestModel(self,filename,modelName=None,indepParamMax=None, 
-        swapSign=False,**kwargs):
+        swapSign=False,weightScale=1.,selfConnections=True,**kwargs):
         """
         Passes on kwargs to networkList2DOT.
         
         indepParamMax (None)    : List of maximum values for indep params
+        weightScale (1.)        : Divide edge weights by weightScale
+        selfConnections (False) : If True, draw self interactions
         """
         bestModel = self.getBestModel(modelName=modelName)
         
@@ -967,15 +1007,27 @@ class CTSNFittingProblem(FittingProblem):
         
         # 7.26.2012 also pass edge parameters
         params = bestModel.getParameters()
-        netList = bestModel.networkList
+        netList = copy.deepcopy( bestModel.networkList )
         for nodeIndex in range(len(netList)):
           for neighborIndex in netList[nodeIndex][1].keys():
-            p = params.getByKey('w_'+str(nodeIndex)+'_'+str(neighborIndex))
-            if neighborIndex < bestModel.numInputs:
-              p = p*indepParamMax[neighborIndex]
-            if swapSign: param = -p
-            else: param = p
-            netList[nodeIndex][1][neighborIndex] = param
+            if params.has_key('w_'+str(nodeIndex)+'_'+str(neighborIndex)):
+                p = params.getByKey('w_'+str(nodeIndex)+'_'+str(neighborIndex))/weightScale
+                if neighborIndex < bestModel.numInputs:
+                  p = p*indepParamMax[neighborIndex]
+                if swapSign: param = -p
+                else: param = p
+                netList[nodeIndex][1][neighborIndex] = param
+            else: # remove edge from netList if the corresponding parameter is not present
+                netList[nodeIndex][1].pop(neighborIndex)
+            
+        # 6.2.2016 also pass self-weight parameters
+        if selfConnections:
+            for nodeIndex in range(bestModel.numInputs,len(netList)):
+                if params.has_key('wself_'+str(nodeIndex)):
+                    p = params.getByKey('wself_'+str(nodeIndex))/weightScale
+                    if swapSign: param = -p
+                    else: param = p
+                    netList[nodeIndex][1][nodeIndex] = param
         #print netList
             
         return networkList2DOT(netList,bestModel.speciesNames,    \
@@ -1186,9 +1238,11 @@ class FittingModel:
         plotSeparately=True,fmt=None,numPoints=500,minTime=0.,maxTime=None,
         dataToPlot=None,plotFittingData=False,linewidth=1.,numRows=None,
         newFigure=False,rowOffset=0,plotFirstN=None,linestyle=None,
-        plotHiddenNodes=False,color=None,hspace=0.05,wspace=0.0,
+        plotHiddenNodes=False,plotIndepParams=False,
+        color=None,hspace=0.05,wspace=0.0,
         plotInitialConditions=False,ICmarker=None,markerSize=5.,
-        height_ratios=None,existingAxArray=None,yoffset=0.,**kwargs):
+        height_ratios=None,existingAxArray=None,yoffset=0.,
+        figsize=None,outOfSampleData=None,outColor='k',**kwargs):
         """
         Returns 2D list of axes.
         
@@ -1198,11 +1252,12 @@ class FittingModel:
                               indepParams / fittingData combinations
                               (hack to avoid calling MATLAB)
         existingAxArray (None)  : Use to plot on an existing axis array.
+        outOfSampleData (None)  : Use to plot out of sample data.
         
         **kwargs passed to pylab.plot.
         """
         if newFigure:
-            Plotting.figure()
+            Plotting.figure(figsize=figsize)
         
         if maxTime is None:
             allDataTimes = scipy.concatenate([ scipy.concatenate([                \
@@ -1216,6 +1271,9 @@ class FittingModel:
         else:
             N = plotFirstN
         
+        if outOfSampleData is None:
+            outOfSampleData = [ None for d in fittingData ]
+        
         if not plotSeparately: # plot everything on one subplot
             raise Exception, "Error: plotSeparately=False not implemented"
         else:
@@ -1228,8 +1286,9 @@ class FittingModel:
                 for name in self.speciesNames:
                     #if plotDerivs: fullName = (name,'time')
                     #else: fullName = name
-                    if name in varsWithData: dataToPlotSorted.append(name)
-                    elif plotHiddenNodes: dataToPlotSorted.append(name)
+                    if (name in varsWithData) or \
+                       ((name in self.indepParamNames) and plotIndepParams) or \
+                       ((name not in self.indepParamNames) and plotHiddenNodes):dataToPlotSorted.append(name)
             else:
                 dataToPlotSorted = dataToPlot
             
@@ -1266,7 +1325,8 @@ class FittingModel:
                 else:
                     colorToUse = color
                 j = -1
-                for data,indepParams in zip(fittingData[:N],indepParamsList[:N]):
+                for data,indepParams,outData in \
+                    zip(fittingData[:N],indepParamsList[:N],outOfSampleData[:N]):
                     j += 1
                     
                     if existingAxArray is None:
@@ -1309,6 +1369,16 @@ class FittingModel:
                         returnList.append( pylab.errorbar(dataTimes,dataVals,
                               yerr=dataStds,marker=marker,mfc=colorToUse,ls='',       
                               ecolor='k',ms=markerSize,barsabove=True) )
+                        
+                    if (outData is not None) and (name in varsWithData):
+                        # plot out-of-sample data points
+                        dataTimes = outData[name].keys()
+                        dataVals = [ outData[name][time][0]+yoffset \
+                                     for time in dataTimes ]
+                        dataStds = [ outData[name][time][1] for time in dataTimes ]
+                        
+                        returnList.append( pylab.plot(dataTimes,dataVals,
+                              marker='.',color=outColor,ls='',zorder=-1) )
                     
                     ranges = Plotting.axis()
                     ymins.append(ranges[2])
@@ -1414,7 +1484,17 @@ class SloppyCellFittingModel(FittingModel):
         # 7.24.2009
         for name in indepParamNames:
             self.net.set_var_optimizable(name,False)
-            
+
+    def recompile(self):
+        """
+        Recompile the code SloppyCell uses to evaluate the model.
+        
+        This is sometimes necessary when loading models that were 
+        created in different environments.
+        """
+        self.net._last_structure = ()
+        self.net.compile()
+
     def getParameters(self):
         return self.net.GetParameters()
         
@@ -1731,7 +1811,7 @@ class SloppyCellFittingModel(FittingModel):
         
         # call mpi
         stdoutFile = open(prefix+"stdout.txt",'w')
-        call([ "mpirun","-np",str(numprocs),"python","localFitParallel.py",     
+        call([ "mpirun","-np",str(numprocs),"python",SIRISAACDIR+"localFitParallel.py",
               inputDictFilename ], stderr=stdoutFile,stdout=stdoutFile)
         stdoutFile.close()
         os.remove(inputDictFilename)
@@ -1926,7 +2006,7 @@ class SloppyCellFittingModel(FittingModel):
             return scipy.array([                                                \
                 [ traj.get_var_val(v,time) for time in times ] for v in var ])
     
-    def _SloppyCellNet(self,indepParams=[],indepParamsID=None):
+    def _SloppyCellNet(self,indepParams=[],i=0):
         """
         Returns SloppyCell network with the given independent parameters.
         """
@@ -1934,19 +2014,17 @@ class SloppyCellFittingModel(FittingModel):
         
         if not self.noIndepParams:
             # we do have independent parameters to set
-            id = self._SloppyCellNetID(indepParams,indepParamsID)
-            newNet.set_id(id)
+            newNet.set_id(self._SloppyCellNetID(indepParams,i))
             for name,value in zip(self.indepParamNames,indepParams):
                 newNet.setInitialVariableValue(name,value)
         
         return newNet
         
-    def _SloppyCellNetID(self,indepParams,indepParamsID=None):
-        if indepParamsID is None:
-            indepParamsID = str(zip(self.indepParamNames,indepParams))              \
-                .replace("'","").replace(" ","").replace(",","_")                   \
-                .replace(".","_").replace("[","_").replace("]","_")                 \
-                .replace("(","_").replace(")","_")
+    def _SloppyCellNetID(self,indepParams,i):
+        indepParamsID = str(zip(self.indepParamNames,indepParams))              \
+            .replace("'","").replace(" ","").replace(",","_")                   \
+            .replace(".","_").replace("[","_").replace("]","_")                 \
+            .replace("(","_").replace(")","_")+str(i)
         if len(indepParamsID) > 50: # can't have overly long file names
             # Let's pray we don't have hash conflicts.
             # If we ever do, SloppyCell should complain that
@@ -1973,7 +2051,7 @@ class SloppyCellFittingModel(FittingModel):
                                           (Hopefully useful for faster 
                                           minimization in large models with 
                                           data for lots of species.)
-        removeLogForPriors (True)       : If a parameter name starts with "log",
+        removeLogForPriors (True)       : If a parameter name starts with "log_",
                                           use GaussianPriorExp
         fittingDataDerivs (None)        : see notes 9/14/2012
         disableIntegration (True)       : Only used when fittingDataDerivs is given.
@@ -1995,10 +2073,14 @@ class SloppyCellFittingModel(FittingModel):
         exptList = []
         netList = []
         
+        # compile SloppyCell net in C before making copies
+        # to avoid duplication of effort
+        self.net.compile()
+        
         # make a copy
         # of the SloppyCell network for each experimental condition
         for i,indepParams,d in zip(range(len(data)),indepParamsList,data):
-            newNet = self._SloppyCellNet(indepParams,str(i))
+            newNet = self._SloppyCellNet(indepParams,i)
             newNetID = newNet.get_id()
             newExpt = Experiment(exptID+newNetID)
             
@@ -2530,7 +2612,7 @@ class EnsembleGenerator():
           # call mpi
           stdoutFile = open(prefix+"stdout.txt",'w')
           call([ "mpirun","-np",str(numprocs),"python",
-                "generateEnsembleParallel.py",inputDictFilename ],              
+                SIRISAACDIR+"generateEnsembleParallel.py",inputDictFilename ],
                 stderr=stdoutFile,stdout=stdoutFile)
           stdoutFile.close()
           os.remove(inputDictFilename)
@@ -4227,7 +4309,7 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,
     speciesColors=None,Xcolor='gray',skipIndependentNodes=False,
     showWeights=False,smallWidthStyle='solid',
     nodeDiameter=0.75,plotDiameter=200.,fontsize=24,                        
-    minPenWidth = 0.3,maxPenWidth = 10.,**kwargs):
+    minPenWidth = 0.3,maxPenWidth = 10.,startAngle=scipy.pi/2.,**kwargs):
     """
     Uses pygraphviz to create a DOT file from the given networkList.
     
@@ -4235,6 +4317,7 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,
     showWeights (False)     : True to label edges with weights
     nodeDiameter (0.75)     : Linear size of nodes (units?)
     plotDiameter (200.)     : Linear size of plot (units?)
+    startAngle (pi/2.)      : Angular position of first node
     
     (See also analyzeSparsenessProblem.drawNetworkFromMatrix 
      for more examples of pygraphviz usage.  See also
@@ -4287,8 +4370,10 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,
     
     twoPi = 2.*scipy.pi
     radius = plotDiameter/2.
-    xList = [ str(radius*scipy.cos(twoPi*i/positionNum)) for i in positionIndices ]
-    yList = [ str(radius*scipy.sin(twoPi*i/positionNum)) for i in positionIndices ] 
+    xList = [ str(radius*scipy.cos(startAngle - twoPi*i/positionNum)) \
+              for i in positionIndices ]
+    yList = [ str(radius*scipy.sin(startAngle - twoPi*i/positionNum)) \
+              for i in positionIndices ]
     
     # add nodes
     for i,name,color,x,y in zip(range(num),allNames,allColors,xList,yList):
@@ -4343,7 +4428,8 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,
         filename = filename + ".dot"
     G.write(filename)
     #call(["neato","-n1","-o"+filename[:-4]+".png","-Tpng",filename])
-    call(["neato","-n2","-o"+filename[:-4]+".pdf","-Tpdf","-Gsplines=true",filename])
+    # TO DO: Catch errors from neato call
+    call(["neato","-n2","-o"+filename[:-4]+".eps","-Teps","-Gsplines=true",filename])
     return G
     
     

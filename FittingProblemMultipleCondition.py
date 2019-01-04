@@ -30,29 +30,39 @@ class FittingProblemMultipleCondition(FittingProblem):
                                               to the number of conditions.  Each 
                                               indepParamsList should be in the format
                                               used by a usual FittingProblem.
+    fp0 (None)                              : A fittingProblem from which the multiple
+                                              condition fittingProblem inherits constant
+                                              attributes.  Defaults to the first
+                                              fittingProblem in the newly created
+                                              self.fittingProblemList.
     
     Other kwargs are the same as a usual FittingProblem.
     """
     def __init__(self,fittingDataMultiple,fittingModelList,
                  indepParamsListMultiple=None,saveFilename=None,
-                 saveKey=-1,**kwargs):
+                 saveKey=-1,smallerBestParamsDictMultiple=None,
+                 fp0=None,**kwargs):
 
         if indepParamsListMultiple is None:
             indepParamsListMultiple = [ [[]] for fd in fittingDataMultiple ]
+        if smallerBestParamsDictMultiple is None:
+            smallerBestParamsDictMultiple = [ {} for fd in fittingDataMultiple ]
 
         # Each condition gets a separate fittingProblem.  These are stored in
         # self.fittingProblemList.
         self.fittingProblemList = [ \
             FittingProblem(fittingData,fittingModelList,
-                                          indepParamsList=indepParamsList,
-                                          **kwargs) \
-            for fittingData,indepParamsList in \
-                zip(fittingDataMultiple,indepParamsListMultiple) ]
+                           indepParamsList=indepParamsList,
+                           smallerBestParamsDict=smallerBestParamsDict,
+                           **kwargs) \
+            for fittingData,indepParamsList,smallerBestParamsDict in \
+                zip(fittingDataMultiple,indepParamsListMultiple,
+                    smallerBestParamsDictMultiple) ]
             
         # all daughter classes should call generalSetup
-        self.generalSetup(saveFilename,saveKey)
+        self.generalSetup(saveFilename,saveKey,fp0=fp0)
 
-    def generalSetup(self,saveFilename=None,saveKey=-1):
+    def generalSetup(self,saveFilename=None,saveKey=-1,fp0=None):
         self.costDict = {}
         self.penaltyDict = {}
         self.numParametersDict = {}
@@ -63,58 +73,79 @@ class FittingProblemMultipleCondition(FittingProblem):
         self.pid = os.getpid()
 
         # inherit constant attributes from first fittingProblem
-        f = self.fittingProblemList[0]
-        self.fittingModelNames = f.fittingModelNames
-        self.indepParamNames = f.indepParamNames
-        self.cutoff = f.cutoff
-        self.verbose = f.verbose
-        self.perfectModel = f.perfectModel
-        self.perfectParams = f.perfectParams
-        self.stopFittingN = f.stopFittingN
+        if fp0 is None: fp0 = self.fittingProblemList[0]
+        self.fittingModelNames = fp0.fittingModelNames
+        self.indepParamNames = fp0.indepParamNames
+        self.cutoff = fp0.cutoff
+        self.verbose = fp0.verbose
+        self.perfectModel = fp0.perfectModel
+        self.perfectParams = fp0.perfectParams
+        self.stopFittingN = fp0.stopFittingN
 
-    def fitAll(self,**kwargs):
+        # disable stopFittingN for individual fittingProblems;
+        # this is controlled at the multipleCondition level
+        for f in self.fittingProblemList:
+            f.stopFittingN = scipy.inf
+
+    def fitAll(self,onlyCombine=False,**kwargs):
         """
         See documentation for FittingProblem.fitAll.
+        
+        onlyCombine (False)     : If True, only loop through existing fits
+                                  to combine them into multiple condition fits.
         """
         
         # Loop over complexity
         for i,name in enumerate(self.fittingModelNames):
             
+            modelDone = True
+            
             # For each condition, fit model of the given complexity
             costMultiple = 0.
             penaltyMultiple = 0.
             for fittingProblem in self.fittingProblemList:
-                fittingProblem.fitAll(maxNumFit=i+1,**kwargs)
-                costMultiple += fittingProblem.costDict[name]
-                penaltyMultiple += fittingProblem.penaltyDict[name]
+                if not onlyCombine:
+                    fittingProblem.fitAll(maxNumFit=i+1,**kwargs)
             
+                # add individual condition costs and penalties
+                if name in fittingProblem.costDict:
+                    costMultiple += fittingProblem.costDict[name]
+                    penaltyMultiple += fittingProblem.penaltyDict[name]
+                    # *******************************************************
+                    print "single condition cost: ",fittingProblem.costDict[name]
+                    # *******************************************************
+                else:
+                    modelDone = False
+            
+            if modelDone:
                 # *******************************************************
-                print "single condition cost: ",fittingProblem.costDict[name]
+                print "total cost: ",costMultiple
                 # *******************************************************
-            # *******************************************************
-            print "total cost: ",costMultiple
-            # *******************************************************
-    
-            # Record total cost and penalty
-            self.costDict[name] = costMultiple
-            self.penaltyDict[name] = penaltyMultiple
-            self.logLikelihoodDict[name] = -(costMultiple + penaltyMultiple)
-            self.numParametersDict = self.fittingProblemList[0].numParametersDict
-    
-            # Check whether we're done
-            # 6.1.2012 stop after seeing stopFittingN models with worse logLikelihood
-            orderedLs = []
-            if not hasattr(self,'stopFittingN'):
-                self.stopFittingN = 3
-            for n in self.fittingModelNames:
-                if self.logLikelihoodDict.has_key(n):
-                    orderedLs.append(self.logLikelihoodDict[n])
-            if (len(orderedLs) > self.stopFittingN):
-                if max(orderedLs[-self.stopFittingN:]) < max(orderedLs):
-                    self.fitAllDone = True
-                    return
+        
+                # Record total cost and penalty
+                self.costDict[name] = costMultiple
+                self.penaltyDict[name] = penaltyMultiple
+                self.logLikelihoodDict[name] = -(costMultiple + penaltyMultiple)
+                self.numParametersDict = self.fittingProblemList[0].numParametersDict
+        
+                # Save to file
+                if self.saveFilename is not None:
+                    self.writeToFile(self.saveFilename)
 
-        self.fitAllDone = True
+                # Check whether we're done
+                # 6.1.2012 stop after seeing stopFittingN models with worse logLikelihood
+                orderedLs = []
+                if not hasattr(self,'stopFittingN'):
+                    self.stopFittingN = 3
+                for n in self.fittingModelNames:
+                    if self.logLikelihoodDict.has_key(n):
+                        orderedLs.append(self.logLikelihoodDict[n])
+                if (len(orderedLs) > self.stopFittingN):
+                    if max(orderedLs[-self.stopFittingN:]) < max(orderedLs):
+                        self.fitAllDone = True
+                        return
+
+        #self.fitAllDone = True
     
     def fitPerfectModel(self,**kwargs):
         for fittingProblem in self.fittingProblemList:
@@ -164,6 +195,27 @@ class FittingProblemMultipleCondition(FittingProblem):
     def _fixOldVersion(self):
         raise Exception, "Not implemented"
 
+    # technically networkFigureBestModel does not have to be implemented
+    # for general fittingProblems, but it is for the types of fittingProblems
+    # I'm currently using with fittingProblemMultipleCondition...
+    def networkFigureBestModel(self,filenameMultiple,maxIndex=-4,modelName=None,
+                               **kwargs):
+        """
+        Make one network figure for each condition.  See documentation for
+        FittingProblem.PowerLawFittingProblem.networkFigureBestModel.
+        
+        filenameMultiple        : A list of filenames, one for each condition,
+                                  or a single string that will be appended with
+                                  'condition0', 'condition1', etc.
+        """
+        if type(filenameMultiple) == str:
+            filenameMultiple = [ filenameMultiple+'_condition'+str(i) \
+                                for i in range(len(self.fittingProblemList)) ]
+        if modelName is None:
+            modelName = self.maxLogLikelihoodName(maxIndex=maxIndex)
+        return [ fp.networkFigureBestModel(filename,modelName=modelName,**kwargs) \
+                 for fp,filename in zip(self.fittingProblemList,filenameMultiple) ]
+
 
 class PowerLawFittingProblemMultipleCondition(FittingProblemMultipleCondition):
     """
@@ -173,35 +225,27 @@ class PowerLawFittingProblemMultipleCondition(FittingProblemMultipleCondition):
     """
     
     def __init__(self,complexityList,fittingDataMultiple,indepParamsListMultiple=None,
-                 saveFilename=None,saveKey=-1,**kwargs):
+                 saveFilename=None,saveKey=-1,smallerBestParamsDictMultiple=None,
+                 **kwargs):
 
         if indepParamsListMultiple is None:
             indepParamsListMultiple = [ [[]] for fd in fittingDataMultiple ]
+        if smallerBestParamsDictMultiple is None:
+            smallerBestParamsDictMultiple = [ {} for fd in fittingDataMultiple ]
 
         # Each condition gets a separate fittingProblem.  These are stored in
         # self.fittingProblemList.
         self.fittingProblemList = [ \
             PowerLawFittingProblem(complexityList,fittingData,
-                                                  indepParamsList=indepParamsList,
-                                                  **kwargs) \
-            for fittingData,indepParamsList in \
-                zip(fittingDataMultiple,indepParamsListMultiple) ]
+                                   indepParamsList=indepParamsList,
+                                   smallerBestParamsDict=smallerBestParamsDict,
+                                   **kwargs) \
+            for fittingData,indepParamsList,smallerBestParamsDict in \
+                zip(fittingDataMultiple,indepParamsListMultiple,
+                    smallerBestParamsDictMultiple) ]
 
         # all daughter classes should call generalSetup
         self.generalSetup(saveFilename,saveKey)
-
-    def networkFigureBestModel(self,filenameMultiple,maxIndex=-4,modelName=None,
-                               **kwargs):
-        """
-        Make one network figure for each condition.
-        See documentation for FittingProblem.PowerLawFittingProblem.networkFigureBestModel.
-        
-        filenameMultiple        : A list of filenames, one for each condition.
-        """
-        if modelName is None:
-            modelName = self.maxLogLikelihoodName(maxIndex=maxIndex)
-        return [ fp.networkFigureBestModel(filename,modelName=modelName,**kwargs) \
-                 for fp,filename in zip(self.fittingProblemList,filenameMultiple) ]
 
     def outOfSampleCorrelation_deriv(self,**kwargs):
         raise Exception, "Not implemented"
@@ -215,32 +259,25 @@ class CTSNFittingProblemMultipleCondition(FittingProblemMultipleCondition):
     """
     
     def __init__(self,complexityList,fittingDataMultiple,indepParamsListMultiple=None,
-                 saveFilename=None,saveKey=-1,**kwargs):
+                 saveFilename=None,saveKey=-1,smallerBestParamsDictMultiple=None,
+                 **kwargs):
         
         if indepParamsListMultiple is None:
             indepParamsListMultiple = [ [[]] for fd in fittingDataMultiple ]
+        if smallerBestParamsDictMultiple is None:
+            smallerBestParamsDictMultiple = [ {} for fd in fittingDataMultiple ]
         
         # Each condition gets a separate fittingProblem.  These are stored in
         # self.fittingProblemList.
         self.fittingProblemList = [ \
            CTSNFittingProblem(complexityList,fittingData,
-                                                 indepParamsList=indepParamsList,
-                                                 **kwargs) \
-           for fittingData,indepParamsList in \
-                zip(fittingDataMultiple,indepParamsListMultiple) ]
+                              indepParamsList=indepParamsList,
+                              smallerBestParamsDict=smallerBestParamsDict,
+                              **kwargs) \
+           for fittingData,indepParamsList,smallerBestParamsDict in \
+                zip(fittingDataMultiple,indepParamsListMultiple,
+                    smallerBestParamsDictMultiple) ]
            
         # all daughter classes should call generalSetup
         self.generalSetup(saveFilename,saveKey)
 
-    def networkFigureBestModel(self,filenameMultiple,maxIndex=-4,modelName=None,
-                               **kwargs):
-        """
-        Make one network figure for each condition.
-        See documentation for FittingProblem.CTSNFittingProblem.networkFigureBestModel.
-        
-        filenameMultiple        : A list of filenames, one for each condition.
-        """
-        if modelName is None:
-            modelName = self.maxLogLikelihoodName(maxIndex=maxIndex)
-        return [ fp.networkFigureBestModel(filename,modelName=modelName,**kwargs) \
-                 for fp,filename in zip(self.fittingProblemList,filenameMultiple) ]

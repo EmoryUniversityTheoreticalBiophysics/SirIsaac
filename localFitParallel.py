@@ -42,6 +42,9 @@ DIE_TAG = 2
 MPI_myID = pypar.rank() #Par.my_rank 
 num_processors = pypar.size() #Par.num_procs
 
+if num_processors < 2:
+    raise Exception, "Pypar has failed to initialize more than one processor."
+
 # read in arguments from command line file name
 if len(sys.argv) < 2 or len(sys.argv) > 2:
     print "Usage: python localFitParallel.py inputDictFile.data"

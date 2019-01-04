@@ -8,13 +8,11 @@
     
 import scipy
 from SloppyCell.ReactionNetworks import *
-import FittingProblem
-reload(FittingProblem)
-import FakeData
-reload(FakeData)
+import SirIsaac
+import SirIsaac.FakeData as FakeData
 import os,sys,copy
-from outputTag import nextFileNumString
-import SloppyCellTest
+from SirIsaac.outputTag import nextFileNumString
+import SirIsaac.SloppyCellTest as SloppyCellTest
 
 print "This computer's name is",os.uname()[1]
 if (os.uname()[1][:4] == 'node'): # 4.4.2012 emory machines
@@ -69,7 +67,7 @@ ensTemperature = 1e3 #1e5 #1e6 #1e5 # 100000. 100. # changed later for fitting p
 sing_val_cutoff = 1.
 seeds = (1,1)
 if useEnsemble:
-    ensGen = FittingProblem.EnsembleGenerator(                                      \
+    ensGen = SirIsaac.EnsembleGenerator(                                      \
         totalSteps,keepSteps,ensTemperature,sing_val_cutoff,seeds)
 else:
     ensGen = None
@@ -129,8 +127,8 @@ if originalString is 'PlanetaryNet':
     timeInterval = [0.,100.] # units GM/(v0^3)
     includeDerivs = False
         
-    originalFittingModel = FittingProblem.PlanetaryFittingModel(                    \
-        indepParamNames=inputVars,verbose=True,avegtol=avegtol,maxiter=maxiter,     \
+    originalFittingModel = SirIsaac.PlanetaryFittingModel(                          \
+        indepParamNames=inputVars,verbose=True,avegtol=avegtol,maxiter=maxiter,
         ensGen=ensGen)
     
     rateVars = []
@@ -216,8 +214,8 @@ elif originalString is 'PhosphorylationNet':
     if makeOriginalModel:
         n = 5
         rules = [(1,2),(2,1),(2,3),(3,2),(3,4),(4,3),(4,5),(5,4)] #[(2,3)]
-        originalFittingModel = FittingProblem.PhosphorylationFittingModel(n,rules,      \
-            indepParamNames=inputVars[:1],verbose=True,avegtol=avegtol,maxiter=maxiter, \
+        originalFittingModel = SirIsaac.PhosphorylationFittingModel(n,rules,
+            indepParamNames=inputVars[:1],verbose=True,avegtol=avegtol,maxiter=maxiter,
             ensGen=ensGen,totalOffset=offset)
         # 4.29.2013 set random parameters
         randomParamsSeed = 12345
@@ -518,11 +516,11 @@ for numIndepParams in numIndepParamsList:
                     'connectionOrderSeed': connectionOrderSeed,
                  }
         if fittingType is 'Laguerre':
-          p = FittingProblem.LaguerreFittingProblem(degreeListLag,fakeData,
+          p = SirIsaac.LaguerreFittingProblem(degreeListLag,fakeData,
             outputName=outputVars[0],
             polynomialDegreeListList=polynomialDegreeListListLag,**kwargs)
         elif fittingType is 'Polynomial':
-          p = FittingProblem.PolynomialFittingProblem(degreeListPoly,fakeData,
+          p = SirIsaac.PolynomialFittingProblem(degreeListPoly,fakeData,
             outputName=outputVars[0],
             polynomialDegreeListList=polynomialDegreeListListPoly,**kwargs)
         elif (fittingType is 'SimplePhosphorylation')                               \
@@ -531,23 +529,23 @@ for numIndepParams in numIndepParamsList:
           kwargs.pop('connectionOrderSeed')
           kwargs.pop('connectionOrder')
           kwargs.pop('typeOrder')
-          p = FittingProblem.SimplePhosphorylationFittingProblem(fakeData,
+          p = SirIsaac.SimplePhosphorylationFittingProblem(fakeData,
             offset=offset,**kwargs)
         elif fittingType is 'SimpleSinusoidal':
           kwargs.pop('stopFittingN') # only 1 model to fit
           kwargs.pop('connectionOrderSeed')
           kwargs.pop('connectionOrder')
           kwargs.pop('typeOrder')
-          p = FittingProblem.SimpleSinusoidalFittingProblem(fakeData,
+          p = SirIsaac.SimpleSinusoidalFittingProblem(fakeData,
             outputNames=outputVars,**kwargs)
         elif fittingType is 'PowerLaw':
-          p = FittingProblem.PowerLawFittingProblem(complexityList,fakeData,
+          p = SirIsaac.PowerLawFittingProblem(complexityList,fakeData,
             outputNames=outputVars,priorSigma=priorSigma,
             fittingDataDerivs=fittingDataDerivs,
             useFullyConnected=useFullyConnected,inputNames=inputNames,**kwargs)
         elif fittingType is 'CTSN':
           kwargs['xiNegative'] = xiNegative
-          p = FittingProblem.CTSNFittingProblem(complexityList,fakeData,
+          p = SirIsaac.CTSNFittingProblem(complexityList,fakeData,
             outputNames=outputVars,priorSigma=priorSigma,                       
             inputNames=inputNames,**kwargs)
         else:
