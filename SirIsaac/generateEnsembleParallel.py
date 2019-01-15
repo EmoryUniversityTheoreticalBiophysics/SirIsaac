@@ -12,7 +12,7 @@ import pypar
 import time
 
 #from generateFightData import *
-from FittingProblem import *
+from fittingProblem import *
 import sys
 
 # for parallel computation supported by SloppyCell

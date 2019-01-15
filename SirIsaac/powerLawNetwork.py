@@ -10,7 +10,7 @@
 from SloppyCell.ReactionNetworks import *
 from scipy import random, log
 import copy
-import GaussianPrior
+import gaussianPrior
     
 def PowerLaw_Network_List(networkList,speciesNames=None,
     logParams=True,netid='PowerLaw_Network',optimizableICs=[],
