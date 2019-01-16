@@ -4,8 +4,12 @@
 # 1.24.2012
 #
 
-import io
+import io, sys
 import cPickle
+
+# include some old name variants for back-compatability
+import fittingProblem
+sys.modules['FittingProblem'] = fittingProblem
 
 def save(obj,filename):
     fout = io.open(filename,'wb')
