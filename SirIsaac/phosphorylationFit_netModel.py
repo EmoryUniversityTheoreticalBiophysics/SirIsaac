@@ -1,4 +1,4 @@
-# PhosphorylationFit_netModel.py
+# phosphorylationFit_netModel.py
 #
 # Bryan Daniels
 # 06.15.2009 - 06.16.2009
@@ -8,8 +8,7 @@
 import os
 import scipy.io
 import resource,time # for measuring cpu usage and wall clock time
-import PhosphorylationFit_MakeBNGL as writeBNGL
-reload(writeBNGL)
+import phosphorylationFit_MakeBNGL as writeBNGL
 
 class netModel():
     """
@@ -108,7 +107,7 @@ class netModel():
         if error:
             stdoutFile = open(filename+"_messages.txt")
             stdout = stdoutFile.read()
-            print "PhosphorylationFit_netModel._runBNGLfile: Error calling BioNetGen."
+            print "phosphorylationFit_netModel._runBNGLfile: Error calling BioNetGen."
             print stdout
             raise Exception, "Error calling BioNetGen."
         

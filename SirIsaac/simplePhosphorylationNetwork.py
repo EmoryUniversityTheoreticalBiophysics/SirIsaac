@@ -1,11 +1,11 @@
-# SimplePhosphorylationNetwork.py
+# simplePhosphorylationNetwork.py
 #
 # Bryan Daniels
 # 9.6.2013
 #
 # SloppyCell network that does not have any ODEs, but simply
 # consists of a simple model for the phosphorylation example.
-# (Branched from PolynomialNetwork.py)
+# (Branched from polynomialNetwork.py)
 #
 
 from SloppyCell.ReactionNetworks import *

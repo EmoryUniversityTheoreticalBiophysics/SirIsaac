@@ -17,12 +17,12 @@ if (os.uname()[1][:4] == 'node'): # 4.4.2012 emory machines
     print "Now the current directory is",os.getcwd()    
 print ""
 
-import FittingProblem
+import fittingProblem
 import scipy
 from SloppyCell.ReactionNetworks import *
 
 def testCcompiling(verbose=True):
-    m = FittingProblem.CTSNFittingModel(5,['a'],['b'],
+    m = fittingProblem.CTSNFittingModel(5,['a'],['b'],
         verbose=verbose)
     n = m.net
     n.compile()
@@ -49,7 +49,7 @@ def testCcompiling(verbose=True):
         
 
 def testCTSN(verbose=True):
-    m = FittingProblem.CTSNFittingModel(5,['a'],['b'],
+    m = fittingProblem.CTSNFittingModel(5,['a'],['b'],
         verbose=verbose)
     r = m.evaluateVec(scipy.linspace(0,1,10),'b',[0])
     eps = 1e-5
@@ -60,7 +60,7 @@ def testCTSN(verbose=True):
 if __name__ == '__main__':
 
     print ""
-    print "FittingProblem.py (including SloppyCell) imported."
+    print "fittingProblem.py (including SloppyCell) imported."
     print ""
 
     print "Testing evaluation of CTSNFittingModel..."

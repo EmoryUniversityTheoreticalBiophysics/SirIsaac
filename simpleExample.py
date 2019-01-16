@@ -32,7 +32,7 @@
 # <codecell>
 
 import scipy, pylab
-import FittingProblem
+from SirIsaac.fittingProblem import *
 
 # <markdowncell>
 
@@ -42,7 +42,7 @@ import FittingProblem
 # <markdowncell>
 
 # In the example data file, we have four columns, each with 100 data points, listing:
-# 
+#
 # * Initial condition *x_init*
 # * Measurement time *t*
 # * Measurement value *x*
@@ -124,7 +124,7 @@ totalSteps = 1e3
 keepSteps = 10
 seeds = (1,1) # use a fixed random seed
 ensTemperature = 100.
-ensGen = FittingProblem.EnsembleGenerator( totalSteps, keepSteps,
+ensGen = EnsembleGenerator( totalSteps, keepSteps,
     temperature=ensTemperature, seeds=seeds )
 
 # Parameters that control when local fitting stops.
@@ -135,12 +135,12 @@ maxiter = 100
 priorSigma = 3.
 
 # If you have pypar installed, you can run on multiple processors
-numprocs = 10
+numprocs = 1
 
 # We'll only use a subset of our data to make the example run faster
 N = 20
 
-p = FittingProblem.PowerLawFittingProblem( complexityList, 
+p = PowerLawFittingProblem( complexityList, 
     sirIsaacData[:N], indepParamsList=indepParamsList[:N], 
     outputNames=outputNames, indepParamNames=indepParamNames, 
     ensGen=ensGen, avegtol=avegtol, maxiter=maxiter,
@@ -157,13 +157,13 @@ p = FittingProblem.PowerLawFittingProblem( complexityList,
 
 # <codecell>
 
-#p.fitAll()
-#
-#FittingProblem.save(p,'simpleExample_savedFittingProblem.data')
+p.fitAll()
+
+save(p, 'simpleExample_savedFittingProblem.data')
 
 # <codecell>
 
-p = FittingProblem.load('simpleExample_savedFittingProblem.data')
+p = load('simpleExample_savedFittingProblem.data')
 
 # <markdowncell>
 
@@ -178,6 +178,7 @@ p = FittingProblem.load('simpleExample_savedFittingProblem.data')
 
 pylab.figure(figsize=(20,2))
 p.plotBestModelResults(plotInitialConditions=True,indices=range(10));
+pylab.show()
 
 # <markdowncell>
 
@@ -189,6 +190,7 @@ pylab.figure(figsize=(20,2))
 m = p.getBestModel()
 m.plotResults(sirIsaacData[20:30],indepParamsList[20:30],
               plotInitialConditions=True,plotFittingData=True);
+pylab.show()
 
 # <markdowncell>
 
@@ -206,7 +208,7 @@ print m.getParameters()
 # <codecell>
 
 m = p.getBestModel()
-FittingProblem.IO.eqns_TeX_file(m.net,filename='simpleExample_selectedModel.tex')
+IO.eqns_TeX_file(m.net,filename='simpleExample_selectedModel.tex')
 
 # <markdowncell>
 
@@ -223,6 +225,7 @@ pylab.figure(figsize=(20,6))
 m = p.getBestModel()
 m.plotResults(p.fittingData[:10],p.indepParamsList[:10],
               plotInitialConditions=True,plotHiddenNodes=True);
+pylab.show()
 
 # <markdowncell>
 
@@ -234,9 +237,10 @@ pylab.figure(figsize=(4,4))
 times = scipy.linspace(0,1,1000)
 xdata = m.evaluateVec(times,'x',p.indepParamsList[0])
 X1data = m.evaluateVec(times,'X_1',p.indepParamsList[0])
-FittingProblem.Plotting.plot(xdata,X1data)
+Plotting.plot(xdata,X1data)
 pylab.xlabel('x')
 pylab.ylabel('X_1')
+pylab.show()
 
 # <markdowncell>
 
@@ -262,12 +266,14 @@ pylab.figure(figsize=(20,2))
 m2 = p.fittingModelDict['Model 10']
 m2.plotResults(sirIsaacData[:10],indepParamsList[:10],
               plotInitialConditions=True,plotFittingData=True);
+pylab.show()
 
 # <codecell>
 
 pylab.figure(figsize=(20,2))
 m2.plotResults(sirIsaacData[30:40],indepParamsList[30:40],
               plotInitialConditions=True,plotFittingData=True);
+pylab.show()
 
 # <markdowncell>
 
@@ -308,6 +314,6 @@ f = lambda x0,t: 1.5 + 0.5*scipy.sin(4.*scipy.pi*t + scipy.arcsin(2.*x0 - 3.))
 for i,indepParams in enumerate(scipy.array(indepParamsList)[indicesToPlot]):
     times = scipy.linspace(0,1,100)
     x0 = indepParams[0]
-    FittingProblem.Plotting.sca(axArray[0][i])
-    FittingProblem.Plotting.plot(times,f(x0,times),'k:')
-
+    Plotting.sca(axArray[0][i])
+    Plotting.plot(times,f(x0,times),'k:')
+pylab.show()

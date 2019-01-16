@@ -9,9 +9,9 @@
 
 import scipy
 import time, copy, os
-from SirIsaac.simplePickle import load,save
-from SirIsaac.SloppyCellTest import testCcompiling
-from SirIsaac.FittingProblemMultipleCondition import *
+from simplePickle import load,save
+from sloppyCellTest import testCcompiling
+from fittingProblemMultipleCondition import *
 
 def directoryPrefix(fileNumString,conditioni,numTimepoints):
     return fileNumString+'_fitProbs/N'+str(numTimepoints)+'/condition'+str(conditioni)+'/'

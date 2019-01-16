@@ -4,7 +4,7 @@
 # 5.10.2012
 #
 
-from FittingProblem import *
+from fittingProblem import *
 from plotMatrix import plotMatrix
 
 # the general scheme for calculating over all fpds

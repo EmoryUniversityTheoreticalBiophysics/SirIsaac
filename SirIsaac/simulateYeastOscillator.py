@@ -5,7 +5,7 @@
 #
 # Runs yeast oscillator using Abhishek Soni's MATLAB code.
 
-from MATLAB import *
+from matlab import *
 
 import scipy
 import scipy.io
