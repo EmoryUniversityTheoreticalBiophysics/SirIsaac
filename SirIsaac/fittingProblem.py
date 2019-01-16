@@ -1955,6 +1955,19 @@ class SloppyCellFittingModel(FittingModel):
         for name,value in zip(self.indepParamNames,indepParams):
             self.net.setInitialVariableValue(name,value)
 
+    def _testIntegration(self):
+        """
+        Test whether the model can be evaluated successfully at 
+        the current parameters.
+        """
+        tiny = scipy.finfo(scipy.float_).tiny
+        try:
+            traj = Dynamics.integrate(self.net,[0.,tiny])
+        except Utility.SloppyCellException:
+            return False
+        else:
+            return True
+
     def evaluateVec(self,times,var,indepParams,defaultValue=0.):
         """
         var can be a single variable name or list of variable names.
@@ -1967,6 +1980,11 @@ class SloppyCellFittingModel(FittingModel):
         """
         #net = self._SloppyCellNet(indepParams) # slow
         self.setInitialVariables(indepParams)
+
+        if not self._testIntegration():
+            # if the model is not able to be evaluated even in the
+            # simplest case, try recompiling C code
+            self.recompile()
 
         try:
             singleVariable =                                                    \
