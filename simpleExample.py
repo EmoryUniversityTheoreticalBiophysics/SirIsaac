@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
-# <nbformat>3.0</nbformat>
 
-# <markdowncell>
+# coding: utf-8
 
 # *Note: This file is provided in two formats: 
 # Python (simpleExample.py) and a Jupyter iPython 
@@ -18,28 +16,24 @@
 #     %run simpleExample.py
 #     show()
 
-# <markdowncell>
-
 # simpleExample.ipynb
 # -------------------
 # 
 # - Bryan Daniels
 # 
 # - 1.29.2014
+# - updated 1.18.2019
 # 
 # - Uses a simple 1D harmonic oscillator example to demonstrate usage of SirIsaac.
 
-# <codecell>
+# In[1]:
 
 import scipy, pylab
-import FittingProblem
+from SirIsaac import fittingProblem
 
-# <markdowncell>
 
 # Load example data
 # -----------------
-
-# <markdowncell>
 
 # In the example data file, we have four columns, each with 100 data points, listing:
 # 
@@ -48,28 +42,28 @@ import FittingProblem
 # * Measurement value *x*
 # * Measurement uncertainty (standard deviation)
 
-# <codecell>
+# In[2]:
 
 data = scipy.loadtxt('simpleExample_data.txt')
 
-# <markdowncell>
 
 # We now put this in a format compatible with SirIsaac.  First we make a list of input values (in this case initial conditions):
 # 
+# 
 
-# <codecell>
+# In[3]:
 
 indepParamsList = [ [ expt[0] ] for expt in data ]
 
-# <codecell>
+
+# In[4]:
 
 indepParamsList[:3]
 
-# <markdowncell>
 
 # Next, we have a corresponding list of data taken at each of those input values, in the format below.  In this case, we only have one variable *x*.  (Note: In general, multiple timepoints could be also be measured at each input value; in all of our examples, we measure all variables at a single timepoint per input value.)
 
-# <codecell>
+# In[5]:
 
 # [ {'var1': { time0: ( value, uncertainty ) },
 #    'var2': { time0: ( value, uncertainty ) },
@@ -79,37 +73,35 @@ indepParamsList[:3]
 #     ... },
 #   ... ]
 
-# <codecell>
+
+# In[6]:
 
 sirIsaacData = []
 for expt in data:
     sirIsaacData.append( { 'x': { expt[1]: ( expt[2], expt[3] ) } } )
 
-# <codecell>
+
+# In[7]:
 
 sirIsaacData[:3]
 
-# <markdowncell>
 
 # Finally, SirIsaac will need to know what to call the input and output values.  In this case, the input corresponds to the initial value of *x*.  The way to indicate this to SirIsaac is by using the name 'x_init', where 'x' is the name of the corresponding variable.
 # 
 # Here we have one input and one output:
 
-# <codecell>
+# In[8]:
 
 outputNames = ['x']
 indepParamNames = ['x_init']
 
-# <markdowncell>
 
 # Create SirIsaac FittingProblem
 # ------------------------------
 
-# <markdowncell>
-
 # We'll attempt to fit a model in the power law class.  To do this, we'll create an instance of a PowerLawFittingProblem.  Here we set up its arguments and create it:
 
-# <codecell>
+# In[9]:
 
 # complexityList lists which models in the model class may be tested.
 # (Note that by default SirIsaac will still stop once 3 models have 
@@ -124,7 +116,7 @@ totalSteps = 1e3
 keepSteps = 10
 seeds = (1,1) # use a fixed random seed
 ensTemperature = 100.
-ensGen = FittingProblem.EnsembleGenerator( totalSteps, keepSteps,
+ensGen = fittingProblem.EnsembleGenerator( totalSteps, keepSteps,
     temperature=ensTemperature, seeds=seeds )
 
 # Parameters that control when local fitting stops.
@@ -140,150 +132,135 @@ numprocs = 10
 # We'll only use a subset of our data to make the example run faster
 N = 20
 
-p = FittingProblem.PowerLawFittingProblem( complexityList, 
+p = fittingProblem.PowerLawFittingProblem( complexityList, 
     sirIsaacData[:N], indepParamsList=indepParamsList[:N], 
     outputNames=outputNames, indepParamNames=indepParamNames, 
     ensGen=ensGen, avegtol=avegtol, maxiter=maxiter,
     priorSigma=priorSigma, numprocs=numprocs, verbose=True )
 
-# <markdowncell>
 
 # Run parameter fitting
 # ---------------------
 
-# <markdowncell>
+# The bulk of computation time is used to fit the parameters of each model to the data.  Uncomment the following lines to run the parameter fitting, which takes a few hours using 10 processors.  Or skip ahead to load a version that has already been fit.
 
-# The bulk of computation time is used to fit the parameters of each model to the data.  Uncomment the following line to run the parameter fitting, which takes a few hours using 10 processors.  Or skip ahead to load a version that has already been fit.
+# In[11]:
 
-# <codecell>
-
+## Uncomment to run parameter fitting.
 #p.fitAll()
 #
-#FittingProblem.save(p,'simpleExample_savedFittingProblem.data')
+#fittingProblem.save(p,'simpleExample_savedFittingProblem.data')
 
-# <codecell>
 
-p = FittingProblem.load('simpleExample_savedFittingProblem.data')
+# In[10]:
 
-# <markdowncell>
+# Load saved version of fittingProblem that has already been fit.
+p = fittingProblem.load('simpleExample_savedFittingProblem.data')
+
 
 # Analyze the selected model
 # --------------------------
 
-# <markdowncell>
-
 # Here we plot predicted timecourses from the selected model for the first 10 in-sample initial conditions, using plotBestModelResults:
 
-# <codecell>
+# In[11]:
 
 pylab.figure(figsize=(20,2))
 p.plotBestModelResults(plotInitialConditions=True,indices=range(10));
 
-# <markdowncell>
 
 # And now for out-of-sample data:
 
-# <codecell>
+# In[12]:
 
 pylab.figure(figsize=(20,2))
 m = p.getBestModel()
 m.plotResults(sirIsaacData[20:30],indepParamsList[20:30],
               plotInitialConditions=True,plotFittingData=True);
 
-# <markdowncell>
 
 # We can look at the selected model's parameters:
 
-# <codecell>
+# In[13]:
 
 m = p.getBestModel()
 print m.getParameters()
 
-# <markdowncell>
 
 # The following will use SloppyCell to output a latex file with the ODEs describing the selected model:
 
-# <codecell>
+# In[14]:
 
 m = p.getBestModel()
-FittingProblem.IO.eqns_TeX_file(m.net,filename='simpleExample_selectedModel.tex')
+fittingProblem.IO.eqns_TeX_file(m.net,filename='simpleExample_selectedModel.tex')
 
-# <markdowncell>
 
 # More details
 # ------------
 
-# <markdowncell>
-
 # We can examine the dynamics of the hidden nodes as well using plotResults.
 
-# <codecell>
+# In[15]:
 
 pylab.figure(figsize=(20,6))
 m = p.getBestModel()
 m.plotResults(p.fittingData[:10],p.indepParamsList[:10],
               plotInitialConditions=True,plotHiddenNodes=True);
 
-# <markdowncell>
 
 # We have access to raw trajectories using evaluateVec.  Here we use this to plot a projection of trajectories in phase space for the first in-sample initial conditions:
 
-# <codecell>
+# In[16]:
 
 pylab.figure(figsize=(4,4))
 times = scipy.linspace(0,1,1000)
 xdata = m.evaluateVec(times,'x',p.indepParamsList[0])
 X1data = m.evaluateVec(times,'X_1',p.indepParamsList[0])
-FittingProblem.Plotting.plot(xdata,X1data)
+fittingProblem.Plotting.plot(xdata,X1data)
 pylab.xlabel('x')
 pylab.ylabel('X_1')
 
-# <markdowncell>
 
-# We can also look at other models that SirIsaac fit in searching for the best one.  In this case, 'Model 7' was selected because it has the largest estimated log-likelihood:
+# We can also look at other models that SirIsaac fit in searching for the best one.  In this case, 'Model 6' was selected because it has the largest estimated log-likelihood:
 
-# <codecell>
+# In[17]:
 
 for name in p.fittingModelNames:
   if name in p.logLikelihoodDict.keys():
-    print name, ': #species =',len(p.fittingModelDict[name].speciesNames),\
-                ', #params =',p.numParametersDict[name],\
-                ', L =', p.logLikelihoodDict[name]
+    print name, ': #species =',len(p.fittingModelDict[name].speciesNames),                ', #params =',p.numParametersDict[name],                ', L =', p.logLikelihoodDict[name]
 print
 print 'Selected model:',p.maxLogLikelihoodName()
 
-# <markdowncell>
 
 # A model with more parameters fits in-sample data better but out-of-sample data worse:
 
-# <codecell>
+# In[18]:
 
 pylab.figure(figsize=(20,2))
-m2 = p.fittingModelDict['Model 10']
+m2 = p.fittingModelDict['Model 9']
 m2.plotResults(sirIsaacData[:10],indepParamsList[:10],
               plotInitialConditions=True,plotFittingData=True);
 
-# <codecell>
+
+# In[19]:
 
 pylab.figure(figsize=(20,2))
 m2.plotResults(sirIsaacData[30:40],indepParamsList[30:40],
               plotInitialConditions=True,plotFittingData=True);
 
-# <markdowncell>
 
 # Also potentially useful is the Hessian at the best-fit parameters:
 
-# <codecell>
+# In[20]:
 
 hess = p.HessianDict[p.maxLogLikelihoodName()]
 u,singVals,vt = scipy.linalg.svd( hess )
 scipy.sort(singVals)
 
-# <markdowncell>
 
 # Other details about what happened during parameter fitting are stored within each fittingModel:
 
-# <codecell>
+# In[21]:
 
 m = p.getBestModel()
 print "Acceptance ratio for initial parameter ensemble =",m.acceptanceRatio
@@ -293,21 +270,25 @@ print "Convergence flags for local fits:",m.convFlagList
 print "Number of cost evaluations for local fits:",m.numCostCallsList
 print "Number of gradient evaluations for local fits:",m.numGradCallsList
 
-# <markdowncell>
 
 # Finally, since in this case we know the function used to create the data, we can compare:
 
-# <codecell>
+# In[22]:
 
 pylab.figure(figsize=(20,2))
 indicesToPlot = range(5)
 axArray = p.plotBestModelResults(plotInitialConditions=True,indices=indicesToPlot)
 
-# compare to underlying known model
+# compare to model that generated the data
 f = lambda x0,t: 1.5 + 0.5*scipy.sin(4.*scipy.pi*t + scipy.arcsin(2.*x0 - 3.))
 for i,indepParams in enumerate(scipy.array(indepParamsList)[indicesToPlot]):
     times = scipy.linspace(0,1,100)
     x0 = indepParams[0]
-    FittingProblem.Plotting.sca(axArray[0][i])
-    FittingProblem.Plotting.plot(times,f(x0,times),'k:')
+    fittingProblem.Plotting.sca(axArray[0][i])
+    fittingProblem.Plotting.plot(times,f(x0,times),'k:')
+
+
+# In[ ]:
+
+
 

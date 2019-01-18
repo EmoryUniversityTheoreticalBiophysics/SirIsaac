@@ -8,7 +8,7 @@
 # while the parameters used to fit each condition vary.
 #
 
-from FittingProblem import *
+from fittingProblem import *
 
 class FittingProblemMultipleCondition(FittingProblem):
     """

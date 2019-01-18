@@ -8,11 +8,10 @@
     
 import scipy
 from SloppyCell.ReactionNetworks import *
-import SirIsaac
-import SirIsaac.FakeData as FakeData
+import fakeData as FakeData
 import os,sys,copy
-from SirIsaac.outputTag import nextFileNumString
-import SirIsaac.SloppyCellTest as SloppyCellTest
+from outputTag import nextFileNumString
+import sloppyCellTest
 
 print "This computer's name is",os.uname()[1]
 if (os.uname()[1][:4] == 'node'): # 4.4.2012 emory machines
@@ -42,7 +41,7 @@ else:
     prefix = sys.argv[1]
 
 # 9.24.2013 make sure SloppyCell C compiling is working
-if not SloppyCellTest.testCcompiling():
+if not sloppyCellTest.testCcompiling():
     raise Exception, "SloppyCell C compiling not working."
 
 noiseInLog = False # 3.6.2013

@@ -1,4 +1,4 @@
-# Optimize.py
+# optimize.py
 #
 # Bryan Daniels
 # 5.8.2014
