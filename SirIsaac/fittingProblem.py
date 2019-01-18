@@ -1476,6 +1476,9 @@ class SloppyCellFittingModel(FittingModel):
         for name in indepParamNames:
             self.net.set_var_optimizable(name,False)
 
+        # disable SloppyCell's evaluation of extra times when integrating
+        self.net.add_tail_times = False
+
     def recompile(self):
         """
         Recompile the code SloppyCell uses to evaluate the model.
