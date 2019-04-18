@@ -12,7 +12,7 @@ References
 
 An example of the SirIsaac algorithm applied to experimental data appears in the following publication:
 
-* Daniels, B. C., W. S. Ryu, & Nemenman, I. (2019).  Automated, predictive, and interpretable inference of _Caenorhabditis elegans_ escape dynamics.  Proc. Natl. Acad. Sci. USA.  
+* Daniels, B. C., Ryu, W. S., & Nemenman, I. (2019).  Automated, predictive, and interpretable inference of _Caenorhabditis elegans_ escape dynamics.  Proc. Natl. Acad. Sci. USA.  
 https://doi.org/10.1073/pnas.1816531116
 
 Details of the theory and rationale behind the SirIsaac approach are described here:  
