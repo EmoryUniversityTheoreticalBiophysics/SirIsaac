@@ -42,7 +42,7 @@ except ImportError:
 if (os.uname()[1] != 'star'):
     from simulateYeastOscillator import *
 import pylab
-from subprocess import call # for network figures and pypar
+import subprocess # for network figures and pypar
 from linalgTools import svdInverse
 import copy
 
@@ -52,6 +52,17 @@ import sets
 
 from simplePickle import load,save
 
+# 3.20.2020 Disable SloppyCell's pypar unless we are running in parallel.
+# This addresses issues with error handling when parallel threads are spawned
+# from an original non-parallel call (as in generateEnsemble_pypar).
+if Ensembles.HAVE_PYPAR and Ensembles.num_procs == 1:
+    # disable pypar
+    Ensembles.pypar.finalize()
+    # avoid having finalize be called again at exit,
+    # which would produce an error message
+    import atexit
+    atexit._exithandlers.remove((Ensembles.pypar.finalize,(),{}))
+    
 
 avegtolDefault = 1e-8
 maxiterDefault = None
@@ -1805,7 +1816,7 @@ class SloppyCellFittingModel(FittingModel):
 
         # call mpi
         stdoutFile = open(prefix+"stdout.txt",'w')
-        call([ "mpirun","-np",str(numprocs),"python",os.path.join(SIRISAACDIR, "localFitParallel.py"),
+        subprocess.call([ "mpirun","-np",str(numprocs),"python",os.path.join(SIRISAACDIR, "localFitParallel.py"),
               inputDictFilename ], stderr=stdoutFile,stdout=stdoutFile)
         stdoutFile.close()
         os.remove(inputDictFilename)
@@ -2623,7 +2634,7 @@ class EnsembleGenerator():
 
           # call mpi
           stdoutFile = open(prefix+"stdout.txt",'w')
-          call([ "mpirun","-np",str(numprocs),"python",
+          subprocess.call([ "mpirun","-np",str(numprocs),"python",
                 os.path.join(SIRISAACDIR, "generateEnsembleParallel.py"),inputDictFilename ],
                 stderr=stdoutFile,stdout=stdoutFile)
           stdoutFile.close()
@@ -4439,9 +4450,10 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,
     if filename[-4:] != ".dot":
         filename = filename + ".dot"
     G.write(filename)
-    #call(["neato","-n1","-o"+filename[:-4]+".png","-Tpng",filename])
+    #subprocess.call(["neato","-n1","-o"+filename[:-4]+".png","-Tpng",filename])
     # TO DO: Catch errors from neato call
-    call(["neato","-n2","-o"+filename[:-4]+".eps","-Teps","-Gsplines=true",filename])
+    subprocess.call(["neato","-n2","-o"+filename[:-4]+".eps",
+                     "-Teps","-Gsplines=true",filename])
     return G
 
 
