@@ -65,10 +65,7 @@ eventually see something like
 
 ## Install SirIsaac
 
-SirIsaac is available as a git repository hosted on GitHub.  
-Typically you will want to install SirIsaac in the same Python
-site-packages folder as SloppyCell.  
-
+SirIsaac is available as a git repository hosted on GitHub.   
 GitHub offers many ways to download ("clone") software, including
 GUI apps for Windows and Mac (perhaps easiest for those unfamiliar with git) 
 and command line access using git.  To clone from 
@@ -78,6 +75,10 @@ the command line, change to the site-packages folder and run
 
 This will create a 'SirIsaac' directory in the current
 location containing the SirIsaac software.
+
+Typically you will want to install SirIsaac in the default Python site-packages folder. One way to do this is to use `setup.py` as above when installing SloppyCell.  Or the easy modern way to do this is to use the Python installer `pip`.  From any location, run
+
+	pip install -e [path to SirIsaac folder]
 
 ## Test installation
 
