@@ -7,7 +7,8 @@
 
 import unittest
 
-import SirIsaac
+import SirIsaac.fittingProblem
+import SirIsaac.fakeData
 
 NUMPROCS = 2
 
@@ -24,7 +25,7 @@ class TestParallel(unittest.TestCase):
         # create some fake data (with small added noise and constant seed)
         numPoints = 3
         timeInterval = [0,10]
-        noiseFracSize = 0.1
+        noiseFracSize = 0.1 # 0.01 hangs??
         data = [SirIsaac.fakeData.noisyFakeData(m.net,
                                                 numPoints,
                                                 timeInterval,
@@ -41,7 +42,7 @@ class TestParallel(unittest.TestCase):
         # then run in parallel
         ens = [p,p,p] # start from multiple (equivalent) points
         outputDictParallel = \
-            m.localFitToData_pypar(NUMPROCS,data,dataModel,ens,indepParamsList)
+            m.localFitToData_parallel(NUMPROCS,data,dataModel,ens,indepParamsList)
         
         # check that we get the same answer from each parallel instance
         testVar = fitParamsSerial.keys()[0] # just check the first parameter

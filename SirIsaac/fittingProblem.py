@@ -1721,7 +1721,7 @@ class SloppyCellFittingModel(FittingModel):
                 bestParams = fitParams
                 bestConvFlag = convFlag
         else: # run in parallel 3.21.2012
-            outputDict = self.localFitToData_pypar(self.numprocs,fittingData,
+            outputDict = self.localFitToData_parallel(self.numprocs,fittingData,
                 dataModel,ens,indepParamsList)
             indices = scipy.sort(outputDict.keys())
             self.costList = [ outputDict[i][2] for i in indices ]
@@ -1797,13 +1797,14 @@ class SloppyCellFittingModel(FittingModel):
             return fitParameters,convFlag
 
     # 3.21.2012
-    def localFitToData_pypar(self,numprocs,fittingData,dataModel,startParamsList,indepParamsList):
+    def localFitToData_parallel(self,numprocs,fittingData,dataModel,
+        startParamsList,indepParamsList):
         """
-        Uses pypar to run many local fits (localFitToData) in parallel.
+        Uses mpi4py to run many local fits (localFitToData) in parallel.
         """
 
         scipy.random.seed()
-        prefix = "temporary_" + str(os.getpid()) + "_localFitToData_pypar_"
+        prefix = "temporary_" + str(os.getpid()) + "_localFitToData_parallel_"
         inputDictFilename = prefix + "inputDict.data"
         outputFilename = prefix + "output.data"
         inputDict = { 'fittingProblem':self,
@@ -1826,12 +1827,12 @@ class SloppyCellFittingModel(FittingModel):
             os.remove(outputFilename)
             os.remove(prefix+"stdout.txt")
         except IOError:
-            print "localFitToData_pypar error:"
+            print "localFitToData_parallel error:"
             stdoutFile = open(prefix+"stdout.txt")
             stdout = stdoutFile.read()
             print stdout
             os.remove(prefix+"stdout.txt")
-            raise Exception, "localFitToData_pypar:"                            \
+            raise Exception, "localFitToData_parallel:"                            \
                 + " error in localFitParallel.py"
 
         return output

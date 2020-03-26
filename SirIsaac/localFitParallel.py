@@ -7,43 +7,40 @@
 # Uses design pattern at 
 # http://www.shocksolution.com/2010/04/managing-a-pool-of-mpi-processes-with-python-and-pypar/
 # to run local fits in parallel.  
-# Used in FittingProblem.SloppyCellFittingModel.localFitToData_pypar
+# Used in FittingProblem.SloppyCellFittingModel.localFitToData_parallel
 #
 
 #!/usr/bin/env python
 from numpy import *
-import pypar
+from mpi4py import MPI
 import time
 
-#from generateFightData import *
 from fittingProblem import *
 import sys
 
-# for parallel computation supported by SloppyCell
-#import SloppyCell.ReactionNetworks.RunInParallel as Par
-
-# 7.3.2012 disable SloppyCell's parallel stuff
-# see SloppyCell's __init__.py
-sc = IO.SloppyCell
-modules = [ sc,sc.ReactionNetworks,Ensembles,Dynamics,
-            Collections,PerfectData ]
-import socket
-for module in modules:
-    module.HAVE_PYPAR = False
-    module.num_procs = 1
-    module.my_rank = 0
-    module.my_host = socket.gethostname()
+## 7.3.2012 disable SloppyCell's parallel stuff
+## see SloppyCell's __init__.py
+#sc = IO.SloppyCell
+#modules = [ sc,sc.ReactionNetworks,Ensembles,Dynamics,
+#            Collections,PerfectData ]
+#import socket
+#for module in modules:
+#    module.HAVE_PYPAR = False
+#    module.num_procs = 1
+#    module.my_rank = 0
+#    module.my_host = socket.gethostname()
 
 # Constants
 MASTER_PROCESS = 0
-WORK_TAG = 1
-DIE_TAG = 2
+#WORK_TAG = 1
+DIE_INDEX = -1
 
-MPI_myID = pypar.rank() #Par.my_rank 
-num_processors = pypar.size() #Par.num_procs
+comm = MPI.COMM_WORLD
+MPI_myID = comm.Get_rank()
+num_processors = comm.Get_size()
 
 if num_processors < 2:
-    raise Exception, "Pypar has failed to initialize more than one processor."
+    raise Exception, "mpi4py has failed to initialize more than one processor."
 
 # read in arguments from command line file name
 if len(sys.argv) < 2 or len(sys.argv) > 2:
@@ -58,7 +55,6 @@ dataModel = inputDict['dataModel']
 startParamsList = inputDict['startParamsList']
 outputFilename = inputDict['outputFilename']
 inputDict['outputDict'] = {}
-num_work_processors = num_processors - 1 # can we make this num_processors?
 fitFunction = lambda startParamsIndex:                          \
     fittingProblem.localFitToData(fittingData,dataModel,        \
     retall=True,startParams=startParamsList[startParamsIndex])
@@ -70,14 +66,8 @@ allOutputsDict = {}
 if MPI_myID == MASTER_PROCESS:
     from simplePickle import save
 
-    num_processors = pypar.size()
+    num_processors = comm.Get_size()
     print "Master process found " + str(num_processors) + " worker processors."
-    
-    # Create a list of dummy arrays to pass to the worker processes
-    #work_size = 10
-    #work_array = range(0,work_size)
-    #for i in range(len(work_array)):
-    #    work_array[i] = arange(0.0, 10.0)
     
     # list of startParams indices to pass to the workers
     work_array = range(len(startParamsList))
@@ -87,43 +77,45 @@ if MPI_myID == MASTER_PROCESS:
     work_index = 0
     num_completed = 0
     
-    
-    
-    
     # Start all worker processes
     for i in range(1, min(num_processors, work_size+1)):
-        pypar.send(work_index, i, tag=WORK_TAG)
-        pypar.send(work_array[work_index], i)
+        comm.send(work_index, dest=i) #, tag=WORK_TAG)
+        comm.send(work_array[work_index], dest=i)
         print "Sent work index " + str(work_index) + " to processor " + str(i)
         work_index += 1
 
     # Receive results from each worker, and send it new data
+    # 3.26.2020 For now, wait for results from each worker in order.
+    #           It may be possible to be more fancy and get results as they are done.
     for i in range(num_processors, work_size+1):
-        results, status = pypar.receive(source=pypar.any_source, tag=pypar.any_tag, return_status=True)
+        proc = 1 + (i-1) % (num_processors - 1)
+        results = comm.recv(source=proc)
         # save results
-        result_index = results.pop()
+        result_index = num_completed
         allOutputsDict[result_index] = results
-        index = status.tag
-        proc = status.source
         num_completed += 1
         # start next
-        pypar.send(work_index, proc, tag=WORK_TAG)
-        pypar.send(work_array[work_index], proc)
+        comm.send(work_index, dest=proc)
+        comm.send(work_array[work_index], dest=proc)
         print "Sent work index " + str(work_index) + " to processor " + str(proc)
         work_index += 1
 
     # Get results from remaining worker processes
-    while num_completed < work_size: #-1
-        results, status = pypar.receive(source=pypar.any_source, tag=pypar.any_tag, return_status=True)
+    while num_completed < work_size:
+        proc += 1
+        if proc > (num_processors - 1): proc = 1
+        results = comm.recv(source=proc)
         # save results
-        result_index = results.pop()
+        result_index = num_completed
         allOutputsDict[result_index] = results
         num_completed += 1
+        
+    assert(num_completed == work_size)
     
     # Shut down worker processes
     for proc in range(1, num_processors):
         print "Stopping worker process " + str(proc)
-        pypar.send(-1, proc, tag=DIE_TAG)
+        comm.send(DIE_INDEX, dest=proc)
         
     # Write data to file
     save(allOutputsDict,outputFilename)
@@ -133,24 +125,12 @@ else:
     continue_working = True
     while continue_working:
         
-        work_index, status =  pypar.receive(                        \
-            source=MASTER_PROCESS, tag=pypar.any_tag,               \
-            return_status=True)
+        work_index =  comm.recv(source=MASTER_PROCESS)
         
-        if status.tag == DIE_TAG:
+        if work_index == DIE_INDEX:
             continue_working = False
         else:
-            work_array, status = pypar.receive(                     \
-                source=MASTER_PROCESS, tag=pypar.any_tag,           \
-                return_status=True)
-            work_index = status.tag
-            
-            # Code below simulates a task running
-            #time.sleep(random.random_integers(low=0, high=5))
-            #result_array = work_array.copy()
-            
-            #from simplePickle import save
-            #save(work_index,"temporary_debug_"+str(work_array)+".data")
+            work_array = comm.recv(source=MASTER_PROCESS)
             
             startTime = time.clock()
             
@@ -161,9 +141,9 @@ else:
             workerResults.append(minimizationTimeSeconds)
             workerResults.append(work_array)
             
-            pypar.send(workerResults, destination=MASTER_PROCESS, tag=work_index)
+            comm.send(workerResults, dest=MASTER_PROCESS)
 #### while
 #### if worker
 
-pypar.finalize()
+comm.finalize()
 
