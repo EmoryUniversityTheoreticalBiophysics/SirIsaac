@@ -55,3 +55,4 @@ output = ensGen.generateEnsemble(dataModel,initialParameters,   \
 # Write data to file
 save(output,outputFilename)
 
+print "MPIEND"
