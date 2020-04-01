@@ -146,4 +146,4 @@ else:
 #### if worker
 
 comm.finalize()
-
+print "MPIEND"
