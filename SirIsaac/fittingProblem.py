@@ -11,8 +11,7 @@
 #
 
 # 9.9.2015 directory needed for direct calling using MPI?
-import os
-
+import os, threading
 SIRISAACDIR = os.path.abspath(os.path.dirname(__file__))
 
 from SloppyCell.ReactionNetworks import *
@@ -1815,24 +1814,24 @@ class SloppyCellFittingModel(FittingModel):
         save(inputDict,inputDictFilename)
 
         # call mpi
-        stdoutFile = open(prefix+"stdout.txt",'w')
-        subprocess.call([ "mpirun","-np",str(numprocs),"python",os.path.join(SIRISAACDIR, "localFitParallel.py"),
-              inputDictFilename ], stderr=stdoutFile,stdout=stdoutFile)
-        stdoutFile.close()
-        os.remove(inputDictFilename)
-
-        try:
-            output = load(outputFilename)
-            os.remove(outputFilename)
-            os.remove(prefix+"stdout.txt")
-        except IOError:
-            print "localFitToData_pypar error:"
-            stdoutFile = open(prefix+"stdout.txt")
-            stdout = stdoutFile.read()
-            print stdout
-            os.remove(prefix+"stdout.txt")
-            raise Exception, "localFitToData_pypar:"                            \
-                + " error in localFitParallel.py"
+        outfile = "stdout.txt"
+        thread = threading.Thread(target=self.mpithread, args=(prefix,numprocs,"localFitParallel.py",inputDictFilename,outfile))
+        thread.setDaemon(True)
+        thread.start()
+       
+        time.sleep(0.5) #Note: Delay is necessary for the main process to to read the output file generated in mpithread
+        file = open(prefix+outfile,'r')
+        line = file.readline()
+        while not "MPIEND" in line:
+            where = file.tell()
+            line = file.readline()
+            if not line:
+                time.sleep(1)
+                file.seek(where)
+            else:
+                print("MPI   : " + line)
+        file.close()
+        thread.join()
 
         return output
 
@@ -2608,8 +2607,27 @@ class EnsembleGenerator():
           return keptEns,ratio,keptCosts
         else:
           return keptEns,ratio
-
-    def generateEnsemble_pypar(self,numprocs,dataModel,initialParameters,
+ 
+    def mpithread(self,prefix,numprocs,mpirunFile,inputDictFilename,outfile):
+        """
+        This is a threadfunction which is called for running the mpirun subprocess.
+        The main code will then monitor the stdout of mpirun process and display it on
+        the stdout of main python process. The monitoring ends after the subprocess
+        outputs "MPIEND" string on the stdout. The threads are joined after the monitoring ends.
+        :param prefix: prefix of the outfile, which depends on the mpirunFile
+        :param numprocs:
+        :param mpirunFile: this can be either "generateEnsembleParallel.py" or "localFitParallel.py"
+        :param inputDictFilename: this file is used to pass data to the python script mpirunFile
+        :param outfile: stdout file
+        """
+        stdoutFile = open(prefix+outfile,'w')
+        call([ "mpirun","-np",str(numprocs),"python",os.path.join(SIRISAACDIR,mpirunFile),
+              inputDictFilename ], stderr=stdoutFile,stdout=stdoutFile)
+        #print "MPIRUN done"
+        stdoutFile.close()
+        os.remove(inputDictFilename)
+     
+    def generateEnsemble_pypar(self,numprocs,dataModel,initialParameters,       
           returnCosts=False,scaleByDOF=True,verbose=True):
           """
           Uses SloppyCell's built-in pypar support to run ensemble generation
@@ -2633,25 +2651,24 @@ class EnsembleGenerator():
           save(inputDict,inputDictFilename)
 
           # call mpi
-          stdoutFile = open(prefix+"stdout.txt",'w')
-          subprocess.call([ "mpirun","-np",str(numprocs),"python",
-                os.path.join(SIRISAACDIR, "generateEnsembleParallel.py"),inputDictFilename ],
-                stderr=stdoutFile,stdout=stdoutFile)
-          stdoutFile.close()
-          os.remove(inputDictFilename)
-
-          try:
-              output = load(outputFilename)
-              os.remove(outputFilename)
-              os.remove(prefix+"stdout.txt")
-          except IOError:
-              print "generateEnsemble_pypar error:"
-              stdoutFile = open(prefix+"stdout.txt")
-              stdout = stdoutFile.read()
-              print stdout
-              os.remove(prefix+"stdout.txt")
-              raise Exception, "generateEnsemble_pypar:"                        \
-                  + " error in generateEnsembleParallel.py"
+          outfile = "stdout.txt"
+          thread = threading.Thread(target=self.mpithread, args=(prefix,numprocs,"generateEnsembleParallel.py",inputDictFilename,outfile))
+          thread.setDaemon(True)
+          thread.start()
+          
+          time.sleep(0.5)   #Note: Delay is necessary for the main process to to read the output file generated in mpithread
+          file = open(prefix+outfile,'r')
+          line = file.readline()
+          while not "MPIEND" in line:
+              where = file.tell()
+              line = file.readline()
+              if not line:
+                  time.sleep(1)
+                  file.seek(where)
+              else:
+                  print("MPI   : " + line)
+          file.close()
+          thread.join()
 
           return output
 

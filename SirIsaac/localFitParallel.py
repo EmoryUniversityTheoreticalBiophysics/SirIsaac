@@ -166,4 +166,4 @@ else:
 #### if worker
 
 pypar.finalize()
-
+print "MPIEND"
