@@ -145,5 +145,4 @@ else:
 #### while
 #### if worker
 
-comm.finalize()
 

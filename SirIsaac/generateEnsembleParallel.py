@@ -8,27 +8,15 @@
 
 #!/usr/bin/env python
 from numpy import *
-import pypar
 import time
 
 #from generateFightData import *
 from fittingProblem import *
 import sys
 
-# for parallel computation supported by SloppyCell
+# use parallel computation supported by SloppyCell
+# (in cost and sensitivity calculations)
 import SloppyCell.ReactionNetworks.RunInParallel as Par
-
-
-# Constants
-MASTER_PROCESS = 0
-WORK_TAG = 1
-DIE_TAG = 2
-
-MPI_myID = pypar.rank() #Par.my_rank 
-num_processors = pypar.size() #Par.num_procs
-
-if num_processors < 2:
-    raise Exception, "Pypar has failed to initialize more than one processor."
 
 # read in arguments from command line file name
 if len(sys.argv) < 2 or len(sys.argv) > 2:
@@ -43,13 +31,10 @@ returnCosts = inputDict['returnCosts']
 scaleByDOF = inputDict['scaleByDOF']
 outputFilename = inputDict['outputFilename']
 inputDict['outputDict'] = {}
-fitFunction = lambda startParamsIndex:                          \
-    fittingProblem.localFitToData(fittingData,dataModel,        \
-    retall=True,startParams=startParamsList[startParamsIndex])
 
 allOutputsDict = {}
 
-output = ensGen.generateEnsemble(dataModel,initialParameters,   \
+output = ensGen.generateEnsemble(dataModel,initialParameters,
     returnCosts=returnCosts,scaleByDOF=scaleByDOF)
 
 # Write data to file
