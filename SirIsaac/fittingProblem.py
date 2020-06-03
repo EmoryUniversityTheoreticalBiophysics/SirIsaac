@@ -1809,7 +1809,7 @@ class SloppyCellFittingModel(FittingModel):
         stdoutFile = open(prefix+"stdout.txt",'w')
         subprocess.call([ "mpirun","-np",str(numprocs),"python",
                           os.path.join(SIRISAACDIR, "localFitParallel.py"),
-                          inputDictFilename, "--disableC" ],
+                          inputDictFilename ],
                         stderr=stdoutFile,stdout=stdoutFile,env=os.environ)
         stdoutFile.close()
         os.remove(inputDictFilename)
