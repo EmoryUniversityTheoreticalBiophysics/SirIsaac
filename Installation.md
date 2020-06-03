@@ -8,84 +8,50 @@ SirIsaac depends on the following packages:
 - Python 2.6 or later (not Python 3)
 - Scipy
 - Matplotlib
-- SloppyCell (http://sloppycell.sourceforge.net)
+- SloppyCell (https://github.com/GutenkunstLab/SloppyCell)
 
 There exist several relatively simple ways to install
 the first three packages above at once, including
 
-- Anaconda: http://store.continuum.io/cshop/anaconda/
+- Anaconda: http://www.anaconda.com
 - Sage: http://www.sagemath.org
 
 These systems also have the added benefit of coming
 prepackaged with other useful software such as
 iPython and Jupyter.
 
+Note: As of June 2020, SirIsaac does not support Python 3 (we are working on it).  Installing Python 2 using the above package managers is likely no longer the default option as it is now officially out of date.
+
 ### Install SloppyCell
 
-As of February 2014, SirIsaac depends on the latest
-developer version of SloppyCell.  This software is
-available through a git repository.
-We describe here one typical way to download and 
-install SloppyCell.
-More information is available here: 
-http://sloppycell.sourceforge.net/
-http://sourceforge.net/p/sloppycell/git/ci/master/tree/
+SirIsaac depends on the latest
+version of SloppyCell, available on GitHub.
+In the simplest case, you can install with two steps.  First download the git repository by running
 
-Typically you will want to install SloppyCell in Python's
-site-packages folder, usually found within a directory such as
+    https://github.com/GutenkunstLab/SloppyCell.git
+    
+which will create a folder named `SloppyCell` in the current directory.  Next, install SloppyCell by running setup.py.  The easiest way to do this is using `pip`:
 
-* /lib/python2.7/site-packages/ for Linux
-* /Library/Python/2.7/site-packages/ for Mac (using built-in Python)
-* /sw/lib/python2.7/site-packages/ for Mac using Fink
-* ~/anaconda/lib/python2.7/site-packages/ using Anaconda
-* ~/sage-x.x/lib/python2.6/site-packages/ using Sage
-
-In the simplest case, you can anonymously 'clone' the latest version 
-by changing to the above directory and running
-
-    git clone git://git.code.sf.net/p/sloppycell/git sloppycell-git
-
-You should see a bunch of files being downloaded.  Next,
-build the Fortran libraries by changing into the new 'sloppycell-git' 
-directory and running setup.py:
-
-    cd sloppycell-git
-    sudo python setup.py build install --install-lib=..
-
-(prefacing by sudo if necessary for write privileges).  (If you
-do not build the Fortran libraries, you will
-get the error 'No module named _daskr' when trying to
-import SirIsaac.FittingProblem.)  If this is successful, you'll 
-eventually see something like 
-
-    Installed /sw/lib/python2.7/site-packages/SloppyCell-CVS-py2.7-macosx-10.7-x86_64.egg
-    Processing dependencies for SloppyCell==CVS
-    Finished processing dependencies for SloppyCell==CVS
-
+    pip install -e SloppyCell/
 
 ## Install SirIsaac
 
-SirIsaac is available as a git repository hosted on GitHub.   
-GitHub offers many ways to download ("clone") software, including
-GUI apps for Windows and Mac (perhaps easiest for those unfamiliar with git) 
-and command line access using git.  To clone from 
-the command line, change to the site-packages folder and run
+SirIsaac is similarly available as a git repository on GitHub.   To install, first download by running
 
     git clone https://github.com/EmoryUniversityTheoreticalBiophysics/SirIsaac.git
 
-This will create a 'SirIsaac' directory in the current
-location containing the SirIsaac software.
+which will create a folder named `SirIsaac` in the current directory.  Next, install SirIsaac by running setup.py.   The easiest way to do this is using `pip`: 
 
-Typically you will want to install SirIsaac in the default Python site-packages folder. One way to do this is to use `setup.py` as above when installing SloppyCell.  Or the easy modern way to do this is to use the Python installer `pip`.  From any location, run
-
-	pip install -e [path to SirIsaac folder]
+	pip install -e SirIsaac/
 
 ## Test installation
 
 A basic test of the SirIsaac and SloppyCell installation can be
-run by descending into the SirIsaac directory and running
+run by descending into the `SirIsaac/SirIsaac/` directory and running
 
     python SloppyCellTest.py
+
+More comprehensive tests are found in the `test` subfolder, and can be run using, e.g., `nosetests`.
 
 To further help you get up and running, 
 code to fit and analyze a simple example dataset 
@@ -103,3 +69,4 @@ To run the .py file in iPython at the command line, run:
     ipython --pylab
     %run simpleExample.py
     show()
+

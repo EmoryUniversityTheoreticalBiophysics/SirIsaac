@@ -42,7 +42,7 @@ except ImportError:
 if (os.uname()[1] != 'star'):
     from simulateYeastOscillator import *
 import pylab
-import subprocess # for network figures and pypar
+import subprocess # for network figures and mpi
 from linalgTools import svdInverse
 import copy
 
@@ -52,16 +52,6 @@ import sets
 
 from simplePickle import load,save
 
-# 3.20.2020 Disable SloppyCell's pypar unless we are running in parallel.
-# This addresses issues with error handling when parallel threads are spawned
-# from an original non-parallel call (as in generateEnsemble_pypar).
-if Ensembles.HAVE_PYPAR and Ensembles.num_procs == 1:
-    # disable pypar
-    Ensembles.pypar.finalize()
-    # avoid having finalize be called again at exit,
-    # which would produce an error message
-    import atexit
-    atexit._exithandlers.remove((Ensembles.pypar.finalize,(),{}))
     
 
 avegtolDefault = 1e-8
@@ -1626,7 +1616,7 @@ class SloppyCellFittingModel(FittingModel):
         elif self.ensGen != None:
             startTimeEns = time.clock()
             if self.numprocs > 1:
-                ens,ratio = self.ensGen.generateEnsemble_pypar(self.numprocs,
+                ens,ratio = self.ensGen.generateEnsemble_parallel(self.numprocs,
                     dataModel,initialParameters,verbose=self.verbose)
             else:
                 ens,ratio = self.ensGen.generateEnsemble(dataModel,
@@ -1721,7 +1711,7 @@ class SloppyCellFittingModel(FittingModel):
                 bestParams = fitParams
                 bestConvFlag = convFlag
         else: # run in parallel 3.21.2012
-            outputDict = self.localFitToData_pypar(self.numprocs,fittingData,
+            outputDict = self.localFitToData_parallel(self.numprocs,fittingData,
                 dataModel,ens,indepParamsList)
             indices = scipy.sort(outputDict.keys())
             self.costList = [ outputDict[i][2] for i in indices ]
@@ -1797,13 +1787,14 @@ class SloppyCellFittingModel(FittingModel):
             return fitParameters,convFlag
 
     # 3.21.2012
-    def localFitToData_pypar(self,numprocs,fittingData,dataModel,startParamsList,indepParamsList):
+    def localFitToData_parallel(self,numprocs,fittingData,dataModel,
+        startParamsList,indepParamsList):
         """
-        Uses pypar to run many local fits (localFitToData) in parallel.
+        Uses mpi4py to run many local fits (localFitToData) in parallel.
         """
 
         scipy.random.seed()
-        prefix = "temporary_" + str(os.getpid()) + "_localFitToData_pypar_"
+        prefix = "temporary_" + str(os.getpid()) + "_localFitToData_parallel_"
         inputDictFilename = prefix + "inputDict.data"
         outputFilename = prefix + "output.data"
         inputDict = { 'fittingProblem':self,
@@ -1816,8 +1807,10 @@ class SloppyCellFittingModel(FittingModel):
 
         # call mpi
         stdoutFile = open(prefix+"stdout.txt",'w')
-        subprocess.call([ "mpirun","-np",str(numprocs),"python",os.path.join(SIRISAACDIR, "localFitParallel.py"),
-              inputDictFilename ], stderr=stdoutFile,stdout=stdoutFile)
+        subprocess.call([ "mpirun","-np",str(numprocs),"python",
+                          os.path.join(SIRISAACDIR, "localFitParallel.py"),
+                          inputDictFilename ],
+                        stderr=stdoutFile,stdout=stdoutFile,env=os.environ)
         stdoutFile.close()
         os.remove(inputDictFilename)
 
@@ -1826,12 +1819,12 @@ class SloppyCellFittingModel(FittingModel):
             os.remove(outputFilename)
             os.remove(prefix+"stdout.txt")
         except IOError:
-            print "localFitToData_pypar error:"
+            print "localFitToData_parallel error:"
             stdoutFile = open(prefix+"stdout.txt")
             stdout = stdoutFile.read()
             print stdout
             os.remove(prefix+"stdout.txt")
-            raise Exception, "localFitToData_pypar:"                            \
+            raise Exception, "localFitToData_parallel:"                            \
                 + " error in localFitParallel.py"
 
         return output
@@ -2609,19 +2602,19 @@ class EnsembleGenerator():
         else:
           return keptEns,ratio
 
-    def generateEnsemble_pypar(self,numprocs,dataModel,initialParameters,
+    def generateEnsemble_parallel(self,numprocs,dataModel,initialParameters,
           returnCosts=False,scaleByDOF=True,verbose=True):
           """
-          Uses SloppyCell's built-in pypar support to run ensemble generation
+          Uses SloppyCell's built-in mpi4py support to run ensemble generation
           (generateEnsemble) in parallel.
           """
           if verbose:
-            print "generateEnsemble_pypar: Generating parameter ensemble with " \
+            print "generateEnsemble_parallel: Generating parameter ensemble with " \
               +str(self.totalSteps)+" total members, using "                    \
               +str(numprocs)+" processors."
 
           scipy.random.seed()
-          prefix = "temporary_" + str(os.getpid()) + "_generateEnsemble_pypar_"
+          prefix = "temporary_" + str(os.getpid()) + "_generateEnsemble_parallel_"
           inputDictFilename = prefix + "inputDict.data"
           outputFilename = prefix + "output.data"
           inputDict = { 'ensGen':self,
@@ -2633,10 +2626,14 @@ class EnsembleGenerator():
           save(inputDict,inputDictFilename)
 
           # call mpi
+          # for info on "env=os.environ", see
+          # https://stackoverflow.com/questions/60060142/strange-interaction-
+          #         between-h5py-subprocess-and-mpirun
           stdoutFile = open(prefix+"stdout.txt",'w')
           subprocess.call([ "mpirun","-np",str(numprocs),"python",
-                os.path.join(SIRISAACDIR, "generateEnsembleParallel.py"),inputDictFilename ],
-                stderr=stdoutFile,stdout=stdoutFile)
+                os.path.join(SIRISAACDIR, "generateEnsembleParallel.py"),
+                inputDictFilename, "--disableC" ],
+                stderr=stdoutFile,stdout=stdoutFile,env=os.environ)
           stdoutFile.close()
           os.remove(inputDictFilename)
 
@@ -2645,12 +2642,12 @@ class EnsembleGenerator():
               os.remove(outputFilename)
               os.remove(prefix+"stdout.txt")
           except IOError:
-              print "generateEnsemble_pypar error:"
+              print "generateEnsemble_parallel error:"
               stdoutFile = open(prefix+"stdout.txt")
               stdout = stdoutFile.read()
               print stdout
               os.remove(prefix+"stdout.txt")
-              raise Exception, "generateEnsemble_pypar:"                        \
+              raise Exception, "generateEnsemble_parallel:"                        \
                   + " error in generateEnsembleParallel.py"
 
           return output
