@@ -28,7 +28,7 @@ Scipy
 Matplotlib  
 (One way to install the above is with Anaconda or Sage.  See Installation.md.)
 
-SloppyCell (http://sloppycell.sourceforge.net)  
+SloppyCell (https://github.com/GutenkunstLab/SloppyCell)  
 
 
 Optional dependencies
