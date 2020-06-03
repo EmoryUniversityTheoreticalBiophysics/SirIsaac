@@ -1807,8 +1807,10 @@ class SloppyCellFittingModel(FittingModel):
 
         # call mpi
         stdoutFile = open(prefix+"stdout.txt",'w')
-        subprocess.call([ "mpirun","-np",str(numprocs),"python",os.path.join(SIRISAACDIR, "localFitParallel.py"),
-              inputDictFilename ], stderr=stdoutFile,stdout=stdoutFile,env=os.environ)
+        subprocess.call([ "mpirun","-np",str(numprocs),"python",
+                          os.path.join(SIRISAACDIR, "localFitParallel.py"),
+                          inputDictFilename, "--disableC" ],
+                        stderr=stdoutFile,stdout=stdoutFile,env=os.environ)
         stdoutFile.close()
         os.remove(inputDictFilename)
 
@@ -2629,7 +2631,8 @@ class EnsembleGenerator():
           #         between-h5py-subprocess-and-mpirun
           stdoutFile = open(prefix+"stdout.txt",'w')
           subprocess.call([ "mpirun","-np",str(numprocs),"python",
-                os.path.join(SIRISAACDIR, "generateEnsembleParallel.py"),inputDictFilename ],
+                os.path.join(SIRISAACDIR, "generateEnsembleParallel.py"),
+                inputDictFilename, "--disableC" ],
                 stderr=stdoutFile,stdout=stdoutFile,env=os.environ)
           stdoutFile.close()
           os.remove(inputDictFilename)

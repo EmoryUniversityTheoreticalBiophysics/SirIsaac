@@ -20,19 +20,18 @@ import sys
 
 ## 7.3.2012 disable SloppyCell's parallel stuff
 ## see SloppyCell's __init__.py
-#sc = IO.SloppyCell
-#modules = [ sc,sc.ReactionNetworks,Ensembles,Dynamics,
-#            Collections,PerfectData ]
-#import socket
-#for module in modules:
-#    module.HAVE_PYPAR = False
-#    module.num_procs = 1
-#    module.my_rank = 0
-#    module.my_host = socket.gethostname()
+sc = IO.SloppyCell
+modules = [ sc,sc.ReactionNetworks,Ensembles,Dynamics,
+            Collections,PerfectData ]
+import socket
+for module in modules:
+    module.HAVE_MPI = False
+    module.num_procs = 1
+    module.my_rank = 0
+    module.my_host = socket.gethostname()
 
 # Constants
 MASTER_PROCESS = 0
-#WORK_TAG = 1
 DIE_INDEX = -1
 
 comm = MPI.COMM_WORLD
@@ -43,8 +42,8 @@ if num_processors < 2:
     raise Exception, "mpi4py has failed to initialize more than one processor."
 
 # read in arguments from command line file name
-if len(sys.argv) < 2 or len(sys.argv) > 2:
-    print "Usage: python localFitParallel.py inputDictFile.data"
+if len(sys.argv) < 2:
+    print "Usage: python localFitParallel.py inputDictFile.data [SloppyCell options]"
     exit()
 inputDictFile = sys.argv[1]
 inputDict = load(inputDictFile)
@@ -67,7 +66,8 @@ if MPI_myID == MASTER_PROCESS:
     from simplePickle import save
 
     num_processors = comm.Get_size()
-    print "Master process found " + str(num_processors) + " worker processors."
+    print("localFitParallel: "\
+          "Master process found {} other worker processors".format(num_processors-1))
     
     # list of startParams indices to pass to the workers
     work_array = range(len(startParamsList))
@@ -79,9 +79,9 @@ if MPI_myID == MASTER_PROCESS:
     
     # Start all worker processes
     for i in range(1, min(num_processors, work_size+1)):
-        comm.send(work_index, dest=i) #, tag=WORK_TAG)
+        comm.send(work_index, dest=i)
         comm.send(work_array[work_index], dest=i)
-        print "Sent work index " + str(work_index) + " to processor " + str(i)
+        print("localFitParallel: Sent work index {} to worker {}".format(work_index,i))
         work_index += 1
 
     # Receive results from each worker, and send it new data
@@ -97,7 +97,7 @@ if MPI_myID == MASTER_PROCESS:
         # start next
         comm.send(work_index, dest=proc)
         comm.send(work_array[work_index], dest=proc)
-        print "Sent work index " + str(work_index) + " to processor " + str(proc)
+        print("localFitParallel: Sent work index {} to worker {}".format(work_index,proc))
         work_index += 1
 
     # Get results from remaining worker processes
@@ -114,7 +114,7 @@ if MPI_myID == MASTER_PROCESS:
     
     # Shut down worker processes
     for proc in range(1, num_processors):
-        print "Stopping worker process " + str(proc)
+        print("localFitParallel: Stopping worker process {}".format(proc))
         comm.send(DIE_INDEX, dest=proc)
         
     # Write data to file
@@ -131,6 +131,8 @@ else:
             continue_working = False
         else:
             work_array = comm.recv(source=MASTER_PROCESS)
+            print("localFitParallel: "\
+                  "worker {} working on work_array {}...".format(MPI_myID,work_array))
             
             startTime = time.clock()
             
@@ -142,6 +144,9 @@ else:
             workerResults.append(work_array)
             
             comm.send(workerResults, dest=MASTER_PROCESS)
+            
+            print("localFitParallel: "\
+                  "worker {} finished with work_array {}".format(MPI_myID,work_array))
 #### while
 #### if worker
 
