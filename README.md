@@ -34,7 +34,7 @@ SloppyCell (https://github.com/GutenkunstLab/SloppyCell)
 Optional dependencies
 =====================
 
-Pypar (for running on multiple processors)  
+mpi4py (for running on multiple processors)  
 SBML (systems biology markup language)  
 BioNetGen
 Pygraphviz (for creating network diagrams)  
