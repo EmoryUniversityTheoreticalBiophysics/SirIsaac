@@ -5,8 +5,7 @@
 # 9.25.2013
 #
 
-import FittingProblem
-reload(FittingProblem)
+import fittingProblem
 from SloppyCell.ReactionNetworks import *
 import time # for sleep
 import os
@@ -59,7 +58,7 @@ def makeEnsemble(fpdFilename,numDataPoints,modelName=None,numSteps=1000,        
     dataModel = m._SloppyCellDataModel(fp.fittingData,fp.indepParamsList)
 
     # generate the ensemble
-    sloppyEnsGen = FittingProblem.EnsembleGenerator(numSteps,numStepsKept,      \
+    sloppyEnsGen = fittingProblem.EnsembleGenerator(numSteps,numStepsKept,      \
         sing_val_cutoff=sing_val_cutoff,seeds=seeds,logParams=logParams)
     if numprocs == 1:
         output = sloppyEnsGen.generateEnsemble(dataModel,                       \

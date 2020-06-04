@@ -5,7 +5,7 @@
 #
 
 
-from FittingProblem import *
+from fittingProblem import *
 from analyzeFittingProblemDict import orderedFitNames
 import sys
 
