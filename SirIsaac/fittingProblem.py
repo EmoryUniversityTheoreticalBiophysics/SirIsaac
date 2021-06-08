@@ -2559,11 +2559,16 @@ class EnsembleGenerator():
         if self.logParams:
             ensembleFunc = Ensembles.ensemble_log_params
 
+        typicalExceptions = (Utility.SloppyCellException,
+                             ValueError,
+                             scipy.linalg.LinAlgError,
+                             OverflowError)
+
         # make sure our current parameters don't cause integration problems
         try:
             initialCost = dataModel.cost(initialParameters)
-        except Utility.SloppyCellException:
-            print "generateEnsemble: SloppyCellException in evaluating cost "   \
+        except typicalExceptions: #(Utility.SloppyCellException,OverflowError):
+            print "generateEnsemble: Exception in evaluating cost "   \
                   "for initial parameters.  Returning empty ensemble."
             initialCost = scipy.inf
             if returnCosts: return [[]],None,[None]
@@ -2575,7 +2580,7 @@ class EnsembleGenerator():
             else:
                 initialHess = dataModel.GetJandJtJ(initialParameters)[1]
             u, sing_vals, vh = scipy.linalg.svd(0.5 * initialHess)
-        except (Utility.SloppyCellException,ValueError,scipy.linalg.LinAlgError):
+        except typicalExceptions:
             print "generateEnsemble: Exception in evaluating JtJ "              \
                   "for initial parameters.  Returning empty ensemble."
             if returnCosts: return [[]],None,[None]
@@ -2591,7 +2596,7 @@ class EnsembleGenerator():
                 temperature=self.temperature*dof,                               \
                 sing_val_cutoff=self.sing_val_cutoff,hess=initialHess)
         if verbose:
-            print "Ensemble done.  Acceptance ratio = "+str(ratio)
+            print "generateEnsemble: Ensemble done.  Acceptance ratio = "+str(ratio)
         skip = int( scipy.floor(self.totalSteps/(self.keepSteps-1)) )
         keptEns = scipy.concatenate( (ens[::-skip][:self.keepSteps-1],
             [initialParameters]) )
