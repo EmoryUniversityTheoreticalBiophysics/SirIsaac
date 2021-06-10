@@ -20,15 +20,15 @@ import sys
 
 ## 7.3.2012 disable SloppyCell's parallel stuff
 ## see SloppyCell's __init__.py
-# sc = IO.SloppyCell
-# modules = [ sc,sc.ReactionNetworks,Ensembles,Dynamics,
-#             Collections,PerfectData ]
-# import socket
-# for module in modules:
-#     module.HAVE_MPI = False
-#     module.num_procs = 1
-#     module.my_rank = 0
-#     module.my_host = socket.gethostname()
+sc = IO.SloppyCell
+modules = [ sc,sc.ReactionNetworks,Ensembles,Dynamics,
+            Collections,PerfectData ]
+import socket
+for module in modules:
+    module.HAVE_MPI = False
+    module.num_procs = 1
+    module.my_rank = 0
+    module.my_host = socket.gethostname()
 
 # Constants
 MASTER_PROCESS = 0
