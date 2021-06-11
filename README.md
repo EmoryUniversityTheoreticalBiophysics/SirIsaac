@@ -53,5 +53,31 @@ Bryan Daniels, Ilya Nemenman
 
 
 
+OpenMPI Installation
+
+Download the latest version(4.1.1) from https://www.open-mpi.org/software/ompi/v4.1/
+Refer the Building MPI from sources section for the installation.
+
+Another source for OpenMPI Installation - https://gist.github.com/mrosemeier/088115b2e34f319b913a
+
+Other Installations that were done for Ubuntu
+
+pip install mpi4py
+
+sudo apt-get install python-dev  \
+     build-essential libssl-dev libffi-dev \
+     libxml2-dev libxslt1-dev zlib1g-dev \
+     
+
+sudo apt install libopenmpi-dev
+
+sudo apt-get install python2.7-dev
+sudo apt-get install build-essential
+sudo apt-get install gcc
+sudo apt-get install python-dev gcc
+sudo apt-get install python2-dev build-essential gcc libpq-dev
+sudo apt-get install libblas-dev libatlas-base-dev
+sudo apt-get install build-essential gcc gfortran git
+sudo apt install gfortran
 
 
