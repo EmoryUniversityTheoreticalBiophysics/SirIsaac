@@ -12,6 +12,7 @@
 
 # 9.9.2015 directory needed for direct calling using MPI?
 import os
+from scipy.special import logsumexp
 
 SIRISAACDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -173,6 +174,7 @@ class FittingProblem:
                                   to the number of fittingModels in
                                   self.fittingModelNames.
         """
+        print("verboseeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", self.verbose)
         oldFitParameters = []
         oldCost = scipy.inf
 
@@ -183,8 +185,9 @@ class FittingProblem:
 
         if maxNumFit is None: maxNumFit = len(self.fittingModelNames)
 
-        for name in self.fittingModelNames:
+        for name in [self.fittingModelNames[0]]:
           fittingModel = self.fittingModelDict[name]
+          print("fittingModel",fittingModel)
           # 4.18.2012
           if self.costDict.has_key(name) and resume:
             # We've already fit this one.
@@ -216,6 +219,8 @@ class FittingProblem:
               fittingModel.fitToData(self.fittingData,self.indepParamsList,         \
                                      otherStartingPoint=smallerBestParams,          \
                                      fittingDataDerivs=fittingDataDerivs,**kwargs)
+            print("fffffffffffffffffffffffffffffffffffff")
+            print(newFitParameters)
 
             if not hasattr(self,'fittingDataDerivs'):
                 self.fittingDataDerivs = None
@@ -230,6 +235,9 @@ class FittingProblem:
                 # (Note: This assumes that the default values for the new
                 # parameters make the new (more complex) model behave the
                 # same as the old one before they are changed.)
+                print("new_osssssssssssssssss")
+                print(newCost)
+                print(oldCost)
                 if newCost > oldCost:
                     fittingModel.initializeParameters(oldFitParameters)
                     newFitParameters =                                              \
@@ -267,9 +275,11 @@ class FittingProblem:
             fittingModel.initializeParameters(newFitParameters)
             oldCost = newCost
             oldFitParameters = newFitParameters
-
+            print("old cose llllllllllllllllllllllllllllllllll",oldCost)
+            print("old fit parameters",oldFitParameters)
             self._UpdateDicts(name,includePriors=includePriors)
-
+          print("diiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiccccccccccccccccccccccccccccccccccccccctttttttttttttttt")
+          print(self.logLikelihoodDict)
           # 5.6.2013 update old files if needed
           if not hasattr(self,'logLikelihoodDict'):
               self._UpdateDicts(name)
@@ -355,6 +365,8 @@ class FittingProblem:
         self.fitParametersDict[name] = fittingModel.getParameters()
         try:
             u,s,vt = scipy.linalg.svd( self.HessianDict[name] )
+            print(self.HessianDict[name])
+            print("insssssssssssssssssssssssssss", s)
             self.singValsDict[name] = s
             if not hasattr(self,'logLikelihoodDict'):
                 # 8.25.2015 for back-compatibility
@@ -396,8 +408,11 @@ class FittingProblem:
         squared residuals), the singular values of the Hessian, and
         the singular values of the Hessian with only priors.
         """
-        return -(cost + 0.5*scipy.sum( scipy.log(singVals) )                        \
-                      - 0.5*scipy.sum( scipy.log(priorSingVals) ) )
+        print("in loglokeligdddddddddddddddddddddddddddddd")
+        print(cost)
+        print(singVals)
+        return -(cost + 0.5*scipy.sum( logsumexp(singVals) )                        \
+                      - 0.5*scipy.sum( logsumexp(priorSingVals) ) )
 
 
     # 8.2.2009 updated to include 2pi
@@ -1713,6 +1728,7 @@ class SloppyCellFittingModel(FittingModel):
         else: # run in parallel 3.21.2012
             outputDict = self.localFitToData_parallel(self.numprocs,fittingData,
                 dataModel,ens,indepParamsList)
+            print("output dictttttttttttttttttttttttttttttt",outputDict)
             indices = scipy.sort(outputDict.keys())
             self.costList = [ outputDict[i][2] for i in indices ]
             bestIndex = scipy.argsort(self.costList)[0]
@@ -1877,6 +1893,8 @@ class SloppyCellFittingModel(FittingModel):
         dataModel = self._SloppyCellDataModel(fittingData,indepParamsList,
             fittingDataDerivs=fittingDataDerivs,**kwargs)
         J,JtJ = dataModel.GetJandJtJ(self.getParameters())
+        print("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk")
+        print(JtJ)
         return JtJ
 
     def currentHessianNoPriors(self,fittingData,indepParamsList=[[]],

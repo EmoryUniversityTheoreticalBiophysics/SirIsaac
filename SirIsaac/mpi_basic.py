@@ -8,6 +8,7 @@
 # Run like so:
 #   mpirun -np 3 python mpi_test.py test_input_filename
 #
+# RUN apt-get update & apt-get install python2-dev build-essential libssl-dev libffi-dev libxml2-dev libxslt1-dev zlib1g-dev
 
 import sys
 from simplePickle import load,save
