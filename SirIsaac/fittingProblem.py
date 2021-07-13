@@ -185,7 +185,7 @@ class FittingProblem:
 
         if maxNumFit is None: maxNumFit = len(self.fittingModelNames)
 
-        for name in self.fittingModelNames:
+        for name in self.fittingModelNames[3:4]:
           fittingModel = self.fittingModelDict[name]
           print("fittingModel",fittingModel)
           # 4.18.2012
@@ -202,19 +202,19 @@ class FittingProblem:
 
             if usePreviousParams:
                 fittingModel.initializeParameters(oldFitParameters)
-
+            print("oldfitpramsssssssssss",oldFitParameters)
             # 4.17.2012
             if self.smallerBestParamsDict.has_key(name):
                 smallerBestParams = self.smallerBestParamsDict[name]
             else:
                 smallerBestParams = None
-
+            print("smallerbestparams",smallerBestParams)
             # 8.30.2012 get fittingDataDerivs if I have them
             fittingDataDerivs = getattr(self,'fittingDataDerivs',None)
             # 9.20.2012 XXX Should we never include priors for cost?
             if fittingDataDerivs is not None: includePriors = False
             else: includePriors = True
-
+            print("include priors",includePriors)
             newFitParameters =                                                      \
               fittingModel.fitToData(self.fittingData,self.indepParamsList,         \
                                      otherStartingPoint=smallerBestParams,          \
@@ -293,7 +293,7 @@ class FittingProblem:
           orderedLs = []
           if not hasattr(self,'stopFittingN'):
               self.stopFittingN = 3
-          for n in self.fittingModelNames:
+          for n in self.fittingModelNames[3:4]:
               if self.logLikelihoodDict.has_key(n):
                   orderedLs.append(self.logLikelihoodDict[n])
           if (len(orderedLs) > self.stopFittingN):
@@ -858,6 +858,8 @@ class PowerLawFittingProblem(FittingProblem):
         self.fittingDataDerivs = fittingDataDerivs
 
     def fitAll(self,**kwargs):
+        print("kwargssssssssssssssssssssssssssssssssss")
+        print(kwargs)
         FittingProblem.fitAll(self,**kwargs)
         # we also want to save the convergence information in a
         # convenient location:
