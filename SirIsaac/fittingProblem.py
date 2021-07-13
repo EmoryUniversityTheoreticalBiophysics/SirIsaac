@@ -185,7 +185,7 @@ class FittingProblem:
 
         if maxNumFit is None: maxNumFit = len(self.fittingModelNames)
 
-        for name in [self.fittingModelNames[0]]:
+        for name in self.fittingModelNames:
           fittingModel = self.fittingModelDict[name]
           print("fittingModel",fittingModel)
           # 4.18.2012
@@ -420,8 +420,8 @@ class FittingProblem:
     def penalty(self,singVals,priorSingVals):
         #return 0.5*scipy.sum( scipy.log(                                           \
         #    scipy.array(self._StiffSingVals(singVals,cutoff))/(2.*scipy.pi) ) )
-        return + 0.5*scipy.sum( scipy.log(singVals) )                               \
-               - 0.5*scipy.sum( scipy.log(priorSingVals) )
+        return + 0.5*scipy.sum( logsumexp(singVals) )                               \
+               - 0.5*scipy.sum( logsumexp(priorSingVals) )
 
     def numStiffSingVals(self,singVals,cutoff=None):
         return len( self._StiffSingVals(singVals,cutoff) )
