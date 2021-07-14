@@ -185,7 +185,7 @@ class FittingProblem:
 
         if maxNumFit is None: maxNumFit = len(self.fittingModelNames)
 
-        for name in self.fittingModelNames[3:4]:
+        for name in self.fittingModelNames[0:1]:
           fittingModel = self.fittingModelDict[name]
           print("fittingModel",fittingModel)
           # 4.18.2012
@@ -293,7 +293,7 @@ class FittingProblem:
           orderedLs = []
           if not hasattr(self,'stopFittingN'):
               self.stopFittingN = 3
-          for n in self.fittingModelNames[3:4]:
+          for n in self.fittingModelNames[0:1]:
               if self.logLikelihoodDict.has_key(n):
                   orderedLs.append(self.logLikelihoodDict[n])
           if (len(orderedLs) > self.stopFittingN):
@@ -1730,7 +1730,7 @@ class SloppyCellFittingModel(FittingModel):
         else: # run in parallel 3.21.2012
             outputDict = self.localFitToData_parallel(self.numprocs,fittingData,
                 dataModel,ens,indepParamsList)
-            print("output dictttttttttttttttttttttttttttttt",outputDict)
+            # print("output dictttttttttttttttttttttttttttttt",outputDict)
             indices = scipy.sort(outputDict.keys())
             self.costList = [ outputDict[i][2] for i in indices ]
             bestIndex = scipy.argsort(self.costList)[0]
@@ -1834,6 +1834,8 @@ class SloppyCellFittingModel(FittingModel):
 
         try:
             output = load(outputFilename)
+            print("in outttttttttttttttttttttttttttttttttttttttttttttttttttttt")
+            print(output)
             os.remove(outputFilename)
             os.remove(prefix+"stdout.txt")
         except IOError:
