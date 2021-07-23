@@ -100,6 +100,9 @@ class TestFittingProblem(unittest.TestCase):
         self.assertEqual(len(p.fittingModelNames),len(complexityList))
         self.assertEqual(len(p.numParametersDict),len(complexityList))
         
+        # check that some models have indeed been fit
+        self.assertTrue(len(p.logLikelihoodDict) > 0)
+        
         # loop over models that have been fit
         for modelName in p.logLikelihoodDict:
             # check that all fit models have numerical log-likelihood
