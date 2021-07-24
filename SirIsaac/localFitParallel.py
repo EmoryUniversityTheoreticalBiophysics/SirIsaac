@@ -63,7 +63,6 @@ allOutputsDict = {}
 
 ### Master Process ###
 if MPI_myID == MASTER_PROCESS:
-    print("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk")
     from simplePickle import save
 
     num_processors = comm.Get_size()
@@ -72,8 +71,6 @@ if MPI_myID == MASTER_PROCESS:
     
     # list of startParams indices to pass to the workers
     work_array = range(len(startParamsList))
-    print("work arrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")
-    print(work_array)
     work_size = len(work_array)
     
     # Dispatch jobs to worker processes
@@ -121,8 +118,6 @@ if MPI_myID == MASTER_PROCESS:
         comm.send(DIE_INDEX, dest=proc)
         
     # Write data to file
-    print("in localfittttttttttttttttt")
-    # print(allOutputsDict)
     save(allOutputsDict,outputFilename)
 
 else:

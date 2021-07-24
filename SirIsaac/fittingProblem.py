@@ -12,7 +12,6 @@
 
 # 9.9.2015 directory needed for direct calling using MPI?
 import os
-from scipy.special import logsumexp
 
 SIRISAACDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -174,7 +173,6 @@ class FittingProblem:
                                   to the number of fittingModels in
                                   self.fittingModelNames.
         """
-        print("verboseeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", self.verbose)
         oldFitParameters = []
         oldCost = scipy.inf
 
@@ -187,7 +185,6 @@ class FittingProblem:
 
         for name in self.fittingModelNames:
           fittingModel = self.fittingModelDict[name]
-          print("fittingModel",fittingModel)
           # 4.18.2012
           if self.costDict.has_key(name) and resume:
             # We've already fit this one.
@@ -202,7 +199,6 @@ class FittingProblem:
 
             if usePreviousParams:
                 fittingModel.initializeParameters(oldFitParameters)
-            print("oldfitpramsssssssssss",oldFitParameters)
             # 4.17.2012
             if self.smallerBestParamsDict.has_key(name):
                 smallerBestParams = self.smallerBestParamsDict[name]
@@ -214,13 +210,10 @@ class FittingProblem:
             # 9.20.2012 XXX Should we never include priors for cost?
             if fittingDataDerivs is not None: includePriors = False
             else: includePriors = True
-            print("include priors",includePriors)
             newFitParameters =                                                      \
               fittingModel.fitToData(self.fittingData,self.indepParamsList,         \
                                      otherStartingPoint=smallerBestParams,          \
                                      fittingDataDerivs=fittingDataDerivs,**kwargs)
-            print("fffffffffffffffffffffffffffffffffffff")
-            print(newFitParameters)
 
             if not hasattr(self,'fittingDataDerivs'):
                 self.fittingDataDerivs = None
@@ -235,9 +228,6 @@ class FittingProblem:
                 # (Note: This assumes that the default values for the new
                 # parameters make the new (more complex) model behave the
                 # same as the old one before they are changed.)
-                print("new_osssssssssssssssss")
-                print(newCost)
-                print(oldCost)
                 if newCost > oldCost:
                     fittingModel.initializeParameters(oldFitParameters)
                     newFitParameters =                                              \
@@ -275,11 +265,7 @@ class FittingProblem:
             fittingModel.initializeParameters(newFitParameters)
             oldCost = newCost
             oldFitParameters = newFitParameters
-            print("old cose llllllllllllllllllllllllllllllllll",oldCost)
-            print("old fit parameters",oldFitParameters)
             self._UpdateDicts(name,includePriors=includePriors)
-          print("diiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiccccccccccccccccccccccccccccccccccccccctttttttttttttttt")
-          print(self.logLikelihoodDict)
           # 5.6.2013 update old files if needed
           if not hasattr(self,'logLikelihoodDict'):
               self._UpdateDicts(name)
@@ -1817,7 +1803,7 @@ class SloppyCellFittingModel(FittingModel):
 
         # call mpi
         stdoutFile = open(prefix+"stdout.txt",'w')
-        subprocess.call([ "mpirun", "-np",str(numprocs),"--allow-run-as-root","python",
+        subprocess.call([ "mpirun", "-np",str(numprocs),"python",
                           os.path.join(SIRISAACDIR, "localFitParallel.py"),
                           inputDictFilename],
                         stderr=stdoutFile,stdout=stdoutFile,env=os.environ)
