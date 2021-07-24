@@ -48,4 +48,3 @@ class TestFittingProblem(unittest.TestCase):
                                indepParamsList=indepParamsList)
 
         self.assertEqual(None, ftest.getBestModel())
-{"mode":"full","isActive":false}

@@ -204,7 +204,6 @@ class FittingProblem:
                 smallerBestParams = self.smallerBestParamsDict[name]
             else:
                 smallerBestParams = None
-            print("smallerbestparams",smallerBestParams)
             # 8.30.2012 get fittingDataDerivs if I have them
             fittingDataDerivs = getattr(self,'fittingDataDerivs',None)
             # 9.20.2012 XXX Should we never include priors for cost?
@@ -2626,7 +2625,7 @@ class EnsembleGenerator():
           # https://stackoverflow.com/questions/60060142/strange-interaction-
           #         between-h5py-subprocess-and-mpirun
           stdoutFile = open(prefix+"stdout.txt",'w')
-          subprocess.call([ "mpirun", "-np",str(numprocs),"--allow-run-as-root","python",
+          subprocess.call([ "mpirun", "-np",str(numprocs),"python",
                 os.path.join(SIRISAACDIR, "generateEnsembleParallel.py"),
                 inputDictFilename],
                 stderr=stdoutFile,stdout=stdoutFile,env=os.environ)
