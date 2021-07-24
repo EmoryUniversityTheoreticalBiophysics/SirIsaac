@@ -13,7 +13,6 @@ WORKDIR /app
 RUN useradd --create-home --home-dir /home/docker --shell /bin/bash docker
 RUN usermod -a -G sudo docker
 RUN echo "docker ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-COPY o.tar.bz2 /app
 RUN wget http://www.open-mpi.org/software/ompi/v4.1/downloads/openmpi-4.1.1.tar.gz
 RUN tar xzvf openmpi-4.1.1.tar.gz
 WORKDIR openmpi-4.1.1
