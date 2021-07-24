@@ -185,7 +185,7 @@ class FittingProblem:
 
         if maxNumFit is None: maxNumFit = len(self.fittingModelNames)
 
-        for name in self.fittingModelNames[0:1]:
+        for name in self.fittingModelNames:
           fittingModel = self.fittingModelDict[name]
           print("fittingModel",fittingModel)
           # 4.18.2012
@@ -293,7 +293,7 @@ class FittingProblem:
           orderedLs = []
           if not hasattr(self,'stopFittingN'):
               self.stopFittingN = 3
-          for n in self.fittingModelNames[0:1]:
+          for n in self.fittingModelNames:
               if self.logLikelihoodDict.has_key(n):
                   orderedLs.append(self.logLikelihoodDict[n])
           if (len(orderedLs) > self.stopFittingN):
@@ -411,8 +411,8 @@ class FittingProblem:
         print("in loglokeligdddddddddddddddddddddddddddddd")
         print(cost)
         print(singVals)
-        return -(cost + 0.5*scipy.sum( logsumexp(singVals) )                        \
-                      - 0.5*scipy.sum( logsumexp(priorSingVals) ) )
+        return -(cost + 0.5*scipy.sum( scipy.log(singVals) )                        \
+                      - 0.5*scipy.sum( scipy.log(priorSingVals) ) )
 
 
     # 8.2.2009 updated to include 2pi
@@ -420,8 +420,8 @@ class FittingProblem:
     def penalty(self,singVals,priorSingVals):
         #return 0.5*scipy.sum( scipy.log(                                           \
         #    scipy.array(self._StiffSingVals(singVals,cutoff))/(2.*scipy.pi) ) )
-        return + 0.5*scipy.sum( logsumexp(singVals) )                               \
-               - 0.5*scipy.sum( logsumexp(priorSingVals) )
+        return + 0.5*scipy.sum( scipy.log(singVals) )                               \
+               - 0.5*scipy.sum( scipy.log(priorSingVals) )
 
     def numStiffSingVals(self,singVals,cutoff=None):
         return len( self._StiffSingVals(singVals,cutoff) )
