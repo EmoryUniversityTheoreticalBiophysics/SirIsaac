@@ -365,8 +365,6 @@ class FittingProblem:
         self.fitParametersDict[name] = fittingModel.getParameters()
         try:
             u,s,vt = scipy.linalg.svd( self.HessianDict[name] )
-            print(self.HessianDict[name])
-            print("insssssssssssssssssssssssssss", s)
             self.singValsDict[name] = s
             if not hasattr(self,'logLikelihoodDict'):
                 # 8.25.2015 for back-compatibility
@@ -408,9 +406,6 @@ class FittingProblem:
         squared residuals), the singular values of the Hessian, and
         the singular values of the Hessian with only priors.
         """
-        print("in loglokeligdddddddddddddddddddddddddddddd")
-        print(cost)
-        print(singVals)
         return -(cost + 0.5*scipy.sum( scipy.log(singVals) )                        \
                       - 0.5*scipy.sum( scipy.log(priorSingVals) ) )
 
@@ -858,8 +853,6 @@ class PowerLawFittingProblem(FittingProblem):
         self.fittingDataDerivs = fittingDataDerivs
 
     def fitAll(self,**kwargs):
-        print("kwargssssssssssssssssssssssssssssssssss")
-        print(kwargs)
         FittingProblem.fitAll(self,**kwargs)
         # we also want to save the convergence information in a
         # convenient location:
@@ -1730,7 +1723,6 @@ class SloppyCellFittingModel(FittingModel):
         else: # run in parallel 3.21.2012
             outputDict = self.localFitToData_parallel(self.numprocs,fittingData,
                 dataModel,ens,indepParamsList)
-            # print("output dictttttttttttttttttttttttttttttt",outputDict)
             indices = scipy.sort(outputDict.keys())
             self.costList = [ outputDict[i][2] for i in indices ]
             bestIndex = scipy.argsort(self.costList)[0]
@@ -1834,8 +1826,6 @@ class SloppyCellFittingModel(FittingModel):
 
         try:
             output = load(outputFilename)
-            print("in outttttttttttttttttttttttttttttttttttttttttttttttttttttt")
-            print(output)
             os.remove(outputFilename)
             os.remove(prefix+"stdout.txt")
         except IOError:
@@ -1897,8 +1887,6 @@ class SloppyCellFittingModel(FittingModel):
         dataModel = self._SloppyCellDataModel(fittingData,indepParamsList,
             fittingDataDerivs=fittingDataDerivs,**kwargs)
         J,JtJ = dataModel.GetJandJtJ(self.getParameters())
-        print("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk")
-        print(JtJ)
         return JtJ
 
     def currentHessianNoPriors(self,fittingData,indepParamsList=[[]],
