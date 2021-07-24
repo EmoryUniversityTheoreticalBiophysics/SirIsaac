@@ -199,16 +199,19 @@ class FittingProblem:
 
             if usePreviousParams:
                 fittingModel.initializeParameters(oldFitParameters)
+
             # 4.17.2012
             if self.smallerBestParamsDict.has_key(name):
                 smallerBestParams = self.smallerBestParamsDict[name]
             else:
                 smallerBestParams = None
+
             # 8.30.2012 get fittingDataDerivs if I have them
             fittingDataDerivs = getattr(self,'fittingDataDerivs',None)
             # 9.20.2012 XXX Should we never include priors for cost?
             if fittingDataDerivs is not None: includePriors = False
             else: includePriors = True
+
             newFitParameters =                                                      \
               fittingModel.fitToData(self.fittingData,self.indepParamsList,         \
                                      otherStartingPoint=smallerBestParams,          \
@@ -264,7 +267,9 @@ class FittingProblem:
             fittingModel.initializeParameters(newFitParameters)
             oldCost = newCost
             oldFitParameters = newFitParameters
+
             self._UpdateDicts(name,includePriors=includePriors)
+
           # 5.6.2013 update old files if needed
           if not hasattr(self,'logLikelihoodDict'):
               self._UpdateDicts(name)
@@ -1802,9 +1807,9 @@ class SloppyCellFittingModel(FittingModel):
 
         # call mpi
         stdoutFile = open(prefix+"stdout.txt",'w')
-        subprocess.call([ "mpirun", "-np",str(numprocs),"python",
+        subprocess.call([ "mpirun","-np",str(numprocs),"python",
                           os.path.join(SIRISAACDIR, "localFitParallel.py"),
-                          inputDictFilename],
+                          inputDictFilename ],
                         stderr=stdoutFile,stdout=stdoutFile,env=os.environ)
         stdoutFile.close()
         os.remove(inputDictFilename)
@@ -2625,9 +2630,9 @@ class EnsembleGenerator():
           # https://stackoverflow.com/questions/60060142/strange-interaction-
           #         between-h5py-subprocess-and-mpirun
           stdoutFile = open(prefix+"stdout.txt",'w')
-          subprocess.call([ "mpirun", "-np",str(numprocs),"python",
+          subprocess.call([ "mpirun","-np",str(numprocs),"python",
                 os.path.join(SIRISAACDIR, "generateEnsembleParallel.py"),
-                inputDictFilename],
+                inputDictFilename ],
                 stderr=stdoutFile,stdout=stdoutFile,env=os.environ)
           stdoutFile.close()
           os.remove(inputDictFilename)
@@ -4677,6 +4682,4 @@ class SimpleSinusoidalFittingModel(SloppyCellFittingModel):
 
         # generalSetup should be run by all daughter classes
         self.generalSetup(net,indepParamNames,**kwargs)
-
-
 
