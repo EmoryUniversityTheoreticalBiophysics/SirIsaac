@@ -5,13 +5,13 @@
 #
 # Runs yeast oscillator using Abhishek Soni's MATLAB code.
 
-from matlab import *
+from .matlab import *
 
 import scipy
 import scipy.io
 import os
 import pylab # for pylab.find
-import simplePickle
+from . import simplePickle
 import copy
 
 #codeDir = "~/Research/SloppySimplification/yeastOscillator"
@@ -49,7 +49,7 @@ def simulateYeastOscillator(times,temperature,returnParams=True,    \
         initialConditions =                                     \
             [1.187,0.193,0.050,0.115,0.077,2.475,0.077]
     elif len(initialConditions) != 7:
-        raise Exception,'initialConditions should have length 7.'
+        raise Exception('initialConditions should have length 7.')
     
     outputFilenameList =                                                    \
       ["run_ruoff_model_python_interface_output"+randFileNo+".txt",         \
@@ -86,7 +86,7 @@ def simulateYeastOscillator(times,temperature,returnParams=True,    \
     allData = scipy.transpose(allData)
     
     # 1.10.2013
-    if desiredTimes is None: desiredTimes = range(len(allData[0]))
+    if desiredTimes is None: desiredTimes = list(range(len(allData[0])))
     
     if returnParams:
         return allData[0,desiredTimes],allData[1:,desiredTimes],params
@@ -96,7 +96,7 @@ def simulateYeastOscillator(times,temperature,returnParams=True,    \
 
 # 1.9.2013 taken from runFittingProblem.py
 def yeastData(numPoints,timeInterval,                                   \
-              numICs,useDerivs=True,includedIndices=range(7),           \
+              numICs,useDerivs=True,includedIndices=list(range(7)),           \
               timesSeed=3,noiseSeed=4,ICseed=5,                         \
               multiplicativeErrorBar=0.1,upperRangeMultiple=1.,         \
               randomX=True,inputVars=None,nonzeroMin=True,              \
@@ -131,7 +131,7 @@ def yeastData(numPoints,timeInterval,                                   \
         inputDescriptors = [inputs[0] for inputs in inputList]
     elif inputVars is None: # use varying initial conditions on all 7 species
         inputVars = [name+"_init" for name in names]  
-        print "inputVars =",inputVars      
+        print("inputVars =",inputVars)      
         # taken from SchValJen11 Table 2
         ICranges = scipy.array(                                             \
                    [[0.15,1.60],[0.19,2.16],                                \
@@ -149,9 +149,9 @@ def yeastData(numPoints,timeInterval,                                   \
         randomICs = scipy.array(randICmults)*upperRangeMultiple*             \
             (ICranges[:,1]-nonzeroMin*ICranges[:,0]) + nonzeroMin*ICranges[:,0]
         inputList = randomICs
-        inputDescriptors = range(len(inputList))
+        inputDescriptors = list(range(len(inputList)))
     else:
-        raise Exception, "Changing inputVars not yet implemented"
+        raise Exception("Changing inputVars not yet implemented")
     
     
     # as I vary the number of ICs, I want the same sequence of lists of times
@@ -174,7 +174,7 @@ def yeastData(numPoints,timeInterval,                                   \
             #    simplePickle.load(yeastDataFilename)
             yeastDict = simplePickle.load(yeastSavedDataFile)
         except IOError:
-            print "yeastData: Could not load "+yeastSavedDataFile
+            print("yeastData: Could not load "+yeastSavedDataFile)
             usePreloadedData = False
         
 
@@ -196,7 +196,7 @@ def yeastData(numPoints,timeInterval,                                   \
             if inputVar[-5:] == "_init":
                 index = pylab.find(allNames==inputVar[:-5])[0]
                 initialConditions[index] = input
-        print "initialConditions =",initialConditions
+        print("initialConditions =",initialConditions)
         
         eps = (timeInterval[1]-timeInterval[0])/1000. #1e-3 #1e-4 # (minutes) resolution of timepoints
         integratorTimes = scipy.arange(timeInterval[0],timeInterval[1]+eps,eps)
@@ -211,18 +211,18 @@ def yeastData(numPoints,timeInterval,                                   \
         
         runMATLAB = not usePreloadedData
         if usePreloadedData:
-                if yeastDict.has_key(yeastDataKey):
+                if yeastDataKey in yeastDict:
                     yeastTimes,loadedICs,yeastRawData = yeastDict[yeastDataKey]
                     if not scipy.all(loadedICs == initialConditions):
-                        print "loadedICs =",loadedICs
-                        print "initialConditions =",initialConditions
-                        raise Exception, "loadedICs != initialConditions"
+                        print("loadedICs =",loadedICs)
+                        print("initialConditions =",initialConditions)
+                        raise Exception("loadedICs != initialConditions")
                 else:
-                    print "yeastData: "+yeastSavedDataFile+" does not "         \
-                        "contain the necessary data."
+                    print("yeastData: "+yeastSavedDataFile+" does not "         \
+                        "contain the necessary data.")
                     runMATLAB = True
         if runMATLAB:
-            print "yeastData: Running simulateYeastOscillator."
+            print("yeastData: Running simulateYeastOscillator.")
             yeastTimes,yeastRawData,yeastParams =                               \
                 simulateYeastOscillator(integratorTimes,temperature,            \
                                         initialConditions=initialConditions)
@@ -241,7 +241,7 @@ def yeastData(numPoints,timeInterval,                                   \
             v1data = k1*S1data*A3data/(1.+(A3data/K1)**q)
             yeastOscillatorData[inputDescriptor] = {}
             yeastOscillatorData[inputDescriptor]['v1'] =                        \
-                dict( zip(times, zip(v1data,multiplicativeErrorBar*v1data)) )
+                dict( list(zip(times, list(zip(v1data,multiplicativeErrorBar*v1data)))) )
             varList = ['v1']
         
         if useDerivs: # use derivatives as output (7-dimensional), const. error bars
@@ -256,8 +256,8 @@ def yeastData(numPoints,timeInterval,                                   \
             for derivName,derivData,stddev in zip(names,derivDataList,stddevs):
                 constErrorBar = multiplicativeErrorBar*stddev
                 yeastOscillatorDataDerivs[inputDescriptor][derivName] =         \
-                    dict( zip(yeastTimes,                                         \
-                              zip(derivData,scipy.ones_like(derivData)*constErrorBar)) )
+                    dict( list(zip(yeastTimes,                                         \
+                              list(zip(derivData,scipy.ones_like(derivData)*constErrorBar)))) )
         #varList = names
         
         # 10.3.2011
@@ -282,8 +282,8 @@ def yeastData(numPoints,timeInterval,                                   \
                     noise = scipy.random.normal(scale=constErrorBar,size=len(data))
                     data = data + noise
                 yeastOscillatorData[inputDescriptor][name] =                    \
-                    dict( zip(yeastTimes,                                         \
-                              zip(data,scipy.ones_like(data)*constErrorBar )) )
+                    dict( list(zip(yeastTimes,                                         \
+                              list(zip(data,scipy.ones_like(data)*constErrorBar )))) )
     
     #if usePreloadedData:
     # save data for future use via usePreloadedData

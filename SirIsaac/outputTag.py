@@ -43,8 +43,8 @@ def nextFileNumString(directory='.',returnConfigNum=False,configNum=None):
     else: return configNumString
 
 def die():
-    print "Use: python outputTag.py [-o outputDirectory] [-n niceLevel] "       \
-          "[-m multipleRunNumber] [-d runDirectory] codeToRun.py"
+    print("Use: python outputTag.py [-o outputDirectory] [-n niceLevel] "       \
+          "[-m multipleRunNumber] [-d runDirectory] codeToRun.py")
     sys.exit()
 
 if __name__ == '__main__':
@@ -95,4 +95,4 @@ if __name__ == '__main__':
         if runDirectory is not None:
             os.chdir(runDirectory)
         os.system(command)
-        print command
+        print(command)

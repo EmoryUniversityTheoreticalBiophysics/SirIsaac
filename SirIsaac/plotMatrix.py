@@ -44,8 +44,8 @@ def plotMatrix(mat,cmap=pylab.cm.gray,colorbar=True,X=None,Y=None,          \
       pylab.axes(ax)
       axNew = ax
     
-    if (plot3D or plotContour) and X is None: X = range(scipy.shape(mat)[1])
-    if (plot3D or plotContour) and Y is None: Y = range(scipy.shape(mat)[0])
+    if (plot3D or plotContour) and X is None: X = list(range(scipy.shape(mat)[1]))
+    if (plot3D or plotContour) and Y is None: Y = list(range(scipy.shape(mat)[0]))
     
     if X is not None and Y is not None:
         X,Y = scipy.array(X),scipy.array(Y)
@@ -57,8 +57,8 @@ def plotMatrix(mat,cmap=pylab.cm.gray,colorbar=True,X=None,Y=None,          \
         else: deltaY = 1
         if scipy.any(abs(X[1:]-X[:-1] - deltaX) > 1e-5) or                  \
            scipy.any(abs(Y[1:]-Y[:-1] - deltaY) > 1e-5):
-           print "plotMatrix WARNING: X and/or Y values are not equally "+  \
-                 "spaced.  May produce strange behavior."
+           print("plotMatrix WARNING: X and/or Y values are not equally "+  \
+                 "spaced.  May produce strange behavior.")
           
         if plot3D or plotContour:
           

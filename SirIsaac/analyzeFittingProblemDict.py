@@ -4,16 +4,16 @@
 # 5.10.2012
 #
 
-from fittingProblem import *
-from plotMatrix import plotMatrix
+from .fittingProblem import *
+from .plotMatrix import plotMatrix
 
 # the general scheme for calculating over all fpds
 def calcForAllFpds(fpdList,func,maxIndex=-3,skip=True,
     addYeastPerfectModel=False,verbose=True):
     dataDict = {}
     for i,fpd in enumerate(fpdList):
-        if verbose: print "Fpd",i+1,"of",len(fpdList),":"
-        for k in scipy.sort(fpd.keys()):
+        if verbose: print("Fpd",i+1,"of",len(fpdList),":")
+        for k in scipy.sort(list(fpd.keys())):
             fp = fpd[k]
             if addYeastPerfectModel and (fp.perfectModel is None):
                 fp.perfectModel = yeastOscillatorFittingModel(fp.indepParamNames)
@@ -22,14 +22,14 @@ def calcForAllFpds(fpdList,func,maxIndex=-3,skip=True,
             if (mName is not None) or (not skip):
                 result = func(mName,fp)
                 if result is not None:
-                    if verbose: print "    Done with key",k
-                    if not dataDict.has_key(numDataPts): # was using fp.saveKey          
+                    if verbose: print("    Done with key",k)
+                    if numDataPts not in dataDict: # was using fp.saveKey          
                         dataDict[numDataPts] = []
                     dataDict[numDataPts].append(result)
                 else:
-                    if verbose: print "    No result.  Skipping key",k
+                    if verbose: print("    No result.  Skipping key",k)
             else:
-                if verbose: print "    mName = None.  Skipping key",k
+                if verbose: print("    mName = None.  Skipping key",k)
     return dataDict
 
 # 5.2.2013
@@ -37,11 +37,11 @@ def split(allFpdsDict):
     """
     Splits an allFpdsDict (eg for bestOutOfSampleCorrs with returnErrors=True)
     """
-    N = scipy.shape(allFpdsDict.values()[0][0])[-1]
+    N = scipy.shape(list(allFpdsDict.values())[0][0])[-1]
     allFpdsDictList = []
     for i in range(N):
         d = {}
-        for key in allFpdsDict.keys():
+        for key in list(allFpdsDict.keys()):
             itemList = []
             for item in allFpdsDict[key]:
                 #itemList.append(item[i])
@@ -52,7 +52,7 @@ def split(allFpdsDict):
                 elif numItems == 0: # calculation has not yet been performed
                     itemList.append([])
                 else:
-                    raise Exception, "Incorrect shape of data"
+                    raise Exception("Incorrect shape of data")
             d[key] = itemList
         allFpdsDictList.append(d)
     return allFpdsDictList
@@ -62,7 +62,7 @@ def numDataPoints(fittingProblem,perDataPoint=True):
     if perDataPoint:
         return len(fittingProblem.fittingData)
     else:
-        return scipy.sum([len(d.keys()) for d in fittingProblem.fittingData])
+        return scipy.sum([len(list(d.keys())) for d in fittingProblem.fittingData])
 
 # various things you can calculate
 def bestOutOfSampleCorrs(fpdList,type,vars=None,maxIndex=-3,outOfSampleMult=2.,indepParamRanges=None,sampleInLog=False,onlyBest=True,seed=100,testPerfect=False,returnErrors=True,timeRange=[0,10],numPoints=100,numTests=100,**kwargs):
@@ -82,13 +82,13 @@ def bestOutOfSampleCorrs(fpdList,type,vars=None,maxIndex=-3,outOfSampleMult=2.,i
                               independent parameter conditions.)
     numTests (100)          : Number of independent parameter sets to test.
     """
-    if hasattr(fpdList[0].values()[0],'fittingDataDerivs'):
-        useDerivs = (fpdList[0].values()[0].fittingDataDerivs is not None)
+    if hasattr(list(fpdList[0].values())[0],'fittingDataDerivs'):
+        useDerivs = (list(fpdList[0].values())[0].fittingDataDerivs is not None)
     else:
         useDerivs = False
     if type is 'yeast': #(indepParamRanges is None) and hasattr(fpdList[0].values()[0].perfectModel,'typicalIndepParamRanges'):
         if indepParamRanges is None:
-            dummyYeastModel = yeastOscillatorFittingModel(fpdList[0].values()[0].indepParamNames)
+            dummyYeastModel = yeastOscillatorFittingModel(list(fpdList[0].values())[0].indepParamNames)
             indepParamRanges = dummyYeastModel.typicalIndepParamRanges(outOfSampleMult)
         if vars is None: vars = ['S1','S2','S3']
         addYeastPerfectModel = True #False #True
@@ -103,7 +103,7 @@ def bestOutOfSampleCorrs(fpdList,type,vars=None,maxIndex=-3,outOfSampleMult=2.,i
         if vars is None: vars = ['wormSpeed']
         addYeastPerfectModel = False
     else:
-        raise Exception, "Unrecognized type: "+str(type)
+        raise Exception("Unrecognized type: "+str(type))
 
     def modelCorrsFunc(fp,model):
         c = fp.outOfSampleCorrelation(model,timeRange,vars,indepParamRanges,numTests=numTests,verbose=False,sampleInLog=sampleInLog,seed=seed,returnErrors=returnErrors,
@@ -114,7 +114,7 @@ def bestOutOfSampleCorrs(fpdList,type,vars=None,maxIndex=-3,outOfSampleMult=2.,i
             return scipy.mean(scipy.nan_to_num(c))
 
     if testPerfect: # 4.17.2013 test fitted perfectModels
-      if useDerivs: raise Exception, "testPerfect + useDerivs not yet supported."
+      if useDerivs: raise Exception("testPerfect + useDerivs not yet supported.")
       corrsFunc = lambda mName,fp: modelCorrsFunc(fp,fp.perfectModel)
     elif onlyBest:
       if not useDerivs: # not fitting derivatives
@@ -127,7 +127,7 @@ def bestOutOfSampleCorrs(fpdList,type,vars=None,maxIndex=-3,outOfSampleMult=2.,i
         corrsFunc = lambda mName,fp: \
           [ modelCorrsFunc(fp,fp.fittingModelDict[name]) for name in orderedFitNames(fp) ]
       else: # fitting derivatives 1.10.2013
-        if sampleInLog: raise Exception, "sampleInLog not supported"
+        if sampleInLog: raise Exception("sampleInLog not supported")
         indepParamsSeed = seed
         scipy.random.seed(seed)
         timeSeed = scipy.random.randint(1e6)
@@ -149,7 +149,7 @@ def bestModelCostPerMeasurement(fpdList,testPerfect=False,onlyBest=True,**kwargs
             if hasattr(fp,'perfectCost'):
                 return 2.*fp.perfectCost/(len(fp.fittingData)*len(fp.fittingData[0]))
             else:
-                print "bestModelCostPerMeasurement: No perfectCost.  Returning None."
+                print("bestModelCostPerMeasurement: No perfectCost.  Returning None.")
                 return None
         kwargs['skip'] = False # don't skip if we haven't fit the fittingModels
     elif onlyBest:
@@ -180,7 +180,7 @@ def bestModelCostPerMeasurementNoPriors(fpdList,testPerfect=False,onlyBest=True,
             if hasattr(fp,'perfectModel'):
                 return costNoPriors(fp.perfectModel,fp)
             else:
-                print "bestModelCostPerMeasurement: No perfectCost.  Returning None."
+                print("bestModelCostPerMeasurement: No perfectCost.  Returning None.")
                 return None
         kwargs['skip'] = False # don't skip if we haven't fit the fittingModels
     elif onlyBest:
@@ -212,7 +212,7 @@ def totalNumFunctionCalls(fpdList,**kwargs):
     """
     Sum of all cost calls plus grad calls over ALL models tested.
     """
-    totalFuncCallsFunc = lambda mName,fp: scipy.sum( [ scipy.sum(fp.fittingModelDict[name].numCostCallsList) + scipy.sum(fp.fittingModelDict[name].numGradCallsList) for name in fp.logLikelihoodDict.keys() ] )
+    totalFuncCallsFunc = lambda mName,fp: scipy.sum( [ scipy.sum(fp.fittingModelDict[name].numCostCallsList) + scipy.sum(fp.fittingModelDict[name].numGradCallsList) for name in list(fp.logLikelihoodDict.keys()) ] )
     return calcForAllFpds(fpdList,totalFuncCallsFunc,skip=False,**kwargs)
 
 # updated 10.10.2013
@@ -275,7 +275,7 @@ def totalWallTimesHours(fpdList,includedNames=None,**kwargs):
         includedNamesFunc = lambda name: True
     else:
         includedNamesFunc = lambda name: name in includedNames
-    totalWallTimeFunc = lambda mName,fp: scipy.sum( [ includedNamesFunc(name)*( scipy.sum(fp.fittingModelDict[name].ensTimeSecondsList) + scipy.sum(fp.fittingModelDict[name].minimizationTimeSecondsList) ) for name in fp.logLikelihoodDict.keys() ] )/3600.
+    totalWallTimeFunc = lambda mName,fp: scipy.sum( [ includedNamesFunc(name)*( scipy.sum(fp.fittingModelDict[name].ensTimeSecondsList) + scipy.sum(fp.fittingModelDict[name].minimizationTimeSecondsList) ) for name in list(fp.logLikelihoodDict.keys()) ] )/3600.
     return calcForAllFpds(fpdList,totalWallTimeFunc,skip=False,**kwargs)
 
 def parallelWallTimesHours(fpdList,includedNames=None,**kwargs):
@@ -288,7 +288,7 @@ def parallelWallTimesHours(fpdList,includedNames=None,**kwargs):
         includedNamesFunc = lambda name: True
     else:
         includedNamesFunc = lambda name: name in includedNames
-    totalWallTimeFunc = lambda mName,fp: scipy.sum( [ includedNamesFunc(name)*( scipy.sum(fp.fittingModelDict[name].ensTimeSecondsList) + max(fp.fittingModelDict[name].minimizationTimeSecondsList) ) for name in fp.logLikelihoodDict.keys() ] )/3600.
+    totalWallTimeFunc = lambda mName,fp: scipy.sum( [ includedNamesFunc(name)*( scipy.sum(fp.fittingModelDict[name].ensTimeSecondsList) + max(fp.fittingModelDict[name].minimizationTimeSecondsList) ) for name in list(fp.logLikelihoodDict.keys()) ] )/3600.
     return calcForAllFpds(fpdList,totalWallTimeFunc,skip=False,**kwargs)
 
 
@@ -300,21 +300,21 @@ def totalEnsembleTimesHours(fpdList,includedNames=None,**kwargs):
         includedNamesFunc = lambda name: True
     else:
         includedNamesFunc = lambda name: name in includedNames
-    totalEnsTimeFunc = lambda mName,fp: scipy.sum( [ includedNamesFunc(name)*( scipy.sum(fp.fittingModelDict[name].ensTimeSecondsList) ) for name in fp.logLikelihoodDict.keys() ] )/3600.
+    totalEnsTimeFunc = lambda mName,fp: scipy.sum( [ includedNamesFunc(name)*( scipy.sum(fp.fittingModelDict[name].ensTimeSecondsList) ) for name in list(fp.logLikelihoodDict.keys()) ] )/3600.
     return calcForAllFpds(fpdList,totalEnsTimeFunc,skip=False,**kwargs)
     
 def totalMinimizationTimesHours(fpdList,**kwargs):
     """
     Sum of all minimization times over ALL models tested.
     """
-    totalMinTimeFunc = lambda mName,fp: scipy.sum( [ scipy.sum(fp.fittingModelDict[name].minimizationTimeSecondsList) for name in fp.logLikelihoodDict.keys() ] )/3600.
+    totalMinTimeFunc = lambda mName,fp: scipy.sum( [ scipy.sum(fp.fittingModelDict[name].minimizationTimeSecondsList) for name in list(fp.logLikelihoodDict.keys()) ] )/3600.
     return calcForAllFpds(fpdList,totalMinTimeFunc,skip=False,**kwargs)
     
 def totalMinimizationTimesSeconds(fpdList,**kwargs):
     """
     Sum of all minimization times over ALL models tested.
     """
-    totalMinTimeFunc = lambda mName,fp: scipy.sum( [ scipy.sum(fp.fittingModelDict[name].minimizationTimeSecondsList) for name in fp.logLikelihoodDict.keys() ] )
+    totalMinTimeFunc = lambda mName,fp: scipy.sum( [ scipy.sum(fp.fittingModelDict[name].minimizationTimeSecondsList) for name in list(fp.logLikelihoodDict.keys()) ] )
     return calcForAllFpds(fpdList,totalMinTimeFunc,skip=False,**kwargs)
     
 def bestModelConvFlags(fpdList,maxIndex=-3,**kwargs):
@@ -365,12 +365,12 @@ def plotAllFpdsDict(dataDict,marker='o',ls='',color='b',label=None,     \
     """
     kwargs['label'] = label
     kList,meanList,stdList = [],[],[]
-    for i,k in enumerate(scipy.sort(dataDict.keys())):
+    for i,k in enumerate(scipy.sort(list(dataDict.keys()))):
         vals = dataDict[k]
         if i==1: # include label for legend only once
             kwargs.pop('label')
         if plotMeans:
-            if filterNans: fVals = filter(lambda v: not scipy.isnan(v),vals)
+            if filterNans: fVals = [v for v in vals if not scipy.isnan(v)]
             else: fVals = vals
             meanVal,stdVal = scipy.mean(fVals),scipy.std(fVals,ddof=1)
             if makePlot:
@@ -420,12 +420,12 @@ def plotAllFpdsDictPretty(fpdList,plotDivisibleBy=1,errorBars=True,percent=50.,
     kList,yValsList,stdList = plotAllFpdsDict(fpdList,returnData=True,\
                                               makePlot=False,plotMeans=False,**kwargs)
     #print kList
-    keptIndices = filter(lambda i: kList[i]%plotDivisibleBy == 0,range(len(kList)))
+    keptIndices = [i for i in range(len(kList)) if kList[i]%plotDivisibleBy == 0]
     kList = scipy.array(kList)[keptIndices]
     yValsList = scipy.array(yValsList)[keptIndices]
     #stdList = scipy.array(stdList)[keptIndices]
     if ignoreNans:
-        yValsList = [ filter(lambda y: not scipy.isnan(y),yVals)                    \
+        yValsList = [ [y for y in yVals if not scipy.isnan(y)]                    \
                       for yVals in yValsList ]
     
     color = kwargs.get('color')
@@ -491,7 +491,7 @@ def orderedFitNames(fp,stopFittingN=scipy.inf):
     names = []
     if hasattr(fp,'logLikelihoodDict'):
       for name in fp.fittingModelNames:
-        if fp.logLikelihoodDict.has_key(name):
+        if name in fp.logLikelihoodDict:
             names.append(name)
     #print "orderedFitNames: debug: ",names
 
@@ -516,14 +516,14 @@ def plotAllFpdsDict2D(dataDict,fpdList=None,newFigure=True,defaultValue=0,\
     index (0)               : Index of fittingProblem to plot
     fpdList (None)          : If given, use to indicate the selected model
     """
-    maxNumModels = max( [ max([ len(data) for data in d ]) for d in dataDict.values() ] )
-    mat = defaultValue * scipy.ones((maxNumModels,len(dataDict.keys())))
-    for i,key in enumerate( scipy.sort(dataDict.keys()) ):
+    maxNumModels = max( [ max([ len(data) for data in d ]) for d in list(dataDict.values()) ] )
+    mat = defaultValue * scipy.ones((maxNumModels,len(list(dataDict.keys()))))
+    for i,key in enumerate( scipy.sort(list(dataDict.keys())) ):
         data = dataDict[key][index]
         for j,val in enumerate(data):
             mat[j,i] = val
 
-    plotMatrix(mat,X=scipy.sort(dataDict.keys()),Y=range(maxNumModels),**kwargs)
+    plotMatrix(mat,X=scipy.sort(list(dataDict.keys())),Y=list(range(maxNumModels)),**kwargs)
                 
     pylab.xlabel('Number of measurements $N$')
     pylab.ylabel('Model index')
@@ -531,7 +531,7 @@ def plotAllFpdsDict2D(dataDict,fpdList=None,newFigure=True,defaultValue=0,\
     # indicate the selected model
     if fpdList is not None:
         fpd = fpdList[index]
-        for key in scipy.sort(fpd.keys()):
+        for key in scipy.sort(list(fpd.keys())):
             fp = fpd[key]
             name = fp.maxLogLikelihoodName()
             if name is not None:
@@ -552,7 +552,7 @@ def plotOutOfSampleCorrelationVsMeasurements(fpdList,varList,seed=100,
         pylab.figure()
     for var in varList:
         d = bestOutOfSampleCorrs(fpdList,vars=[var],seed=seed)
-        keyList = list( scipy.sort(d.keys()) )
+        keyList = list( scipy.sort(list(d.keys())) )
         corrs = [ scipy.mean(d[k]) for k in keyList ]
         # remove exact zeros (which come from evaluation errors)
         while 0. in corrs:
@@ -560,7 +560,7 @@ def plotOutOfSampleCorrelationVsMeasurements(fpdList,varList,seed=100,
             corrs.pop(i)
             keyList.pop(i)
         # keep same colors each time you plot
-        cWfmt = cW.next()
+        cWfmt = next(cW)
         if newFigure: label = var
         else: label = '_nolegend_'
         pylab.plot(keyList,corrs,marker=cWfmt[1],ls=ls,color=cWfmt[0],label=label)
@@ -592,10 +592,9 @@ def plotPareto(numParamsDict,performanceDict,plotDivisibleBy=1,
                                 makePlot=False,plotMeans=False,**kwargs)
     if (len(xKList) != len(yKList)) or \
        (not scipy.all(scipy.equal(xKList,yKList))):
-        raise Exception, "numParamsDict and performanceDict contain different keys"
+        raise Exception("numParamsDict and performanceDict contain different keys")
     #print kList
-    keptIndices = filter(lambda i: xKList[i]%plotDivisibleBy == 0,
-                         range(len(xKList)))
+    keptIndices = [i for i in range(len(xKList)) if xKList[i]%plotDivisibleBy == 0]
     xValsList = scipy.array(xValsList)[keptIndices]
     yValsList = scipy.array(yValsList)[keptIndices]
     #stdList = scipy.array(stdList)[keptIndices]

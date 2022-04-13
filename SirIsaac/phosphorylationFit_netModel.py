@@ -8,7 +8,7 @@
 import os
 import scipy.io
 import resource,time # for measuring cpu usage and wall clock time
-import phosphorylationFit_MakeBNGL as writeBNGL
+from . import phosphorylationFit_MakeBNGL as writeBNGL
 
 class netModel():
     """
@@ -76,17 +76,17 @@ class netModel():
             if self.MichaelisMenten:
               mult = 4
             start,startWall = cpuTime(),wallTime()
-            print ""
-            print "Creating network with "+str(n)+" activation sites"
-            print "  and "+str(len(rulesList))+" additional rules ("                \
-                  +str(mult*(n+len(rulesList)))+" parameters)."
+            print("")
+            print("Creating network with "+str(n)+" activation sites")
+            print("  and "+str(len(rulesList))+" additional rules ("                \
+                  +str(mult*(n+len(rulesList)))+" parameters).")
         
         namesList = writeBNGL.writeBNGLnetwork(n,rulesList,filename,                \
             MichaelisMenten=self.MichaelisMenten)
         self._runBNGLfile(filename)
         
         if self.verbose:
-            print "Network creation took "+bothTimeStr(start,startWall)
+            print("Network creation took "+bothTimeStr(start,startWall))
         
         return namesList
 
@@ -107,9 +107,9 @@ class netModel():
         if error:
             stdoutFile = open(filename+"_messages.txt")
             stdout = stdoutFile.read()
-            print "phosphorylationFit_netModel._runBNGLfile: Error calling BioNetGen."
-            print stdout
-            raise Exception, "Error calling BioNetGen."
+            print("phosphorylationFit_netModel._runBNGLfile: Error calling BioNetGen.")
+            print(stdout)
+            raise Exception("Error calling BioNetGen.")
         
     def modelOutput(self,params):
         """

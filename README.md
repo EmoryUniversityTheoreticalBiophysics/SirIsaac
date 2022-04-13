@@ -49,10 +49,10 @@ ipython (for reading ipython notebook file describing example usage)
 Contributors
 ============
 
-Bryan Daniels
-Ilya Nemenman
-hashknot
-sudheerad9
+Bryan Daniels  
+Ilya Nemenman  
+hashknot  
+sudheerad9  
 
 
 

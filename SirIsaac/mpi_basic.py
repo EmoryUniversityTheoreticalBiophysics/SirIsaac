@@ -10,7 +10,7 @@
 #
 
 import sys
-from simplePickle import load,save
+from .simplePickle import load,save
 
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
@@ -20,7 +20,7 @@ num_procs = comm.Get_size()
 if __name__ == '__main__':
     
     if len(sys.argv) < 2 or len(sys.argv) > 2:
-        print "Usage: mpirun -np [numprocs] python mpi_test.py test_input_filename"
+        print("Usage: mpirun -np [numprocs] python mpi_test.py test_input_filename")
         exit()
     test_input_filename = sys.argv[1]
     
@@ -42,7 +42,7 @@ if __name__ == '__main__':
         # get results
         for worker in range(1,num_procs):
             msg = comm.recv(source=worker)
-            print("mpi_test: Worker {} said {}".format(worker,msg))
+            print(("mpi_test: Worker {} said {}".format(worker,msg)))
             file_data['test_output'] = msg
             
         # stop workers

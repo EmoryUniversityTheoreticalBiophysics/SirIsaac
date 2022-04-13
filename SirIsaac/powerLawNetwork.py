@@ -10,7 +10,7 @@
 from SloppyCell.ReactionNetworks import *
 from scipy import random, log
 import copy
-import gaussianPrior
+from . import gaussianPrior
     
 def PowerLaw_Network_List(networkList,speciesNames=None,
     logParams=True,netid='PowerLaw_Network',optimizableICs=[],
@@ -62,10 +62,10 @@ def PowerLaw_Network_List(networkList,speciesNames=None,
     
     # the order in which to add parameters
     if useDeltaGamma:
-        order = dict( zip(['xinit','g','gamma','h','delta'], range(5)) )
+        order = dict( list(zip(['xinit','g','gamma','h','delta'], list(range(5)))) )
     else:
-        order = dict( zip(['xinit','g','beta','h','alpha'], range(5)) )
-    orderConnect = dict( zip(['g','h'], range(2)) )
+        order = dict( list(zip(['xinit','g','beta','h','alpha'], list(range(5)))) )
+    orderConnect = dict( list(zip(['g','h'], list(range(2)))) )
     
     #fullConnectionList = copy.deepcopy(connectionList)
     # add "self-connections"
@@ -90,7 +90,7 @@ def PowerLaw_Network_List(networkList,speciesNames=None,
     
     for name in optimizableICs:
       if name not in speciesNames:
-        raise Exception, "One or more optimizableICs are not found in speciesNames"
+        raise Exception("One or more optimizableICs are not found in speciesNames")
     
     # add parameters
     for i in range(n):
@@ -124,7 +124,7 @@ def PowerLaw_Network_List(networkList,speciesNames=None,
             isOptimizable=order['h']<nodeType)
         
         # connect to others
-        for j in connectionDict.keys():
+        for j in list(connectionDict.keys()):
             net.addParameter('g_'+str(i)+'_'+str(j), defaultExpParam,           \
                 isOptimizable=orderConnect['g']<connectionDict[j])
             net.addParameter('h_'+str(i)+'_'+str(j), defaultExpParam,           \
@@ -147,7 +147,7 @@ def PowerLaw_Network_List(networkList,speciesNames=None,
         net.addSpecies( speciesNames[i], 'Comp', speciesNames[i]+'_init' )
       else: # it is an input node
         # add as a parameter if it's not already there
-        if speciesNames[i] not in net.parameters.keys():
+        if speciesNames[i] not in list(net.parameters.keys()):
           net.addParameter( speciesNames[i], 0., isOptimizable=False )
     
     # reaction rate rules
@@ -162,7 +162,7 @@ def PowerLaw_Network_List(networkList,speciesNames=None,
             # 1.30.2013
             product1 += 'exp(regStrength*1./'+speciesNames[i]+')*'
             product2 += 'exp(regStrength*'+speciesNames[i]+')*'
-        for j in connectionDict.keys():
+        for j in list(connectionDict.keys()):
             product1 += speciesNames[j]+'**g_'+str(i)+'_'+str(j)+'*'
             product2 += speciesNames[j]+'**h_'+str(i)+'_'+str(j)+'*'
             #if includeRegularizer:

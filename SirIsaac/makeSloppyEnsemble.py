@@ -5,19 +5,19 @@
 # 9.25.2013
 #
 
-import fittingProblem
+from . import fittingProblem
 from SloppyCell.ReactionNetworks import *
 import time # for sleep
 import os
 
-print "This computer's name is",os.uname()[1]
+print("This computer's name is",os.uname()[1])
 if (os.uname()[1][:4] == 'node'): # 4.4.2012 emory machines
-    print "The current directory is",os.getcwd()
+    print("The current directory is",os.getcwd())
     if os.getcwd().startswith('/star'):
         os.chdir('/star/physics/nemenman/daniels/SirIsaac')
     elif os.getcwd().startswith('/spark'):
         os.chdir('/spark/physics/nemenman/daniels/SirIsaac')
-    print "Now the current directory is",os.getcwd()
+    print("Now the current directory is",os.getcwd())
 
 def makeEnsemble(fpdFilename,numDataPoints,modelName=None,numSteps=1000,        \
     numStepsKept=10,sing_val_cutoff=1e-4,seeds=(100,100),numprocs=1,            \
@@ -52,7 +52,7 @@ def makeEnsemble(fpdFilename,numDataPoints,modelName=None,numSteps=1000,        
         '_' + modelName + '_ensemble' + str(numStepsKept) + '.dat'
 
     if verbose:
-        print "makeSloppyEnsemble: Generating ensemble for "+outputFilename
+        print("makeSloppyEnsemble: Generating ensemble for "+outputFilename)
 
     # set up model
     dataModel = m._SloppyCellDataModel(fp.fittingData,fp.indepParamsList)
@@ -72,7 +72,7 @@ def makeEnsemble(fpdFilename,numDataPoints,modelName=None,numSteps=1000,        
     Utility.save(output,outputFilename)
 
     if verbose:
-        print "makeSloppyEnsemble: Acceptance ratio =",ratio
+        print("makeSloppyEnsemble: Acceptance ratio =",ratio)
 
     return ens,ratio,costs
 
@@ -114,7 +114,7 @@ if __name__ == '__main__':
     while not hasattr(fp,'perfectFitParams'):
         i += 1
         Utility.save([i,10000],'131008_temp10000.txt')
-        print "makeSloppyEnsemble: Sleeping..."
+        print("makeSloppyEnsemble: Sleeping...")
         time.sleep(60)
         fpd = Utility.load(filenameList[0])
         fp = fpd[numDataPoints]

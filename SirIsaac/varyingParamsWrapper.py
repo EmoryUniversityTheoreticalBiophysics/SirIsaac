@@ -23,8 +23,8 @@ def VaryingParamsNet_Polynomial(SloppyCellNetwork,degreeList,inputName='input'):
     paramList = net.GetParameters()
 
     if len(degreeList) != len(paramList):
-        raise Exception, "VaryingParamsNet_Polynomial: "                        \
-            +"Length of degreeList not equal to length of paramList."
+        raise Exception("VaryingParamsNet_Polynomial: "                        \
+            +"Length of degreeList not equal to length of paramList.")
 
     # remove current rate rules, assignment rules, and
     # non-optimizable variables
@@ -32,11 +32,10 @@ def VaryingParamsNet_Polynomial(SloppyCellNetwork,degreeList,inputName='input'):
     # in case the old depend on the new ones)
     oldRateRules = copy.deepcopy(net.rateRules)
     oldRules = copy.deepcopy( net.assignmentRules )
-    oldVariables = filter( lambda var: not var.is_optimizable,                  \
-        copy.deepcopy(net.variables) )
-    for name in oldRateRules.keys():
+    oldVariables = [var for var in copy.deepcopy(net.variables) if not var.is_optimizable]
+    for name in list(oldRateRules.keys()):
         net.remove_component(name)
-    for name in oldRules.keys():
+    for name in list(oldRules.keys()):
         net.remove_component(name)
     for var in oldVariables:
         net.remove_component(var.id)
@@ -44,7 +43,7 @@ def VaryingParamsNet_Polynomial(SloppyCellNetwork,degreeList,inputName='input'):
     # add input parameter
     net.addParameter(inputName,0,isOptimizable=False)
 
-    for id,value,degree in zip(paramList.keys(),paramList.values(),degreeList):
+    for id,value,degree in zip(list(paramList.keys()),list(paramList.values()),degreeList):
 
         # make the variable non-optimizable
         net.set_var_optimizable(id,False)
@@ -70,9 +69,9 @@ def VaryingParamsNet_Polynomial(SloppyCellNetwork,degreeList,inputName='input'):
 
     for var in oldVariables:
         net._add_variable(var)
-    for name,rule in zip(oldRules.keys(),oldRules.values()):
+    for name,rule in zip(list(oldRules.keys()),list(oldRules.values())):
         net.addAssignmentRule(name,rule)
-    for name,rateRule in zip(oldRateRules.keys(),oldRateRules.values()):
+    for name,rateRule in zip(list(oldRateRules.keys()),list(oldRateRules.values())):
         net.addRateRule(name,rateRule)
 
     return net

@@ -62,11 +62,11 @@ def callMATLAB(callString,outputFilename=None,codeDirList=[],               \
                 os.remove(outputFilename)
         except IOError:
             # there was a MATLAB error
-            print "callMATLAB MATLAB error:"
+            print("callMATLAB MATLAB error:")
             stdoutFile = open(tmpStdoutFilename)
             stdout = stdoutFile.read()
-            print stdout
-            print "callMATLAB: Current directory is",os.getcwd()
-            raise Exception, "callMATLAB MATLAB error."
+            print(stdout)
+            print("callMATLAB: Current directory is",os.getcwd())
+            raise Exception("callMATLAB MATLAB error.")
         if len(outputList)==1: return outputList[0]
         return outputList

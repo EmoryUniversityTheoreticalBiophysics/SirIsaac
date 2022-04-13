@@ -82,7 +82,7 @@ class TestFittingProblem(unittest.TestCase):
         # set up simple linear data
         indepParamNames = ['x',]
         indepParamsList,data = simple_linear_data(numDatapoints)
-        outputNames = data[0].keys()
+        outputNames = list(data[0].keys())
         
         p = fp.PowerLawFittingProblem(
                 complexityList,

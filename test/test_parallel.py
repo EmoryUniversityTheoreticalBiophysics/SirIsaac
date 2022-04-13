@@ -88,10 +88,10 @@ class TestParallel(unittest.TestCase):
             m.localFitToData_parallel(NUMPROCS,data,dataModel,ens,indepParamsList)
         
         # check that we get the same answer from each parallel instance
-        testVar = fitParamsSerial.keys()[0] # just check the first parameter
+        testVar = list(fitParamsSerial.keys())[0] # just check the first parameter
         varSerial = fitParamsSerial.getByKey(testVar)
         varParallelList = [ result[0].getByKey(testVar) \
-                            for result in outputDictParallel.values() ]
+                            for result in list(outputDictParallel.values()) ]
         for varParallel in varParallelList:
             self.assertAlmostEqual(varSerial,varParallel)
 

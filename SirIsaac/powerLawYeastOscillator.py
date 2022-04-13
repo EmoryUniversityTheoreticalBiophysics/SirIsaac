@@ -5,7 +5,7 @@
 #
 # Sets up yeast oscillator as a 19-dimensional power-law network.
 
-from fittingProblem import *
+from .fittingProblem import *
 
 class PowerLawFittingModel_yeastOscillator(PowerLawFittingModel_FullyConnected):
     """
@@ -105,15 +105,15 @@ class PowerLawFittingModel_yeastOscillator(PowerLawFittingModel_FullyConnected):
         T,Tref = temperature, 286.5 # K
         R = 0.0083144 # kJ/K/mol
         tempDepRates = dict( [ (k,br[1]*scipy.exp(br[0]/(R*Tref)-br[0]/(R*T)))  \
-                               for k,br in barriersAndRates.items() ] )
-        for name,rate in tempDepRates.items():
+                               for k,br in list(barriersAndRates.items()) ] )
+        for name,rate in list(tempDepRates.items()):
             net.addParameter(name,rate)
         
         # () add assignment rules and composite species
         comp = net.compartments[0].id
         net.addParameter('y',1.,isOptimizable=False)
         net.addAssignmentRule('y','q/(k1*K1**q)')
-        for name,defList in self.definitionDict.items():
+        for name,defList in list(self.definitionDict.items()):
             # also set initial condition
             net.addParameter(name+"_init",1.0,isOptimizable=False)
             net.addSpecies(name,comp,name+"_init")

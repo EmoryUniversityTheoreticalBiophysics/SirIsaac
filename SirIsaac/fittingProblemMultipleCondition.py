@@ -8,7 +8,7 @@
 # while the parameters used to fit each condition vary.
 #
 
-from fittingProblem import *
+from .fittingProblem import *
 
 class FittingProblemMultipleCondition(FittingProblem):
     """
@@ -112,14 +112,14 @@ class FittingProblemMultipleCondition(FittingProblem):
                     costMultiple += fittingProblem.costDict[name]
                     penaltyMultiple += fittingProblem.penaltyDict[name]
                     # *******************************************************
-                    print "single condition cost: ",fittingProblem.costDict[name]
+                    print("single condition cost: ",fittingProblem.costDict[name])
                     # *******************************************************
                 else:
                     modelDone = False
             
             if modelDone:
                 # *******************************************************
-                print "total cost: ",costMultiple
+                print("total cost: ",costMultiple)
                 # *******************************************************
         
                 # Record total cost and penalty
@@ -138,7 +138,7 @@ class FittingProblemMultipleCondition(FittingProblem):
                 if not hasattr(self,'stopFittingN'):
                     self.stopFittingN = 3
                 for n in self.fittingModelNames:
-                    if self.logLikelihoodDict.has_key(n):
+                    if n in self.logLikelihoodDict:
                         orderedLs.append(self.logLikelihoodDict[n])
                 if (len(orderedLs) > self.stopFittingN):
                     if max(orderedLs[-self.stopFittingN:]) < max(orderedLs):
@@ -152,13 +152,13 @@ class FittingProblemMultipleCondition(FittingProblem):
             fittingProblem.fitPerfectModel(**kwargs)
 
     def numStiffSingVals(self,**kwargs):
-        raise Exception, "Not implemented"
+        raise Exception("Not implemented")
     
     def _StiffSingVals(self,**kwargs):
-        raise Exception, "Not implemented"
+        raise Exception("Not implemented")
     
     def _UpdateDicts(self,name):
-        raise Exception, "Not implemented"
+        raise Exception("Not implemented")
     
     def plotResults(self,**kwargs):
         """
@@ -168,13 +168,13 @@ class FittingProblemMultipleCondition(FittingProblem):
             fittingProblem.plotResults(**kwargs)
 
     def correlationWithPerfectModel(self,**kwargs):
-        raise Exception, "Not implemented"
+        raise Exception("Not implemented")
 
     def outOfSampleCorrelation(self,**kwargs):
-        raise Exception, "Not implemented"
+        raise Exception("Not implemented")
 
     def calculateAllOutOfSampleCorrelation(self,**kwargs):
-        raise Exception, "Not implemented"
+        raise Exception("Not implemented")
 
     def getBestModel(self,modelName=None,maxIndex=-4,**kwargs):
         if modelName is None:
@@ -193,7 +193,7 @@ class FittingProblemMultipleCondition(FittingProblem):
         return returnList
 
     def _fixOldVersion(self):
-        raise Exception, "Not implemented"
+        raise Exception("Not implemented")
 
     # technically networkFigureBestModel does not have to be implemented
     # for general fittingProblems, but it is for the types of fittingProblems
@@ -248,7 +248,7 @@ class PowerLawFittingProblemMultipleCondition(FittingProblemMultipleCondition):
         self.generalSetup(saveFilename,saveKey)
 
     def outOfSampleCorrelation_deriv(self,**kwargs):
-        raise Exception, "Not implemented"
+        raise Exception("Not implemented")
 
 
 class CTSNFittingProblemMultipleCondition(FittingProblemMultipleCondition):

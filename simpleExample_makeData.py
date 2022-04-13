@@ -37,7 +37,7 @@ xsNoisy = xs + noises
 
 noiseStds = scipy.repeat(noiseStd,100)
 
-data = zip( x0s, times, xsNoisy, noiseStds )
+data = list(zip( x0s, times, xsNoisy, noiseStds ))
 
 scipy.savetxt('simpleExample_data.txt',data)
 

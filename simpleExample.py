@@ -108,7 +108,7 @@ indepParamNames = ['x_init']
 #  smaller estimated log-likelihood.)
 complexityStepsize = 2 # increase complexity with steps of size 2
 complexityMax = 25 # don't try models with complexity > 25
-complexityList = range(0,complexityMax,complexityStepsize) 
+complexityList = list(range(0,complexityMax,complexityStepsize)) 
 
 # ensGen controls the generation of the initial ensemble of 
 # parameter starting points.
@@ -166,7 +166,7 @@ p = fittingProblem.load('simpleExample_savedFittingProblem.data')
 # In[11]:
 
 pylab.figure(figsize=(20,2))
-p.plotBestModelResults(plotInitialConditions=True,indices=range(10));
+p.plotBestModelResults(plotInitialConditions=True,indices=list(range(10)));
 
 
 # And now for out-of-sample data:
@@ -184,7 +184,7 @@ m.plotResults(sirIsaacData[20:30],indepParamsList[20:30],
 # In[13]:
 
 m = p.getBestModel()
-print m.getParameters()
+print(m.getParameters())
 
 
 # The following will use SloppyCell to output a latex file with the ODEs describing the selected model:
@@ -226,10 +226,10 @@ pylab.ylabel('X_1')
 # In[17]:
 
 for name in p.fittingModelNames:
-  if name in p.logLikelihoodDict.keys():
-    print name, ': #species =',len(p.fittingModelDict[name].speciesNames),                ', #params =',p.numParametersDict[name],                ', L =', p.logLikelihoodDict[name]
-print
-print 'Selected model:',p.maxLogLikelihoodName()
+  if name in list(p.logLikelihoodDict.keys()):
+    print(name, ': #species =',len(p.fittingModelDict[name].speciesNames),                ', #params =',p.numParametersDict[name],                ', L =', p.logLikelihoodDict[name])
+print()
+print('Selected model:',p.maxLogLikelihoodName())
 
 
 # A model with more parameters fits in-sample data better but out-of-sample data worse:
@@ -263,12 +263,12 @@ scipy.sort(singVals)
 # In[21]:
 
 m = p.getBestModel()
-print "Acceptance ratio for initial parameter ensemble =",m.acceptanceRatio
+print("Acceptance ratio for initial parameter ensemble =",m.acceptanceRatio)
 c = sum(scipy.array(m.currentResiduals(p.fittingData,p.indepParamsList,includePriors=False))**2)
-print "Sum of squared residuals at best-fit (without priors) =",c
-print "Convergence flags for local fits:",m.convFlagList
-print "Number of cost evaluations for local fits:",m.numCostCallsList
-print "Number of gradient evaluations for local fits:",m.numGradCallsList
+print("Sum of squared residuals at best-fit (without priors) =",c)
+print("Convergence flags for local fits:",m.convFlagList)
+print("Number of cost evaluations for local fits:",m.numCostCallsList)
+print("Number of gradient evaluations for local fits:",m.numGradCallsList)
 
 
 # Finally, since in this case we know the function used to create the data, we can compare:
@@ -276,7 +276,7 @@ print "Number of gradient evaluations for local fits:",m.numGradCallsList
 # In[22]:
 
 pylab.figure(figsize=(20,2))
-indicesToPlot = range(5)
+indicesToPlot = list(range(5))
 axArray = p.plotBestModelResults(plotInitialConditions=True,indices=indicesToPlot)
 
 # compare to model that generated the data

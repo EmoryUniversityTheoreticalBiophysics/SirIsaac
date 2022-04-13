@@ -47,7 +47,7 @@ def noisyFakeData(net,numPoints,timeInterval,
     if seed is not None: scipy.random.seed(seed)
     
     if vars is None:
-        vars = net.dynamicVars.keys()
+        vars = list(net.dynamicVars.keys())
     if params is None:
         params = net.GetParameters()
         
@@ -66,22 +66,22 @@ def noisyFakeData(net,numPoints,timeInterval,
             data[var][time] = ( traj.get_var_val(var,time), 0. )
 
     if trueNoiseRange is None:
-        noiseFracSizeList = [noiseFracSize for var in data.keys()]
+        noiseFracSizeList = [noiseFracSize for var in list(data.keys())]
     elif len(trueNoiseRange) == 2:
         if noiseSeed is not None: scipy.random.seed(noiseSeed+1)
         a,b = trueNoiseRange
-        noiseFracSizeList = scipy.random.uniform(a,b,len(data.keys()))
+        noiseFracSizeList = scipy.random.uniform(a,b,len(list(data.keys())))
     else:
-        raise Exception, "Unrecognized form of trueNoiseRange"
+        raise Exception("Unrecognized form of trueNoiseRange")
 
     if noiseSeed is not None: scipy.random.seed(noiseSeed)
 
     if typValOffsets is None: typValOffsets = scipy.zeros(len(vars))
 
-    for var,offset,trueNoiseFracSize in zip(data.keys(),typValOffsets,noiseFracSizeList):
+    for var,offset,trueNoiseFracSize in zip(list(data.keys()),typValOffsets,noiseFracSizeList):
         trueNoiseSize = trueNoiseFracSize * ( net.get_var_typical_val(var) - offset )
         reportedNoiseSize = noiseFracSize * ( net.get_var_typical_val(var) - offset )
-        for key in data[var].keys():
+        for key in list(data[var].keys()):
             old = data[var][key]
             if trueNoiseSize > 0:
                 if not lognormalNoise:

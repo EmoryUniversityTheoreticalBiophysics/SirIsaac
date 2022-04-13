@@ -11,7 +11,7 @@
 from SloppyCell.ReactionNetworks import *
 from scipy import random, log
 import copy
-import gaussianPrior
+from . import gaussianPrior
 
 def CTSN_List(networkList,speciesNames=None,                                    \
     logParams=True,netid='CTSN',switchSigmoid=False,xiNegative=False):
@@ -52,8 +52,8 @@ def CTSN_List(networkList,speciesNames=None,                                    
     #m = 0
 
     # the order in which to add parameters
-    order = dict( zip(['xinit','wself','tau','theta'], range(5)) )
-    orderConnect = dict( zip(['w'], range(1)) )
+    order = dict( list(zip(['xinit','wself','tau','theta'], list(range(5)))) )
+    orderConnect = dict( list(zip(['w'], list(range(1)))) )
 
     net = Network(netid, name='CTSN')
     net.addCompartment('Comp',name='Compartment')
@@ -91,7 +91,7 @@ def CTSN_List(networkList,speciesNames=None,                                    
             net.addAssignmentRule('tau_'+str(i),'exp(log_tau_'+str(i)+')')
 
         # connect to others
-        for j in connectionDict.keys():
+        for j in list(connectionDict.keys()):
             net.addParameter('w_'+str(i)+'_'+str(j), defaultW,                  \
                 isOptimizable=orderConnect['w']<connectionDict[j])
 
@@ -105,7 +105,7 @@ def CTSN_List(networkList,speciesNames=None,                                    
         net.addSpecies( speciesNames[i], 'Comp', speciesNames[i]+'_init' )
       else: # it is an input node
         # add as a parameter if it's not already there
-        if speciesNames[i] not in net.parameters.keys():
+        if speciesNames[i] not in list(net.parameters.keys()):
           net.addParameter( speciesNames[i], 0., isOptimizable=False )
 
     # reaction rate rules
@@ -120,7 +120,7 @@ def CTSN_List(networkList,speciesNames=None,                                    
         else: # prior to 12.19.2013
             sum += 'wself_'+str(i)                                                  \
                 +' / (1. + exp('+speciesNames[i]+' + theta_'+str(i)+')) + '
-        for j in connectionDict.keys():
+        for j in list(connectionDict.keys()):
           if networkList[j][0] != 0: # the connection is not from an input node
             if xiNegative:
                 sum += 'w_'+str(i)+'_'+str(j)                                       \
@@ -140,7 +140,7 @@ def CTSN_List(networkList,speciesNames=None,                                    
           sum = ''
           # always connect to yourself
           sum += 'wself_'+str(i)+'*('+speciesNames[i]+' + theta_'+str(i)+') + '
-          for j in connectionDict.keys():
+          for j in list(connectionDict.keys()):
               if networkList[j][0] != 0: # the connection is not from an input node
                   sum += 'w_'+str(i)+'_'+str(j)                                     \
                       +'*('+speciesNames[j]+'+ theta_'+str(j)+') + '

@@ -5,7 +5,7 @@
 #
 
 import io, sys
-import cPickle
+import pickle
 
 # include some old name variants for back-compatability
 #import fittingProblem
@@ -13,11 +13,11 @@ import cPickle
 
 def save(obj,filename):
     fout = io.open(filename,'wb')
-    cPickle.dump(obj,fout,2)
+    pickle.dump(obj,fout,2)
     fout.close()
 
 def load(filename):
     fin = io.open(filename,'rb')
-    obj = cPickle.load(fin)
+    obj = pickle.load(fin)
     fin.close()
     return obj
