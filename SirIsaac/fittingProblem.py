@@ -1609,7 +1609,7 @@ class SloppyCellFittingModel(FittingModel):
             if self.verbose: print("SloppyCellFittingModel.fitToData: "         \
                 "using ensemble stored in self.ensemble.")
         elif self.ensGen != None:
-            startTimeEns = time.clock()
+            startTimeEns = time.time()
             if self.numprocs > 1:
                 ens,ratio = self.ensGen.generateEnsemble_parallel(self.numprocs,
                     dataModel,initialParameters,verbose=self.verbose)
@@ -1620,7 +1620,7 @@ class SloppyCellFittingModel(FittingModel):
                 print("SloppyCellFittingModel.fitToData: Ensemble generation "  \
                       "failed.  Using self.initialParameters.")
                 ens = [self.initialParameters]
-            ensTimeSeconds = time.clock() - startTimeEns
+            ensTimeSeconds = time.time() - startTimeEns
             self.ensTimeSecondsList.append(ensTimeSeconds)
         else:
             ens = [initialParameters]
@@ -1657,7 +1657,7 @@ class SloppyCellFittingModel(FittingModel):
           self.convFlagList,self.costList = [],[]
           for index,params in enumerate(ens):
             #self.initializeParameters(params)
-            startTime = time.clock()
+            startTime = time.time()
 
             if fittingDataDerivs is None:
               fitParams,convFlag,cost,numCostCalls,numGradCalls,Lmbda,j =       \
@@ -1676,7 +1676,7 @@ class SloppyCellFittingModel(FittingModel):
               self.afterMinCostDict[index] = afterMinCostList
               self.afterExpCostDict[index] = afterExpCostList
 
-            minimizationTimeSeconds = time.clock() - startTime
+            minimizationTimeSeconds = time.time() - startTime
             self.minimizationTimeSecondsList.append(minimizationTimeSeconds)
 
             if fittingDataDerivs is not None:
