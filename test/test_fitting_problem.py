@@ -114,3 +114,5 @@ class TestFittingProblem(unittest.TestCase):
             # check we have the correct number of singular values
             self.assertEqual(len(p.singValsDict[modelName]),p.numParametersDict[modelName])
         
+if __name__ == '__main__':
+    unittest.main()

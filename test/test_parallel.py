@@ -120,6 +120,7 @@ class TestParallel(unittest.TestCase):
             self.assertAlmostEqual(ensSerial[0][paramIndex],
                                    ensParallel[0][paramIndex])
 
-    
+if __name__ == '__main__':
+    unittest.main()
         
         
