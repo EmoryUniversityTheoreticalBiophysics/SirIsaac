@@ -48,7 +48,6 @@ import copy
 
 # used in _findUsedVariables
 import SloppyCell.ExprManip as ExprManip
-import sets
 
 from .simplePickle import load,save
 
@@ -2264,7 +2263,7 @@ class SloppyCellFittingModel(FittingModel):
         Find all variable names used to calculate the variables in data.keys()
         in the given SloppyCell network 'net'.
         """
-        usedVariables = sets.Set(list(data.keys()))
+        usedVariables = set(list(data.keys()))
         compList = [net.functionDefinitions,net.constraints,                    \
             net.assignmentRules,net.rateRules,net.algebraicRules]
 
