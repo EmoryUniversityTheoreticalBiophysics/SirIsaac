@@ -15,7 +15,7 @@ from numpy import *
 from mpi4py import MPI
 import time
 
-from .fittingProblem import *
+from SirIsaac.fittingProblem import *
 import sys
 
 ## 7.3.2012 disable SloppyCell's parallel stuff

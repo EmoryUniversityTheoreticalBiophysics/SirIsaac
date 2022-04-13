@@ -11,7 +11,7 @@ from numpy import *
 import time
 
 #from generateFightData import *
-from .fittingProblem import *
+from SirIsaac.fittingProblem import *
 import sys
 
 # use parallel computation supported by SloppyCell

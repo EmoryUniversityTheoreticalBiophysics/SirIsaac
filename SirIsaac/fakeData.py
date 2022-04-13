@@ -6,7 +6,7 @@
 # Make fake data compatible with SloppyCell.
 
 from SloppyCell.ReactionNetworks import *
-import scipy
+import numpy as np
 
 # (originally from runTranscriptionNetwork.py)
 def noisyFakeData(net,numPoints,timeInterval,
@@ -44,7 +44,7 @@ def noisyFakeData(net,numPoints,timeInterval,
                           would otherwise be produced.
     """
     
-    if seed is not None: scipy.random.seed(seed)
+    if seed is not None: np.random.seed(seed)
     
     if vars is None:
         vars = list(net.dynamicVars.keys())
@@ -68,15 +68,15 @@ def noisyFakeData(net,numPoints,timeInterval,
     if trueNoiseRange is None:
         noiseFracSizeList = [noiseFracSize for var in list(data.keys())]
     elif len(trueNoiseRange) == 2:
-        if noiseSeed is not None: scipy.random.seed(noiseSeed+1)
+        if noiseSeed is not None: np.random.seed(noiseSeed+1)
         a,b = trueNoiseRange
-        noiseFracSizeList = scipy.random.uniform(a,b,len(list(data.keys())))
+        noiseFracSizeList = np.random.uniform(a,b,len(list(data.keys())))
     else:
         raise Exception("Unrecognized form of trueNoiseRange")
 
-    if noiseSeed is not None: scipy.random.seed(noiseSeed)
+    if noiseSeed is not None: np.random.seed(noiseSeed)
 
-    if typValOffsets is None: typValOffsets = scipy.zeros(len(vars))
+    if typValOffsets is None: typValOffsets = np.zeros(len(vars))
 
     for var,offset,trueNoiseFracSize in zip(list(data.keys()),typValOffsets,noiseFracSizeList):
         trueNoiseSize = trueNoiseFracSize * ( net.get_var_typical_val(var) - offset )
@@ -85,12 +85,12 @@ def noisyFakeData(net,numPoints,timeInterval,
             old = data[var][key]
             if trueNoiseSize > 0:
                 if not lognormalNoise:
-                    new0 = old[0] + scipy.random.normal(0.,trueNoiseSize)
+                    new0 = old[0] + np.random.normal(0.,trueNoiseSize)
                 else:
                     mu,sigma = old[0],trueNoiseSize
-                    mul = scipy.log( mu/scipy.sqrt(sigma*sigma/(mu*mu) + 1.) )
-                    sigmal = scipy.sqrt(scipy.log(sigma*sigma/(mu*mu) + 1.))
-                    new0 = scipy.random.lognormal(mul,sigmal)
+                    mul = np.log( mu/np.sqrt(sigma*sigma/(mu*mu) + 1.) )
+                    sigmal = np.sqrt(np.log(sigma*sigma/(mu*mu) + 1.))
+                    new0 = np.random.lognormal(mul,sigmal)
                 if takeAbs: new0 = abs(new0)
                 new = (new0, reportedNoiseSize)
             else:
@@ -101,18 +101,18 @@ def noisyFakeData(net,numPoints,timeInterval,
 
 def noisyFakeDataFromData(data,numPoints,varName,noiseFracSize=0.1,seed=None):
     
-    scipy.random.seed(seed)
+    np.random.seed(seed)
     
     n = len(data)
-    typicalSize = scipy.average(data)
+    typicalSize = np.average(data)
     noiseSize = noiseFracSize * typicalSize
     
     fakeDataDict = {}
     
     for i in range(numPoints):
-      xVal = scipy.random.randint(0,n)
+      xVal = np.random.randint(0,n)
       yVal = data[xVal]
       fakeDataDict[ xVal ] =                                                    \
-        ( yVal + scipy.random.normal(0.,noiseSize), noiseSize )
+        ( yVal + np.random.normal(0.,noiseSize), noiseSize )
         
     return {varName: fakeDataDict}
