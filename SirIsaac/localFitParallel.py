@@ -63,7 +63,7 @@ allOutputsDict = {}
 
 ### Master Process ###
 if MPI_myID == MASTER_PROCESS:
-    from .simplePickle import save
+    from SirIsaac.simplePickle import save
 
     num_processors = comm.Get_size()
     print(("localFitParallel: "\
@@ -134,12 +134,12 @@ else:
             print(("localFitParallel: "\
                   "worker {} working on work_array {}...".format(MPI_myID,work_array)))
             
-            startTime = time.clock()
+            startTime = time.time()
             
             # do the work
             workerResults = list( fitFunction(work_array) )
             
-            minimizationTimeSeconds = time.clock() - startTime
+            minimizationTimeSeconds = time.time() - startTime
             workerResults.append(minimizationTimeSeconds)
             workerResults.append(work_array)
             
