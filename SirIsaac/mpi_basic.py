@@ -10,7 +10,7 @@
 #
 
 import sys
-from .simplePickle import load,save
+from SirIsaac.simplePickle import load,save
 
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
