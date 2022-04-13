@@ -28,7 +28,7 @@ SirIsaac depends on the latest
 version of SloppyCell, available on GitHub.
 In the simplest case, you can install with two steps.  First download the git repository by running
 
-    https://github.com/GutenkunstLab/SloppyCell.git
+    git clone https://github.com/GutenkunstLab/SloppyCell.git
     
 which will create a folder named `SloppyCell` in the current directory.  Next, install SloppyCell by running setup.py.  The easiest way to do this is using `pip`:
 
