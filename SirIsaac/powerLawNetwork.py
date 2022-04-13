@@ -8,7 +8,7 @@
 
 
 from SloppyCell.ReactionNetworks import *
-from scipy import random, log
+from numpy import random, log
 import copy
 from . import gaussianPrior
     

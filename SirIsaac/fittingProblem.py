@@ -29,6 +29,7 @@ from . import varyingParamsWrapper
 from . import gaussianPrior
 from . import optimize
 import scipy.linalg
+import numpy as np
 import io, os
 import time
 from . import fakeData
@@ -144,9 +145,9 @@ class FittingProblem:
         # consistency checks
         if len(fittingData) != len(indepParamsList):
             raise Exception("Length of indepParamsList must equal length of fittingData")
-        if len(scipy.shape(indepParamsList)) != 2:
+        if len(np.shape(indepParamsList)) != 2:
             raise Exception("indepParamsList must be two-dimensional")
-        if scipy.shape(indepParamsList)[1] != len(indepParamNames):
+        if np.shape(indepParamsList)[1] != len(indepParamNames):
             raise Exception("Length of indepParamNames must equal length of second dimension of indepParamsList")
 
         for d in fittingData:
@@ -395,17 +396,17 @@ class FittingProblem:
         squared residuals), the singular values of the Hessian, and
         the singular values of the Hessian with only priors.
         """
-        return -(cost + 0.5*scipy.sum( scipy.log(singVals) )                        \
-                      - 0.5*scipy.sum( scipy.log(priorSingVals) ) )
+        return -(cost + 0.5*np.sum( np.log(singVals) )                        \
+                      - 0.5*np.sum( np.log(priorSingVals) ) )
 
 
     # 8.2.2009 updated to include 2pi
     # 9.11.2013 corrected
     def penalty(self,singVals,priorSingVals):
-        #return 0.5*scipy.sum( scipy.log(                                           \
+        #return 0.5*np.sum( np.log(                                           \
         #    scipy.array(self._StiffSingVals(singVals,cutoff))/(2.*scipy.pi) ) )
-        return + 0.5*scipy.sum( scipy.log(singVals) )                               \
-               - 0.5*scipy.sum( scipy.log(priorSingVals) )
+        return + 0.5*np.sum( np.log(singVals) )                               \
+               - 0.5*np.sum( np.log(priorSingVals) )
 
     def numStiffSingVals(self,singVals,cutoff=None):
         return len( self._StiffSingVals(singVals,cutoff) )
@@ -475,7 +476,7 @@ class FittingProblem:
                                       errors:
                                       mean( (data - perfectData)^2 )
         """
-        flat = lambda a: scipy.reshape(a,scipy.prod(scipy.shape(a)))
+        flat = lambda a: scipy.reshape(a,scipy.prod(np.shape(a)))
 
         if indepParamsList is None:
             indepParamsList = self.indepParamsList
@@ -483,7 +484,7 @@ class FittingProblem:
             raise Exception("fittingProblem instance has no perfectModel.")
         corrList,errList = [],[]
         times = scipy.linspace(timeInterval[0],timeInterval[1],numPoints)
-        if len(scipy.shape(var)) == 0: var = [var] # single variable
+        if len(np.shape(var)) == 0: var = [var] # single variable
 
         # 4.17.2013 don't want to return anything if we're testing a fit version
         # of self.perfectModel and it hasn't been fit yet
@@ -504,8 +505,8 @@ class FittingProblem:
             wormData = speedDict[indepParams]
             times = scipy.sort(list(wormData.keys()))
             perfectData = scipy.array([[ wormData[time][0] for time in times ]])
-          #print scipy.shape(perfectData)
-          #print scipy.shape(data)
+          #print np.shape(perfectData)
+          #print np.shape(data)
           else: # typical case
             # 4.17.2013 in case we're checking a fit version of self.perfectModel
             if hasattr(self,'perfectParams'):
@@ -552,7 +553,7 @@ class FittingProblem:
 
             if k == len(indepParamsList) - 1: # calculate correlations once
               data,perfectData =                                                    \
-                scipy.transpose(dataList),scipy.transpose(perfectDataList)
+                np.transpose(dataList),np.transpose(perfectDataList)
               # now data is (#vars) x (#indepParams)
               corrListI,errListI = [],[]
               if makePlots:
@@ -610,10 +611,10 @@ class FittingProblem:
             # generate random indepParams
             scipy.random.seed(seed)
             ipr = scipy.array(indepParamsRanges)
-            if sampleInLog: ipr = scipy.log(ipr)
+            if sampleInLog: ipr = np.log(ipr)
             randomIndepParams = scipy.rand(numTests,len(indepParamsRanges))*        \
                 (ipr[:,1]-ipr[:,0]) + ipr[:,0]
-            if sampleInLog: randomIndepParams = scipy.exp(randomIndepParams)
+            if sampleInLog: randomIndepParams = np.exp(randomIndepParams)
             if verbose: print(randomIndepParams)
 
         return self.correlationWithPerfectModel(fittingModel,timeInterval,
@@ -989,7 +990,7 @@ class CTSNFittingProblem(FittingProblem):
         bestModel = self.getBestModel(modelName=modelName)
 
         if indepParamMax is None:
-            indepParamMax = [ max(l) for l in scipy.transpose(self.indepParamsList) ]
+            indepParamMax = [ max(l) for l in np.transpose(self.indepParamsList) ]
         print(indepParamMax)
 
         # 7.26.2012 also pass edge parameters
@@ -1247,7 +1248,7 @@ class FittingModel:
             Plotting.figure(figsize=figsize)
 
         if maxTime is None:
-            allDataTimes = scipy.concatenate([ scipy.concatenate([                \
+            allDataTimes = np.concatenate([ np.concatenate([                \
               list(varDat.keys()) for varDat in list(data.values())])                         \
                                               for data in fittingData ])
             maxTime = 1.1 * max(allDataTimes)
@@ -1989,8 +1990,8 @@ class SloppyCellFittingModel(FittingModel):
 
         try:
             singleVariable =                                                    \
-                isinstance(var,tuple) or ( len(scipy.shape(var)) == 0 )
-        except: # scipy.shape dies if there are tuples and strings
+                isinstance(var,tuple) or ( len(np.shape(var)) == 0 )
+        except: # np.shape dies if there are tuples and strings
             singleVariable = False
         try:
             #traj = self.net.integrate(scipy.array( [0.]+list(times) ))
@@ -2322,7 +2323,7 @@ class SloppyCellFittingModel(FittingModel):
 
         for x0,x1,y0,y1 in zip(xvals[:-1],xvals[1:],yvals[:-1],yvals[1:]):
             x0,x1,y0,y1 = str(x0),str(x1),str(y0),str(y1)
-            #condlistStr += "scipy.logical_and("+xStr+">="+x0+","+xStr+"<="+x1+"),"
+            #condlistStr += "np.logical_and("+xStr+">="+x0+","+xStr+"<="+x1+"),"
             #funclistStr += "lambda t: "+y0+" + "                            \
             #    +"("+y1+"-"+y0+")/("+x1+"-"+x0+")*(t-"+x0+"),"
             string += y0+" + "+"("+y1+"-"+y0+")/("+x1+"-"+x0+")*("+xStr+"-"+x0+"),"
@@ -2479,12 +2480,12 @@ class yeastOscillatorFittingModel(FittingModel):
                     "evaluateVec: Unable to save memoization dictionary.")
                 #pass
 
-        if len(times) != scipy.shape(data)[1]:
+        if len(times) != np.shape(data)[1]:
             print("FittingProblem.YeastOscillatorFittingModel.evaluateVec "     \
                 "WARNING: Returning different number of timepoints than "       \
                 "requested.")
-            print("shape(times) =",scipy.shape(times))
-            print("shape(data) =",scipy.shape(data))
+            print("shape(times) =",np.shape(times))
+            print("shape(data) =",np.shape(data))
 
         return data[desiredVarIndices]
 
@@ -2563,7 +2564,7 @@ class EnsembleGenerator():
         try:
             if self.logParams:
                 initialHess = dataModel.GetJandJtJInLogParameters(              \
-                    scipy.log(initialParameters))[1]
+                    np.log(initialParameters))[1]
             else:
                 initialHess = dataModel.GetJandJtJ(initialParameters)[1]
             u, sing_vals, vh = scipy.linalg.svd(0.5 * initialHess)
@@ -2584,10 +2585,10 @@ class EnsembleGenerator():
                 sing_val_cutoff=self.sing_val_cutoff,hess=initialHess)
         if verbose:
             print("Ensemble done.  Acceptance ratio = "+str(ratio))
-        skip = int( scipy.floor(self.totalSteps/(self.keepSteps-1)) )
-        keptEns = scipy.concatenate( (ens[::-skip][:self.keepSteps-1],
+        skip = int( np.floor(self.totalSteps/(self.keepSteps-1)) )
+        keptEns = np.concatenate( (ens[::-skip][:self.keepSteps-1],
             [initialParameters]) )
-        keptCosts = scipy.concatenate( (costs[::-skip][:self.keepSteps-1],
+        keptCosts = np.concatenate( (costs[::-skip][:self.keepSteps-1],
             [initialCost]) )
         if returnCosts:
           return keptEns,ratio,keptCosts
@@ -2644,7 +2645,7 @@ class EnsembleGenerator():
           return output
 
     def _dataModelNumDataPoints(self,dataModel):
-        return scipy.sum( [ [ [ len(varDat) for varDat in list(nameDat.values()) ]    \
+        return np.sum( [ [ [ len(varDat) for varDat in list(nameDat.values()) ]    \
             for nameDat in list(exptDat.GetData().values()) ]                         \
             for exptDat in list(dataModel.exptColl.values()) ] )
 
@@ -2792,8 +2793,8 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                 if noiseInLog:
                   valuesNoise = scipy.random.normal(0.,noiseFracSize,len(values))
                   derivsNoise = scipy.random.normal(0.,noiseFracSize,len(derivs))
-                  valuesWithNoise = scipy.exp(valuesNoise) * values
-                  derivsWithNoise = scipy.exp(derivsNoise) * derivs
+                  valuesWithNoise = np.exp(valuesNoise) * values
+                  derivsWithNoise = np.exp(derivsNoise) * derivs
                   valueSigmas = abs(values)*noiseFracSize # XXX 2.28.2013 other factors?
                   derivSigmas = abs(derivs)*noiseFracSize # XXX 2.28.2013 other factors?
                 else:
@@ -2939,14 +2940,14 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                                             fittingDataDerivs,indepParamsList)
         speciesDataTimeDerivSigmas = nonHiddenDataDerivSigmas
 
-        numSpeciesTotal,numTimes = scipy.shape(speciesData)
+        numSpeciesTotal,numTimes = np.shape(speciesData)
         numIndepParams = len(indepParamsMat)
 
         Pg,Ph = self._derivProblem_getParams(numSpeciesTotal,numIndepParams)
 
         predictedDerivs = self._derivProblem_predictedDerivs(Pg,Ph,
             speciesData,indepParamsMat,regStrength)
-        derivCost = scipy.sum(                                                  \
+        derivCost = np.sum(                                                  \
             ((speciesDataTimeDerivs - predictedDerivs)/speciesDataTimeDerivSigmas)**2 )
 
         return derivCost
@@ -2987,7 +2988,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         # sanity check that I'm not setting nonexistent parameters
         oldParameterNames = scipy.sort(list(currentParams.keys()))
         newParameterNames = scipy.sort(list(newParams.keys()))
-        if scipy.shape(oldParameterNames) != scipy.shape(newParameterNames):
+        if np.shape(oldParameterNames) != np.shape(newParameterNames):
             raise Exception("oldParameterNames != newParameterNames.\n"            \
                 "old = "+str(oldParameterNames)+",\nnew = "+str(newParameterNames))
         if not scipy.all( oldParameterNames == newParameterNames ):
@@ -3018,24 +3019,24 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         logAlpha = Pg[numInputs,:] # logAlpha len #species
         g = Pg[numInputs+1:,:] # g (#species)x(#species)
 
-        logIP = scipy.log(indepParamsMat) # logIP (#IPs)x(#times)
-        logProdGIP = scipy.dot(gIP.T,logIP) # logProdGIP (#species)x(#times)
+        logIP = np.log(indepParamsMat) # logIP (#IPs)x(#times)
+        logProdGIP = np.dot(gIP.T,logIP) # logProdGIP (#species)x(#times)
 
-        logData = scipy.log(speciesData) # logData (#species)x(#times)
-        logProdG = scipy.dot(g.T,logData) # logProdG (#species)x(#times) # g or g.T?
+        logData = np.log(speciesData) # logData (#species)x(#times)
+        logProdG = np.dot(g.T,logData) # logProdG (#species)x(#times) # g or g.T?
 
-        logG = scipy.transpose([ logAlpha + lg + lgip for lgip,lg in            \
+        logG = np.transpose([ logAlpha + lg + lgip for lgip,lg in            \
             zip(logProdGIP.T,logProdG.T) ])
 
-        return scipy.exp(logG) # G (#species)x(#times)
+        return np.exp(logG) # G (#species)x(#times)
 
     # 6.28.2012
     def _derivProblem_predictedDerivs(self,Pg,Ph,speciesData,indepParamsMat,r,
         separateTerms=False):
         G = self._derivProblem_productTerm(Pg,speciesData,indepParamsMat) *     \
-            scipy.exp(r/speciesData)
+            np.exp(r/speciesData)
         H = self._derivProblem_productTerm(Ph,speciesData,indepParamsMat) *     \
-            scipy.exp(r*speciesData)
+            np.exp(r*speciesData)
         predictedDerivs = G - H
         if separateTerms: return G,H
         else: return predictedDerivs
@@ -3065,12 +3066,12 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                                      0 if j is not influenced by i.
                                   Defaults to all ones (fully connected).
         """
-        numSpecies,numTimes = scipy.shape(Y)
+        numSpecies,numTimes = np.shape(Y)
         numFactors = len(Design[0])
         if weightMatrix is None: weightMatrix = scipy.ones_like(Y)
         if includedIndices is None: includedIndices = list(range(numTimes))
         if thetaMatrix is None: thetaMatrix = scipy.ones((numFactors,numSpecies))
-        W = scipy.transpose( (weightMatrix.T)[includedIndices] )
+        W = np.transpose( (weightMatrix.T)[includedIndices] )
         D = Design[includedIndices]
         YT = scipy.real_if_close( (Y.T)[includedIndices] )
         YTTilde = W.T*YT
@@ -3081,13 +3082,13 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             Wi = scipy.array([W[i]]).repeat(len(D[0]),axis=0) # shape (#factors)x(#times)
             thetai = scipy.array([thetaMatrix[:,i]]).repeat(numTimes,axis=0) # (#times)x(#factors)
             DiTilde = Wi.T*thetai*D
-            #Binv = scipy.linalg.inv(scipy.dot(DiTilde.T,DiTilde))
+            #Binv = scipy.linalg.inv(np.dot(DiTilde.T,DiTilde))
             priorTerm = priorLambda*scipy.diag(scipy.ones(len(D[0])))
             thetaTerm = scipy.diag(1-thetaMatrix[:,i]) # 3.3.2013 to keep B non-singular
-            B = scipy.dot(DiTilde.T,DiTilde) + priorTerm + thetaTerm
+            B = np.dot(DiTilde.T,DiTilde) + priorTerm + thetaTerm
             # ******************************************************
             #print "_derivProblem_regression: fitting species number",i
-            #print "_derivProblem_regression: sum(Wi^2) =",scipy.sum(Wi**2)
+            #print "_derivProblem_regression: sum(Wi^2) =",np.sum(Wi**2)
             # ******************************************************
             try:
                 Binv = svdInverse(B,maxEig=self.maxSVDeig,minEig=self.minSVDeig)
@@ -3097,24 +3098,24 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                 # but it probably is if Wi is all zeros (which is what I'm
                 # trying to fix).  I'll raise an exception in other cases to
                 # be safe.
-                if scipy.sum(Wi**2) != 0: raise ValueError
+                if np.sum(Wi**2) != 0: raise ValueError
                 Binv = scipy.zeros( ( len(DiTilde[0]),len(DiTilde[0]) ) )
 
             # ***************
-            if scipy.sum(scipy.imag(Binv)**2) > 0.:
+            if np.sum(scipy.imag(Binv)**2) > 0.:
                 print("_derivProblem_regression: sum(imag(Binv)**2) =",             \
-                    scipy.sum(scipy.imag(Binv)**2))
+                    np.sum(scipy.imag(Binv)**2))
             # ***************
 
             YiTilde = YTTilde[:,i]
-            p2 = scipy.dot(DiTilde.T,YiTilde)
-            Pi = scipy.dot(Binv,p2)
+            p2 = np.dot(DiTilde.T,YiTilde)
+            Pi = np.dot(Binv,p2)
             P.append(Pi)
             # **********************************************************
             #print "_derivProblem_regression: fitting species number",i
             #print "_derivProblem_regression: param range =",(min(Pi),max(Pi))
             # **********************************************************
-        return scipy.transpose(P)
+        return np.transpose(P)
 
 
     def _derivProblem_setOptimizable(self,visibleIndices,optBool,verbose=False):
@@ -3209,7 +3210,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         for indepParamsOther,data in zip(indepParamsListOther,fittingData):
             numTimes = len(list(data.values())[0].keys())
             indepParamsRepeat = scipy.repeat([indepParamsOther],numTimes,axis=0).T
-            indepParamsMat = scipy.concatenate([indepParamsMat,indepParamsRepeat],axis=1)
+            indepParamsMat = np.concatenate([indepParamsMat,indepParamsRepeat],axis=1)
         #print "fitToDataDerivs: indepParamsMat =",indepParamsMat
 
 
@@ -3229,8 +3230,8 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                     raise Exception("Data timepoints not the same as derivative timepoints")
                 # () integrate to find values of hidden variables
                 if len(speciesNamesWithoutData) > 0:
-                    hiddenData = scipy.concatenate((hiddenData.T, self.evaluateVec(sortedTimes,speciesNamesWithoutData,indepParamsAll).T )).T
-                    hiddenDataDerivs = scipy.concatenate((hiddenDataDerivs.T, self.evaluateVec(sortedTimes,[ (s,'time') for s in speciesNamesWithoutData ],indepParamsAll).T )).T
+                    hiddenData = np.concatenate((hiddenData.T, self.evaluateVec(sortedTimes,speciesNamesWithoutData,indepParamsAll).T )).T
+                    hiddenDataDerivs = np.concatenate((hiddenDataDerivs.T, self.evaluateVec(sortedTimes,[ (s,'time') for s in speciesNamesWithoutData ],indepParamsAll).T )).T
                 # () extract values and derivatives of non-hidden variables
                 nonHiddenDataOneIP,nonHiddenDataDerivsOneIP = [],[]
                 nonHiddenDataDerivSigmasOneIP = []
@@ -3243,23 +3244,23 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                     nonHiddenDataOneIP.append(dataRow)
                     nonHiddenDataDerivsOneIP.append(dataRowDerivs)
                     nonHiddenDataDerivSigmasOneIP.append(dataRowDerivSigmas)
-                nonHiddenData = scipy.concatenate((nonHiddenData.T,scipy.transpose(nonHiddenDataOneIP))).T
-                nonHiddenDataDerivs = scipy.concatenate((nonHiddenDataDerivs.T,scipy.transpose(nonHiddenDataDerivsOneIP))).T
-                nonHiddenDataDerivSigmas = scipy.concatenate((nonHiddenDataDerivSigmas.T,scipy.transpose(nonHiddenDataDerivSigmasOneIP))).T
+                nonHiddenData = np.concatenate((nonHiddenData.T,np.transpose(nonHiddenDataOneIP))).T
+                nonHiddenDataDerivs = np.concatenate((nonHiddenDataDerivs.T,np.transpose(nonHiddenDataDerivsOneIP))).T
+                nonHiddenDataDerivSigmas = np.concatenate((nonHiddenDataDerivSigmas.T,np.transpose(nonHiddenDataDerivSigmasOneIP))).T
 
         if len(speciesNamesWithoutData) > 0:
-            speciesData = scipy.concatenate((nonHiddenData,hiddenData))
-            speciesDataTimeDerivs = scipy.concatenate((nonHiddenDataDerivs,hiddenDataDerivs)) # added hidden 8.17.2012
+            speciesData = np.concatenate((nonHiddenData,hiddenData))
+            speciesDataTimeDerivs = np.concatenate((nonHiddenDataDerivs,hiddenDataDerivs)) # added hidden 8.17.2012
         else:
             speciesData = nonHiddenData
             speciesDataTimeDerivs = nonHiddenDataDerivs
 
-        #print "shape(nonHiddenData) =",scipy.shape(nonHiddenData)
-        #print "shape(nonHiddenDataDerivs) =",scipy.shape(nonHiddenDataDerivs)
-        #print "shape(hiddenData) =",scipy.shape(hiddenData)
-        #print "shape(hiddenDataDerivs) =",scipy.shape(hiddenDataDerivs)
-        #print "shape(speciesData) =",scipy.shape(speciesData)
-        #print "shape(speciesDataTimeDerivs) =",scipy.shape(speciesDataTimeDerivs)
+        #print "shape(nonHiddenData) =",np.shape(nonHiddenData)
+        #print "shape(nonHiddenDataDerivs) =",np.shape(nonHiddenDataDerivs)
+        #print "shape(hiddenData) =",np.shape(hiddenData)
+        #print "shape(hiddenDataDerivs) =",np.shape(hiddenDataDerivs)
+        #print "shape(speciesData) =",np.shape(speciesData)
+        #print "shape(speciesDataTimeDerivs) =",np.shape(speciesDataTimeDerivs)
 
         # throw ValueError if inf or nan shows up
         speciesData = scipy.asarray_chkfinite(speciesData)
@@ -3285,7 +3286,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         indepParamOtherNames = [name for name in self.indepParamNames if not name.endswith("_init")]
         numIndepParams = len(indepParamOtherNames)
 
-        numSpeciesTotal,numTimes = scipy.shape(speciesData)
+        numSpeciesTotal,numTimes = np.shape(speciesData)
 
         Pg,Ph = self._derivProblem_getParams(numSpeciesTotal,numIndepParams)
         predictedDerivs = self._derivProblem_predictedDerivs(Pg,Ph,speciesData,
@@ -3328,7 +3329,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
 
         predictedDerivsList,actualDerivsList = [],[]
 
-        flat = lambda a: scipy.reshape(a,scipy.prod(scipy.shape(a)))
+        flat = lambda a: scipy.reshape(a,scipy.prod(np.shape(a)))
 
         fittingData = outOfSampleFittingData
         fittingDataDerivs = outOfSampleFittingDataDerivs
@@ -3483,13 +3484,13 @@ class PowerLawFittingModel(SloppyCellFittingModel):
 
                 # 9.27.2012 calculate new cost before integrating hidden nodes
                 predictedDerivsVisible = predictedDerivs[:len(nonHiddenDataDerivs)]
-                numSpeciesTotal,numTimes = scipy.shape(speciesData)
+                numSpeciesTotal,numTimes = np.shape(speciesData)
                 numIndepParams = len(indepParamsMat)
                 priorCost = self._derivProblem_priorCost(priorLambda,numSpeciesTotal,
                                                          numIndepParams) # 5.29.2014
-                afterMinCost = 0.5 * scipy.sum( ((predictedDerivsVisible-nonHiddenDataDerivs)/nonHiddenDataDerivSigmas)**2 ) + priorCost
+                afterMinCost = 0.5 * np.sum( ((predictedDerivsVisible-nonHiddenDataDerivs)/nonHiddenDataDerivSigmas)**2 ) + priorCost
                 afterMinCostList.append( afterMinCost )
-                afterMinCostNoSigma = scipy.sum( (predictedDerivsVisible-nonHiddenDataDerivs)**2 )
+                afterMinCostNoSigma = np.sum( (predictedDerivsVisible-nonHiddenDataDerivs)**2 )
 
                 # (2c) 9.26.2012 calculate new cost after integrating hidden nodes
                 oldCost = scipy.copy(newCost)
@@ -3557,7 +3558,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
     # 5.29.2014
     def _derivProblem_priorCost(self,priorLambda,numSpeciesTotal,numIndepParams):
         Pg,Ph = self._derivProblem_getParams(numSpeciesTotal,numIndepParams)
-        return 0.5*priorLambda*scipy.sum(Pg**2 + Ph**2)
+        return 0.5*priorLambda*np.sum(Pg**2 + Ph**2)
 
 
     # 6.27.2012
@@ -3587,7 +3588,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             regStrength = self.net.get_var_val('regStrength')
         r = regStrength
 
-        if scipy.shape(speciesData) != scipy.shape(speciesDataTimeDerivs):
+        if np.shape(speciesData) != np.shape(speciesDataTimeDerivs):
             raise Exception("speciesData must have same shape as speciesDataTimeDerivs")
 
         if indepParamsMat is None:
@@ -3601,15 +3602,15 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         # (note that we now typically do NOT fit `hidden' derivatives in the
         #  EM framework, so numSpeciesNonHidden here is the same as
         #  the number of visible species in fitDataDerivs)
-        numSpeciesTotal,numTimes = scipy.shape(speciesData)
-        numSpeciesNonHidden,numTimes = scipy.shape(speciesDataTimeDerivs)
+        numSpeciesTotal,numTimes = np.shape(speciesData)
+        numSpeciesNonHidden,numTimes = np.shape(speciesDataTimeDerivs)
 
         # set up design matrix
         D = scipy.zeros((numTimes,numSpeciesTotal+1+numIndepParams))
         if numIndepParams > 0:
-            D[:,:numIndepParams] = scipy.transpose(indepParamsMat)
+            D[:,:numIndepParams] = np.transpose(indepParamsMat)
         D[:,numIndepParams] = scipy.ones(numTimes)
-        D[:,numIndepParams+1:] = scipy.transpose(scipy.log(speciesData))
+        D[:,numIndepParams+1:] = np.transpose(np.log(speciesData))
 
         # use model's current values for initial h parameters.
         # Pg and Ph store our parameters in a convenient form
@@ -3617,9 +3618,9 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             self._derivProblem_getParams(numSpeciesTotal,numIndepParams,            \
                 retTheta=True)
         if verbose:
-            freeParams = int(scipy.sum(thetaMatrixG) + scipy.sum(thetaMatrixH))
-            allParams = scipy.prod(scipy.shape(thetaMatrixG))                       \
-                      + scipy.prod(scipy.shape(thetaMatrixH))
+            freeParams = int(np.sum(thetaMatrixG) + np.sum(thetaMatrixH))
+            allParams = scipy.prod(np.shape(thetaMatrixG))                       \
+                      + scipy.prod(np.shape(thetaMatrixH))
             print("_derivProblem_fit:",freeParams,"free parameters out of",allParams)
 
         #GnumIncludedIndicesList = []
@@ -3632,7 +3633,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         # 2.25.2013
         def printParamSummary(Pg,Ph):
             if verbose:
-                f = lambda mat: mat.reshape(scipy.prod(scipy.shape(mat)))
+                f = lambda mat: mat.reshape(scipy.prod(np.shape(mat)))
                 print("_derivProblem_fit:  production params:",                 \
                     min(f(Pg)),"to",max(f(Pg)))
                 print("_derivProblem_fit: degradation params:",                 \
@@ -3641,9 +3642,9 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         # need to be set for first iteration
         includedIndices = []
         predictedDerivs = self._derivProblem_predictedDerivs(Pg,Ph,speciesData,indepParamsMat,r)
-        oldPredYh = scipy.transpose(scipy.dot(D,Ph))
+        oldPredYh = np.transpose(np.dot(D,Ph))
         G = self._derivProblem_productTerm(Pg,speciesData,indepParamsMat)
-        Yh = scipy.log(G - speciesDataTimeDerivs)
+        Yh = np.log(G - speciesDataTimeDerivs)
 
         for i in range(numiter):
 
@@ -3651,58 +3652,58 @@ class PowerLawFittingModel(SloppyCellFittingModel):
 
             # check whether new fit is better than old one,
             # at least at the included time indices
-            predYh = scipy.transpose(scipy.dot(D,Ph))
+            predYh = np.transpose(np.dot(D,Ph))
 
-            #derivCostSubset0 = scipy.sum( (speciesDataTimeDerivs - predictedDerivs)[:,includedIndices]**2 )
+            #derivCostSubset0 = np.sum( (speciesDataTimeDerivs - predictedDerivs)[:,includedIndices]**2 )
             predG,predH = self._derivProblem_predictedDerivs(Pg,Ph,speciesData,indepParamsMat,r,True)
             predictedDerivs = predG - predH
 
-            #derivCostSubset1 = scipy.sum( (speciesDataTimeDerivs - predictedDerivs)[:,includedIndices]**2 )
+            #derivCostSubset1 = np.sum( (speciesDataTimeDerivs - predictedDerivs)[:,includedIndices]**2 )
             #derivCostSubsetDelta = derivCostSubset1 - derivCostSubset0
             #derivCostSubsetDeltaList.append(derivCostSubsetDelta)
-            priorCost = 0.5*priorLambda*scipy.sum(Pg**2 + Ph**2) # 5.29.2014
-            derivCost = 0.5*scipy.sum( ((speciesDataTimeDerivs - predictedDerivs)/speciesDataTimeDerivSigmas)**2 ) + priorCost
+            priorCost = 0.5*priorLambda*np.sum(Pg**2 + Ph**2) # 5.29.2014
+            derivCost = 0.5*np.sum( ((speciesDataTimeDerivs - predictedDerivs)/speciesDataTimeDerivSigmas)**2 ) + priorCost
             printParamSummary(Pg,Ph)
             if verbose: print("_derivProblem_fit: current deriv cost =", derivCost)
             derivCostList.append(derivCost)
 
-            oldPredYg = scipy.transpose(scipy.dot(D,Pg))
+            oldPredYg = np.transpose(np.dot(D,Pg))
 
             # () Do fitting of production params while holding degradation fixed
             H = self._derivProblem_productTerm(Ph,speciesData,indepParamsMat)
-            Yg = scipy.log(H + speciesDataTimeDerivs) - r/speciesData
+            Yg = np.log(H + speciesDataTimeDerivs) - r/speciesData
             if True:
-                fittable = scipy.sum((H + speciesDataTimeDerivs)>0.)
-                total = scipy.prod(scipy.shape(H))
+                fittable = np.sum((H + speciesDataTimeDerivs)>0.)
+                total = scipy.prod(np.shape(H))
                 if verbose: print("_derivProblem_fit: production terms fit:",fittable,"of",total)
             Wg = (H + speciesDataTimeDerivs) / speciesDataTimeDerivSigmas               \
-                 * scipy.exp(-r/speciesData) * ((H + speciesDataTimeDerivs)>0.)
+                 * np.exp(-r/speciesData) * ((H + speciesDataTimeDerivs)>0.)
             Pg = self._derivProblem_regression(D,Yg,weightMatrix=Wg,                    \
                 priorLambda=priorLambda,thetaMatrix=thetaMatrixG)
 
             # check whether new fit is better than old one,
             # at least at the included time indices
-            predYg = scipy.transpose(scipy.dot(D,Pg))
+            predYg = np.transpose(np.dot(D,Pg))
 
             predictedDerivs = self._derivProblem_predictedDerivs(Pg,Ph,speciesData,indepParamsMat,r)
-            priorCost = 0.5*priorLambda*scipy.sum(Pg**2 + Ph**2) # 5.29.2014
-            derivCost = 0.5*scipy.sum( ((speciesDataTimeDerivs - predictedDerivs)/speciesDataTimeDerivSigmas)**2 ) + priorCost
+            priorCost = 0.5*priorLambda*np.sum(Pg**2 + Ph**2) # 5.29.2014
+            derivCost = 0.5*np.sum( ((speciesDataTimeDerivs - predictedDerivs)/speciesDataTimeDerivSigmas)**2 ) + priorCost
             printParamSummary(Pg,Ph)
             if verbose: print("_derivProblem_fit: current deriv cost =", derivCost)
             derivCostList.append(derivCost)
 
-            oldPredYh = scipy.transpose(scipy.dot(D,Ph))
+            oldPredYh = np.transpose(np.dot(D,Ph))
 
             # () Do fitting of degradation params while holding production fixed
             G = self._derivProblem_productTerm(Pg,speciesData,indepParamsMat)
-            Yh = scipy.log(G - speciesDataTimeDerivs) - r*speciesData
+            Yh = np.log(G - speciesDataTimeDerivs) - r*speciesData
             if True:
-                fittable = scipy.sum((G - speciesDataTimeDerivs)>0.)
-                total = scipy.prod(scipy.shape(G))
+                fittable = np.sum((G - speciesDataTimeDerivs)>0.)
+                total = scipy.prod(np.shape(G))
                 if verbose:
                     print("_derivProblem_fit: degradation terms fit:",fittable,"of",total)
             Wh = (G - speciesDataTimeDerivs) / speciesDataTimeDerivSigmas               \
-                 * scipy.exp(-r*speciesData) * ((G - speciesDataTimeDerivs)>0.)
+                 * np.exp(-r*speciesData) * ((G - speciesDataTimeDerivs)>0.)
             Ph = self._derivProblem_regression(D,Yh,weightMatrix=Wh,                    \
                 priorLambda=priorLambda,thetaMatrix=thetaMatrixH)
 
@@ -3737,11 +3738,11 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                         self._derivProblem_createDataMatrices(fittingData,              \
                         fittingDataDerivs,indepParamsList)
         predictedDerivsVisible = self._derivProblem_calculateDerivs(fittingData,fittingDataDerivs,indepParamsList,r)
-        numSpeciesTotal,numTimes = scipy.shape(speciesData)
+        numSpeciesTotal,numTimes = np.shape(speciesData)
         numIndepParams = len(indepParamsMat)
         priorCost = self._derivProblem_priorCost(priorLambda,numSpeciesTotal,
                                                  numIndepParams) # 5.29.2014
-        cost = 0.5 * scipy.sum( ((predictedDerivsVisible-nonHiddenDataDerivs)/nonHiddenDataDerivSigmas)**2 ) + priorCost
+        cost = 0.5 * np.sum( ((predictedDerivsVisible-nonHiddenDataDerivs)/nonHiddenDataDerivSigmas)**2 ) + priorCost
 
         # calculate complexity penalty
         H = self._derivProblem_Hessian(fittingData,fittingDataDerivs,
@@ -3757,11 +3758,11 @@ class PowerLawFittingModel(SloppyCellFittingModel):
 
         print("_derivProblem_logLikelihood: cost =",-cost)
         print("_derivProblem_logLikelihood: penalty =",                             \
-                      -(0.5*scipy.sum( scipy.log(singVals) )                        \
-                      - 0.5*scipy.sum( scipy.log(priorSingVals) ) ))
+                      -(0.5*np.sum( np.log(singVals) )                        \
+                      - 0.5*np.sum( np.log(priorSingVals) ) ))
 
-        L = -(cost + 0.5*scipy.sum( scipy.log(singVals) )                           \
-                      - 0.5*scipy.sum( scipy.log(priorSingVals) ) )
+        L = -(cost + 0.5*np.sum( np.log(singVals) )                           \
+                      - 0.5*np.sum( np.log(priorSingVals) ) )
 
         if retall:
             return L,singVals,priorSingVals
@@ -3784,10 +3785,10 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         """
         J = self._derivProblem_Jacobian(fittingData,fittingDataDerivs,
             indepParamsList)
-        HnoPrior = scipy.dot(J.T,J)
+        HnoPrior = np.dot(J.T,J)
 
         # add parameter prior to diagonal
-        numResiduals,numParameters = scipy.shape(J)
+        numResiduals,numParameters = np.shape(J)
         priorDiag = scipy.diag(scipy.ones(numParameters)*priorLambda)
         H = HnoPrior + priorDiag
 
@@ -3819,8 +3820,8 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             self._derivProblem_createDataMatrices(fittingData,                      \
             fittingDataDerivs,indepParamsList)
 
-        numSpeciesTotal,numTimes = scipy.shape(speciesData)
-        numIndepParams,numTimes2 = scipy.shape(indepParamsMat)
+        numSpeciesTotal,numTimes = np.shape(speciesData)
+        numIndepParams,numTimes2 = np.shape(indepParamsMat)
         assert numTimes == numTimes2
         numResiduals = numSpeciesTotal*numTimes
         if numIndepParams > 0:
@@ -3839,7 +3840,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
 
         J = scipy.zeros((numResiduals,numParamsUsed))
 
-        paramsShape = scipy.shape(thetaG)
+        paramsShape = np.shape(thetaG)
         assert paramsShape == (numIndepParams+numSpeciesTotal+1,numSpeciesTotal)
         i = 0 # residual index
         for t in range(numTimes):
@@ -3854,11 +3855,11 @@ class PowerLawFittingModel(SloppyCellFittingModel):
 
             # derivs wrt g and h
             xEll = speciesData[:,t]
-            JGi[(numIndepParams+1):,iSpecies] = scipy.log(xEll)*Gi
-            JHi[(numIndepParams+1):,iSpecies] =-scipy.log(xEll)*Hi
+            JGi[(numIndepParams+1):,iSpecies] = np.log(xEll)*Gi
+            JHi[(numIndepParams+1):,iSpecies] =-np.log(xEll)*Hi
 
             fullJi = self._derivProblem_flatten(JGi,JHi)
-            assert scipy.shape(fullJi) == scipy.shape(flatTheta)
+            assert np.shape(fullJi) == np.shape(flatTheta)
 
             # only fill in values with flatTheta > 0
             jReduced = 0
@@ -3879,8 +3880,8 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         Takes two matrices of shape (# indepParams + # species + 1)x(# species)
         and returns a single flat array of length (total # params).
         """
-        a = scipy.concatenate((Gparams,Hparams))
-        return a.reshape(scipy.prod(scipy.shape(a)))
+        a = np.concatenate((Gparams,Hparams))
+        return a.reshape(scipy.prod(np.shape(a)))
 
 
 
@@ -4401,7 +4402,7 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,
 
             if nodeIamAffectedBy not in ignoreIndices:
                 weightList = networkList[i][1][nodeIamAffectedBy]
-                if len(scipy.shape(weightList)) == 0: weightList = [weightList]
+                if len(np.shape(weightList)) == 0: weightList = [weightList]
                 weight = scipy.mean( weightList )
                 if weight < 0.: arrowhead = 'odot'
                 else: arrowhead = 'normal'

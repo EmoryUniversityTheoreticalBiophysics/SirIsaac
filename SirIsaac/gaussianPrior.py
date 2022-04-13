@@ -7,7 +7,7 @@
 # Gaussian prior.
 
 import SloppyCell.Residuals
-import scipy
+import numpy as np
 
 class GaussianPrior(SloppyCell.Residuals.Residual):
     """
@@ -48,12 +48,12 @@ class GaussianPriorExp(SloppyCell.Residuals.Residual):
         self.sigmaPVal = sigmaPVal
 
     def GetValue(self, predictions, internalVars, params):
-        return ( scipy.exp( params.getByKey(self.pKey) )                    \
-            - scipy.exp(self.bestPVal) )/self.sigmaPVal
+        return ( np.exp( params.getByKey(self.pKey) )                    \
+            - np.exp(self.bestPVal) )/self.sigmaPVal
 
     def dp(self, predictions, internalVars, params):
         return {self.pKey:                                                  \
-            scipy.exp( params.getByKey(self.pKey) )/self.sigmaPVal}
+            np.exp( params.getByKey(self.pKey) )/self.sigmaPVal}
 
     def dy(self, predictions, internalVars, params):
         return {}
