@@ -31,7 +31,7 @@ class TestSloppyCell(unittest.TestCase):
         m = fittingProblem.CTSNFittingModel(5,['a'],['b'])
         r = m.evaluateVec(np.linspace(0,1,10),'b',[0])
         eps = 1e-5
-        return sum(r**2) < eps
+        self.assertTrue(sum(r**2) < eps)
 
 
 if __name__ == '__main__':
