@@ -1340,9 +1340,10 @@ class FittingModel:
                                                   lw=linewidth,color=colorToUse,
                                                   **kwargs) )
 
-                    if plotInitialConditions and (i<len(indepParamsList[j])):
+                    if plotInitialConditions and (name+'_init' in self.indepParamNames):
                         if ICmarker is None: ICmarker = colorWheelFmt[1]
-                        Plotting.plot([0],[indepParamsList[j][i]],
+                        idx = self.indepParamNames.index(name+'_init')
+                        Plotting.plot([0],[indepParamsList[idx][i]],
                             marker=ICmarker,
                             clip_on=False,ms=markerSize,zorder=5,
                             mfc="None",mec=colorWheelFmt[0],mew=markerSize/3.)
