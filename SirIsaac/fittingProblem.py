@@ -1963,7 +1963,7 @@ class SloppyCellFittingModel(FittingModel):
         Test whether the model can be evaluated successfully at 
         the current parameters.
         """
-        tiny = scipy.finfo(scipy.float_).tiny
+        tiny = 1e-100 # scipy.finfo(scipy.float_).tiny
         try:
             traj = Dynamics.integrate(self.net,[0.,tiny])
         except Utility.SloppyCellException:
