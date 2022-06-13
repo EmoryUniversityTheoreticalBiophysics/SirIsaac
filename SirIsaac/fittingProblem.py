@@ -4113,7 +4113,7 @@ def _createNetworkList(complexity,numInputs,numOutputs,
             raise Exception("Unrecognized typeOrder = "+str(typeOrder))
         if connectionOrder not in connectionOrders:
             raise Exception("Unrecognized connectionOrder = "+str(connectionOrder))
-        if (typeOrder is "random") and (connectionOrder is not "random"):
+        if (typeOrder == "random") and (connectionOrder != "random"):
             raise Exception("random typeOrder with non-random connectionOrder " \
                 "is not currently supported")
 
@@ -4163,17 +4163,17 @@ def _createNetworkList(complexity,numInputs,numOutputs,
         if done(curComplexity): return networkList
 
         # upgrade each input->output connection to 2
-        if maxConnection is 2:
+        if maxConnection == 2:
           for i in range(numOutputs):
             for j in range(numInputs):
                 addConnection(numInputs+i,j,2)
                 if done(curComplexity): return networkList
 
-        if typeOrder is "first":
+        if typeOrder == "first":
             n = upgradeOutputNodes()
             if n is not None: return n
 
-        if connectionOrder is "node":
+        if connectionOrder == "node":
             # add connections among output nodes
             # fully connect each node before moving to next node
             for connectionType in range(1,maxConnection+1):
@@ -4183,7 +4183,7 @@ def _createNetworkList(complexity,numInputs,numOutputs,
                   if done(curComplexity): return networkList
                   addConnection(numInputs+j,numInputs+i,connectionType)
                   if done(curComplexity): return networkList
-        elif connectionOrder is "nearest":
+        elif connectionOrder == "nearest":
             # add connections among output nodes
             # order by 'length' of connection
             for connectionType in range(1,maxConnection+1):
@@ -4199,7 +4199,7 @@ def _createNetworkList(complexity,numInputs,numOutputs,
                   if done(curComplexity): return networkList
                   addConnection(numInputs+j,numInputs+i,connectionType)
                   if done(curComplexity): return networkList
-        elif connectionOrder is "random": # 12.4.2014
+        elif connectionOrder == "random": # 12.4.2014
             # add connection parameters in random order
             # (note that this is different from other connectionOrders
             #  both because it connects nodes in a random order and
@@ -4214,7 +4214,7 @@ def _createNetworkList(complexity,numInputs,numOutputs,
             # Each nodePair appears maxConnection times
             connections = list( scipy.repeat(nodePairs,maxConnection,axis=0) )
             # Optionally include node parameters in list
-            if typeOrder is "random": # 4.25.2015
+            if typeOrder == "random": # 4.25.2015
                 for nodeType in range(defaultOutputType,maxType):
                     for i in range(numInputs,numInputs+numOutputs):
                         connections.append( np.array((i,)) )
@@ -4226,7 +4226,7 @@ def _createNetworkList(complexity,numInputs,numOutputs,
               addConnectionOrParam(connection)
               if done(curComplexity): return networkList
 
-        if typeOrder is "last":
+        if typeOrder == "last":
             n = upgradeOutputNodes()
             if n is not None: return n
 
@@ -4237,14 +4237,14 @@ def _createNetworkList(complexity,numInputs,numOutputs,
             numHidden += 1
             curHidden = len(networkList)-1
 
-            if typeOrder is "first":
+            if typeOrder == "first":
                 # upgrade type
                 for nodeType in range(defaultType+1,maxType+1):
                     networkList[curHidden][0] = nodeType
                     if done(curComplexity): return networkList
 
             # add connections to and from new hidden node
-            if connectionOrder is "node":
+            if connectionOrder == "node":
 
                 # add connections to, then from, output nodes
                 for connectionType in range(1,maxConnection+1):
@@ -4270,7 +4270,7 @@ def _createNetworkList(complexity,numInputs,numOutputs,
                     addConnection(curHidden,numInputs+numOutputs+i,connectionType)
                     if done(curComplexity): return networkList
 
-            elif connectionOrder is "random":
+            elif connectionOrder == "random":
                 # 4.24.2015
                 # add connection parameters in random order
                 # (note that this is different from other connectionOrders
@@ -4285,7 +4285,7 @@ def _createNetworkList(complexity,numInputs,numOutputs,
                 # Each nodePair appears maxConnection times
                 connections = list( scipy.repeat(nodePairs,maxConnection,axis=0) )
                 # Optionally include node parameters in list
-                if typeOrder is "random": # 4.25.2015
+                if typeOrder == "random": # 4.25.2015
                     for nodeType in range(defaultType,maxType):
                         connections.append( np.array((curHidden,)) )
                 # Shuffle list of connections
@@ -4298,7 +4298,7 @@ def _createNetworkList(complexity,numInputs,numOutputs,
             else:
                 raise Exception("Unsupported connectionOrder with hidden nodes: "+str(connectionOrder))
 
-            if typeOrder is "last":
+            if typeOrder == "last":
                 # upgrade type
                 for nodeType in range(defaultType+1,maxType+1):
                     networkList[curHidden][0] = nodeType
