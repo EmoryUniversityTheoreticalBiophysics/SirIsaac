@@ -16,41 +16,41 @@ import os
 SIRISAACDIR = os.path.abspath(os.path.dirname(__file__))
 
 from SloppyCell.ReactionNetworks import *
-import powerLawNetwork
-import transcriptionNetwork
-import laguerreNetwork
-import polynomialNetwork
-import phosphorylationFit_netModel
-import ctsnNetwork
-import planetaryNetwork
-import simplePhosphorylationNetwork
-import simpleSinusoidalNetwork
-import varyingParamsWrapper
-import gaussianPrior
-import optimize
+from . import powerLawNetwork
+from . import transcriptionNetwork
+from . import laguerreNetwork
+from . import polynomialNetwork
+from . import phosphorylationFit_netModel
+from . import ctsnNetwork
+from . import planetaryNetwork
+from . import simplePhosphorylationNetwork
+from . import simpleSinusoidalNetwork
+from . import varyingParamsWrapper
+from . import gaussianPrior
+from . import optimize
 import scipy.linalg
+import numpy as np
 import io, os
 import time
-import fakeData
+from . import fakeData
 
 try:
     from pygraphviz import * # for network figures
     import matplotlib.colors
 except ImportError:
-    print "Failed to import pygraphviz.  Network figures unavailable."
+    print("Failed to import pygraphviz.  Network figures unavailable.")
 
 if (os.uname()[1] != 'star'):
-    from simulateYeastOscillator import *
+    from .simulateYeastOscillator import *
 import pylab
 import subprocess # for network figures and mpi
-from linalgTools import svdInverse
+from .linalgTools import svdInverse
 import copy
 
 # used in _findUsedVariables
 import SloppyCell.ExprManip as ExprManip
-import sets
 
-from simplePickle import load,save
+from .simplePickle import load,save
 
     
 
@@ -60,7 +60,7 @@ cutoffDefault = 1.
 verboseDefault = False
 
 def UpdateOldFitProbDict(fitProbDict,recalculateCost=False):
-    for p in fitProbDict.values():
+    for p in list(fitProbDict.values()):
         p._fixOldVersion()
         # the following line only for SloppyCell networks
         for m in p.fittingModelList:
@@ -107,7 +107,7 @@ class FittingProblem:
         self.fittingModelNames = fittingModelNames
         self.cutoff = singValCutoff
         self.verbose = verbose
-        self.fittingModelDict = dict( zip(fittingModelNames,fittingModelList) )
+        self.fittingModelDict = dict( list(zip(fittingModelNames,fittingModelList)) )
         self.costDict = {}
         self.HessianDict = {}
         self.singValsDict = {}
@@ -144,15 +144,15 @@ class FittingProblem:
 
         # consistency checks
         if len(fittingData) != len(indepParamsList):
-            raise Exception, "Length of indepParamsList must equal length of fittingData"
-        if len(scipy.shape(indepParamsList)) != 2:
-            raise Exception, "indepParamsList must be two-dimensional"
-        if scipy.shape(indepParamsList)[1] != len(indepParamNames):
-            raise Exception, "Length of indepParamNames must equal length of second dimension of indepParamsList"
+            raise Exception("Length of indepParamsList must equal length of fittingData")
+        if len(np.shape(indepParamsList)) != 2:
+            raise Exception("indepParamsList must be two-dimensional")
+        if np.shape(indepParamsList)[1] != len(indepParamNames):
+            raise Exception("Length of indepParamNames must equal length of second dimension of indepParamsList")
 
         for d in fittingData:
-            if d.values()[0].keys() == [0]:
-              raise Exception, "Data for given independent parameters cannot consist of a single timepoint at t=0.  See https://github.com/EmoryUniversityTheoreticalBiophysics/SirIsaac/issues/5"
+            if list(d.values())[0].keys() == [0]:
+              raise Exception("Data for given independent parameters cannot consist of a single timepoint at t=0.  See https://github.com/EmoryUniversityTheoreticalBiophysics/SirIsaac/issues/5")
 
         self.fittingData = fittingData
         self.indepParamsList = indepParamsList
@@ -186,12 +186,12 @@ class FittingProblem:
         for name in self.fittingModelNames:
           fittingModel = self.fittingModelDict[name]
           # 4.18.2012
-          if self.costDict.has_key(name) and resume:
+          if name in self.costDict and resume:
             # We've already fit this one.
             # Don't fit it again, but remember its parameters
             oldFitParameters = fittingModel.getParameters()
             # ****
-            print "fittingProblem.fitAll debug: skipping",name
+            print("fittingProblem.fitAll debug: skipping",name)
             # ****
           else:
             if self.saveFilename is not None:
@@ -201,7 +201,7 @@ class FittingProblem:
                 fittingModel.initializeParameters(oldFitParameters)
 
             # 4.17.2012
-            if self.smallerBestParamsDict.has_key(name):
+            if name in self.smallerBestParamsDict:
                 smallerBestParams = self.smallerBestParamsDict[name]
             else:
                 smallerBestParams = None
@@ -242,7 +242,7 @@ class FittingProblem:
 
                 # 2.15.2012
                 # check if bestSeenParamsDict has potentially better parameters
-                if self.bestSeenParamsDict.has_key(name):
+                if name in self.bestSeenParamsDict:
                   bestSeenCost = self.bestSeenParamsDict[name][0]
                   if newCost > bestSeenCost:
                     bestSeenParams = self.bestSeenParamsDict[name][1]
@@ -273,18 +273,18 @@ class FittingProblem:
           # 5.6.2013 update old files if needed
           if not hasattr(self,'logLikelihoodDict'):
               self._UpdateDicts(name)
-          if name not in self.logLikelihoodDict.keys():
+          if name not in list(self.logLikelihoodDict.keys()):
               self._UpdateDicts(name)
 
           if self.verbose:
-              print "fittingProblem.fitAll: L =",self.logLikelihoodDict[name]
+              print("fittingProblem.fitAll: L =",self.logLikelihoodDict[name])
 
           # 6.1.2012 stop after seeing stopFittingN models with worse logLikelihood
           orderedLs = []
           if not hasattr(self,'stopFittingN'):
               self.stopFittingN = 3
           for n in self.fittingModelNames:
-              if self.logLikelihoodDict.has_key(n):
+              if n in self.logLikelihoodDict:
                   orderedLs.append(self.logLikelihoodDict[n])
           if (len(orderedLs) > self.stopFittingN):
             if max(orderedLs[-self.stopFittingN:]) < max(orderedLs):
@@ -396,17 +396,17 @@ class FittingProblem:
         squared residuals), the singular values of the Hessian, and
         the singular values of the Hessian with only priors.
         """
-        return -(cost + 0.5*scipy.sum( scipy.log(singVals) )                        \
-                      - 0.5*scipy.sum( scipy.log(priorSingVals) ) )
+        return -(cost + 0.5*np.sum( np.log(singVals) )                        \
+                      - 0.5*np.sum( np.log(priorSingVals) ) )
 
 
     # 8.2.2009 updated to include 2pi
     # 9.11.2013 corrected
     def penalty(self,singVals,priorSingVals):
-        #return 0.5*scipy.sum( scipy.log(                                           \
-        #    scipy.array(self._StiffSingVals(singVals,cutoff))/(2.*scipy.pi) ) )
-        return + 0.5*scipy.sum( scipy.log(singVals) )                               \
-               - 0.5*scipy.sum( scipy.log(priorSingVals) )
+        #return 0.5*np.sum( np.log(                                           \
+        #    np.array(self._StiffSingVals(singVals,cutoff))/(2.*scipy.pi) ) )
+        return + 0.5*np.sum( np.log(singVals) )                               \
+               - 0.5*np.sum( np.log(priorSingVals) )
 
     def numStiffSingVals(self,singVals,cutoff=None):
         return len( self._StiffSingVals(singVals,cutoff) )
@@ -414,7 +414,7 @@ class FittingProblem:
     def _StiffSingVals(self,singVals,cutoff=None):
         if cutoff is None:
             cutoff = self.cutoff
-        return filter(lambda s: s>cutoff, singVals)
+        return [s for s in singVals if s>cutoff]
 
     def plotResults(self,showTitles=True,showInfo=True,
         errorBars=True,exptsToPlot=None,plotDerivs=False,indices=None,
@@ -425,12 +425,11 @@ class FittingProblem:
                                   all conditions in indepParamsList.
         """
         if not self.fitAllDone:
-            print "FittingProblem.plotResults warning: "                            \
-                 +"some or all fits have not yet been performed."
+            print("FittingProblem.plotResults warning: "                            \
+                 +"some or all fits have not yet been performed.")
 
         if plotOnlyFitModels:
-            modelNames = filter(lambda n: n in self.logLikelihoodDict.keys(),
-                                self.fittingModelNames)
+            modelNames = [n for n in self.fittingModelNames if n in list(self.logLikelihoodDict.keys())]
         else:
             modelNames = self.fittingModelNames
 
@@ -477,23 +476,23 @@ class FittingProblem:
                                       errors:
                                       mean( (data - perfectData)^2 )
         """
-        flat = lambda a: scipy.reshape(a,scipy.prod(scipy.shape(a)))
+        flat = lambda a: scipy.reshape(a,scipy.prod(np.shape(a)))
 
         if indepParamsList is None:
             indepParamsList = self.indepParamsList
         if (self.perfectModel is None) and (self.saveFilename.find('wormData') < 0):
-            raise Exception, "fittingProblem instance has no perfectModel."
+            raise Exception("fittingProblem instance has no perfectModel.")
         corrList,errList = [],[]
-        times = scipy.linspace(timeInterval[0],timeInterval[1],numPoints)
-        if len(scipy.shape(var)) == 0: var = [var] # single variable
+        times = np.linspace(timeInterval[0],timeInterval[1],numPoints)
+        if len(np.shape(var)) == 0: var = [var] # single variable
 
         # 4.17.2013 don't want to return anything if we're testing a fit version
         # of self.perfectModel and it hasn't been fit yet
         if (fittingModel == self.perfectModel)                                      \
           and (not hasattr(self,'perfectFitParams')):
-            print "correlationWithPerfectModel: Warning: Attempting to test "       \
+            print("correlationWithPerfectModel: Warning: Attempting to test "       \
                   "fit self.perfectModel, but self.perfectModel has not yet "       \
-                  "been fit.  Returning nan."
+                  "been fit.  Returning nan.")
             if returnErrors:
                 return [scipy.nan],[scipy.nan]
             else:
@@ -504,10 +503,10 @@ class FittingProblem:
           # 7.12.2012 for use with speedDict from George worm data
           if self.saveFilename.find('wormData') >= 0:
             wormData = speedDict[indepParams]
-            times = scipy.sort(wormData.keys())
-            perfectData = scipy.array([[ wormData[time][0] for time in times ]])
-          #print scipy.shape(perfectData)
-          #print scipy.shape(data)
+            times = np.sort(list(wormData.keys()))
+            perfectData = np.array([[ wormData[time][0] for time in times ]])
+          #print np.shape(perfectData)
+          #print np.shape(data)
           else: # typical case
             # 4.17.2013 in case we're checking a fit version of self.perfectModel
             if hasattr(self,'perfectParams'):
@@ -527,7 +526,7 @@ class FittingProblem:
                   pylab.figure()
                   cW = Plotting.ColorWheel()
                   numRows = scipy.ceil(float(len(var))/numCols)
-              for i,v,d,pd in zip(range(len(var)),var,data,perfectData):
+              for i,v,d,pd in zip(list(range(len(var))),var,data,perfectData):
                 d = flat(d)
                 pd = flat(pd)
                 corr,p = scipy.stats.pearsonr(d,pd)
@@ -536,7 +535,7 @@ class FittingProblem:
                 errListI.append(meansqerr)
                 if makePlots:
                     Plotting.subplot(numRows,numCols,i+1)
-                    color,tmp,tmp = cW.next()
+                    color,tmp,tmp = next(cW)
                     pylab.plot(d,'-',color=color,label="Model "+str(v))
                     pylab.plot(pd,'o',color=color,label="Actual "+str(v))
                     pylab.ylabel(v)
@@ -554,21 +553,21 @@ class FittingProblem:
 
             if k == len(indepParamsList) - 1: # calculate correlations once
               data,perfectData =                                                    \
-                scipy.transpose(dataList),scipy.transpose(perfectDataList)
+                np.transpose(dataList),np.transpose(perfectDataList)
               # now data is (#vars) x (#indepParams)
               corrListI,errListI = [],[]
               if makePlots:
                   pylab.figure()
                   cW = Plotting.ColorWheel()
                   numRows = scipy.ceil(float(len(var))/numCols)
-              for i,v,d,pd in zip(range(len(var)),var,data,perfectData):
+              for i,v,d,pd in zip(list(range(len(var))),var,data,perfectData):
                   corr,p = scipy.stats.pearsonr(d,pd)
                   corrListI.append(corr)
                   meansqerr = scipy.mean( (d - pd)**2 )
                   errListI.append(meansqerr)
                   if makePlots:
                     Plotting.subplot(numRows,numCols,i+1)
-                    color,tmp,tmp = cW.next()
+                    color,tmp,tmp = next(cW)
                     pylab.plot(d,pd,'o',color=color)
                     pylab.ylabel("Actual "+str(v))
                     pylab.xlabel("Model "+str(v))
@@ -577,9 +576,9 @@ class FittingProblem:
               errList.append(errListI)
 
         if returnErrors:
-              return scipy.array(corrList),scipy.array(errList)
+              return np.array(corrList),np.array(errList)
         else:
-              return scipy.array(corrList)
+              return np.array(corrList)
 
     # 2.29.2012
     def outOfSampleCorrelation(self,fittingModel,timeInterval,
@@ -598,25 +597,25 @@ class FittingProblem:
             try:
                 seedsStr = self.saveFilename[self.saveFilename.find('seeds'):]
                 inputsSeed = seedsStr[seedsStr.find('_')+1]
-                scipy.random.seed(int(inputsSeed))
+                np.random.seed(int(inputsSeed))
                 #print "outOfSampleCorrelation: using seed",inputsSeed
             except:
-                scipy.random.seed(seed)
-                print "outOfSampleCorrelation: Warning: error finding inputsSeed"
-            indepParamsList = speedDict.keys()
-            scipy.random.shuffle(indepParamsList)
+                np.random.seed(seed)
+                print("outOfSampleCorrelation: Warning: error finding inputsSeed")
+            indepParamsList = list(speedDict.keys())
+            np.random.shuffle(indepParamsList)
             randomIndepParams = indepParamsList[-numTests:]
             #randomIndepParams = indepParamsList[:40] # for in-sample
 
         else: # typical case
             # generate random indepParams
-            scipy.random.seed(seed)
-            ipr = scipy.array(indepParamsRanges)
-            if sampleInLog: ipr = scipy.log(ipr)
-            randomIndepParams = scipy.rand(numTests,len(indepParamsRanges))*        \
+            np.random.seed(seed)
+            ipr = np.array(indepParamsRanges)
+            if sampleInLog: ipr = np.log(ipr)
+            randomIndepParams = np.random.rand(numTests,len(indepParamsRanges))*        \
                 (ipr[:,1]-ipr[:,0]) + ipr[:,0]
-            if sampleInLog: randomIndepParams = scipy.exp(randomIndepParams)
-            if verbose: print randomIndepParams
+            if sampleInLog: randomIndepParams = np.exp(randomIndepParams)
+            if verbose: print(randomIndepParams)
 
         return self.correlationWithPerfectModel(fittingModel,timeInterval,
             var,indepParamsList=randomIndepParams,**kwargs)
@@ -629,10 +628,9 @@ class FittingProblem:
         if not hasattr(self,'outOfSampleCorrelationDict'):
             self.outOfSampleCorrelationDict = {}
         # we want only models that have actually been fit
-        fitModelNames = filter(lambda name:                                         \
-            self.logLikelihoodDict.has_key(name), self.fittingModelNames)
+        fitModelNames = [name for name in self.fittingModelNames if name in self.logLikelihoodDict]
         for fName in fitModelNames:
-            if verbose: print "calculateAllOutOfSampleCorrelelation:",fName
+            if verbose: print("calculateAllOutOfSampleCorrelelation:",fName)
             f = self.fittingModelDict[fName]
             corrs = self.outOfSampleCorrelation(f,timeInterval,var,
                 indepParamsRanges,numTests=numTests,verbose=veryVerbose,**kwargs)
@@ -649,30 +647,28 @@ class FittingProblem:
                             one the winner.)
         """
         if not hasattr(self,'logLikelihoodDict'):
-            print "maxLogLikelihoodName: no log-likelihoods.  Returning None."
+            print("maxLogLikelihoodName: no log-likelihoods.  Returning None.")
             return None
 
-        modelsThatHaveBeenFit = filter(                                             \
-            lambda name: self.logLikelihoodDict.has_key(name),                      \
-                                                        self.fittingModelNames)
+        modelsThatHaveBeenFit = [name for name in self.fittingModelNames if name in self.logLikelihoodDict]
         numModelsFit = len(modelsThatHaveBeenFit)
         if numModelsFit == 0:
-            print "maxLogLikelihoodName: numModelsFit == 0.  Returning None."
+            print("maxLogLikelihoodName: numModelsFit == 0.  Returning None.")
             return None
         bestIndex = scipy.argsort(                                                  \
             [self.logLikelihoodDict[n] for n in modelsThatHaveBeenFit ])[-1]
         bestModelName = self.fittingModelNames[bestIndex]
 
         if not self.fitAllDone:
-            print "maxLogLikelihoodName: Warning: "                                 \
+            print("maxLogLikelihoodName: Warning: "                                 \
                 "Only "+str(numModelsFit)+" of "                                    \
-                +str(len(self.fittingModelNames))+" fits have been performed."
+                +str(len(self.fittingModelNames))+" fits have been performed.")
 
         # check that we're not past maxIndex
         if (bestIndex > (maxIndex+numModelsFit)%numModelsFit) \
         or (numModelsFit < -maxIndex):
             if verbose:
-                print "maxLogLikelihoodName: bestIndex > maxIndex.  Returning None."
+                print("maxLogLikelihoodName: bestIndex > maxIndex.  Returning None.")
             return None
 
         return bestModelName
@@ -698,14 +694,14 @@ class FittingProblem:
         """
         # choose the indices we want
         if indices is None:
-            indices = range(len(self.indepParamsList))
+            indices = list(range(len(self.indepParamsList)))
         fittingData = [ self.fittingData[i] for i in indices ]
         indepParamsList = [ self.indepParamsList[i] for i in indices ]
 
         # handle out-of-sample data if given
         if outOfSampleData is not None:
             if len(outOfSampleData) != len(self.fittingData):
-                raise Exception, "Length of outOfSampleData must match length of self.fittingData"
+                raise Exception("Length of outOfSampleData must match length of self.fittingData")
             outData = [ outOfSampleData[i] for i in indices ]
         else:
             outData = None
@@ -733,7 +729,7 @@ class FittingProblem:
         #        Plotting.subplot(len(m.speciesNames),len(indepParamsList),      \
         #                         m.numInputs*len(indepParamsList) + i+1)
         #        data = speedDict[indepParams]
-        #        times = scipy.sort(data.keys())
+        #        times = np.sort(data.keys())
         #        speeds = [ data[time][0] for time in times ]
         #        Plotting.plot(times,speeds,',',mec='0.6',zorder=-1)
 
@@ -820,7 +816,7 @@ class PowerLawFittingProblem(FittingProblem):
                 useClampedPreminimization=useClampedPreminimization,**kwargs)
               for complexity,image in zip(complexityList,graphListImages) ]
         else:
-            numSpecies = len(fittingData[0].keys())
+            numSpecies = len(list(fittingData[0].keys()))
             fittingModelList = [                                                    \
               PowerLawFittingModel_FullyConnected(numSpecies,fracParams=complexity,
                 outputNames=outputNames,indepParamNames=indepParamNames,image=image,
@@ -860,7 +856,7 @@ class PowerLawFittingProblem(FittingProblem):
         params = bestModel.getParameters()
         netList = bestModel.networkList
         for nodeIndex in range(len(netList)):
-            for neighborIndex in netList[nodeIndex][1].keys():
+            for neighborIndex in list(netList[nodeIndex][1].keys()):
                 pG = params.getByKey('g_'+str(nodeIndex)+'_'+str(neighborIndex))
                 pH = params.getByKey('h_'+str(nodeIndex)+'_'+str(neighborIndex))
                 if pH is not None:
@@ -928,7 +924,7 @@ class PowerLawFittingProblem(FittingProblem):
             fittingData,fittingDataDerivs,indepParamsList,makePlot=makePlots,       \
             varList=varList)
 
-      corr = scipy.array(corrs) #[desiredVarIndices]
+      corr = np.array(corrs) #[desiredVarIndices]
 
       return corr
 
@@ -994,15 +990,15 @@ class CTSNFittingProblem(FittingProblem):
         bestModel = self.getBestModel(modelName=modelName)
 
         if indepParamMax is None:
-            indepParamMax = [ max(l) for l in scipy.transpose(self.indepParamsList) ]
-        print indepParamMax
+            indepParamMax = [ max(l) for l in np.transpose(self.indepParamsList) ]
+        print(indepParamMax)
 
         # 7.26.2012 also pass edge parameters
         params = bestModel.getParameters()
         netList = copy.deepcopy( bestModel.networkList )
         for nodeIndex in range(len(netList)):
-          for neighborIndex in netList[nodeIndex][1].keys():
-            if params.has_key('w_'+str(nodeIndex)+'_'+str(neighborIndex)):
+          for neighborIndex in list(netList[nodeIndex][1].keys()):
+            if 'w_'+str(nodeIndex)+'_'+str(neighborIndex) in params:
                 p = params.getByKey('w_'+str(nodeIndex)+'_'+str(neighborIndex))/weightScale
                 if neighborIndex < bestModel.numInputs:
                   p = p*indepParamMax[neighborIndex]
@@ -1015,7 +1011,7 @@ class CTSNFittingProblem(FittingProblem):
         # 6.2.2016 also pass self-weight parameters
         if selfConnections:
             for nodeIndex in range(bestModel.numInputs,len(netList)):
-                if params.has_key('wself_'+str(nodeIndex)):
+                if 'wself_'+str(nodeIndex) in params:
                     p = params.getByKey('wself_'+str(nodeIndex))/weightScale
                     if swapSign: param = -p
                     else: param = p
@@ -1211,15 +1207,15 @@ class FittingModel:
     fittingData should be the same length as indepParamsList.
     """
     def fitToData(self,fittingData,indepParamsList,verbose=verboseDefault):
-        print "Oops!  fitToData needs to be implemented!"
+        print("Oops!  fitToData needs to be implemented!")
         raise Exception
 
     def currentCost(self,fittingData,indepParamsList):
-        print "Oops!  currentCost needs to be implemented!"
+        print("Oops!  currentCost needs to be implemented!")
         raise Exception
 
     def currentHessian(self,fittingData,indepParamsList):
-        print "Oops!  currentHessian needs to be implemented!"
+        print("Oops!  currentHessian needs to be implemented!")
         raise Exception
 
     #def plotResults(self,fittingData,indepParamsList):
@@ -1252,11 +1248,11 @@ class FittingModel:
             Plotting.figure(figsize=figsize)
 
         if maxTime is None:
-            allDataTimes = scipy.concatenate([ scipy.concatenate([                \
-              varDat.keys() for varDat in data.values()])                         \
+            allDataTimes = np.concatenate([ np.concatenate([                \
+              list(varDat.keys()) for varDat in list(data.values())])                         \
                                               for data in fittingData ])
             maxTime = 1.1 * max(allDataTimes)
-        times = scipy.linspace(minTime,maxTime,numPoints)
+        times = np.linspace(minTime,maxTime,numPoints)
 
         if plotFirstN is None:
             N = min(len(fittingData),len(indepParamsList))
@@ -1267,10 +1263,10 @@ class FittingModel:
             outOfSampleData = [ None for d in fittingData ]
 
         if not plotSeparately: # plot everything on one subplot
-            raise Exception, "Error: plotSeparately=False not implemented"
+            raise Exception("Error: plotSeparately=False not implemented")
         else:
             # assumes first dataset includes all species of interest
-            varsWithData = fittingData[0].keys()
+            varsWithData = list(fittingData[0].keys())
 
             if dataToPlot is None:
                 # sort in the order they're found in self.speciesNames
@@ -1301,7 +1297,7 @@ class FittingModel:
                 ymins,ymaxs,xmins,xmaxs = [],[],[],[]
                 # determine color and line format
                 # (this may not be completely consistent)
-                cWnext = cW.next()
+                cWnext = next(cW)
                 if linestyle is None: lineFmt = cWnext[2]
                 else: lineFmt = linestyle
                 if fmt is None:
@@ -1344,9 +1340,10 @@ class FittingModel:
                                                   lw=linewidth,color=colorToUse,
                                                   **kwargs) )
 
-                    if plotInitialConditions and (i<len(indepParamsList[j])):
+                    if plotInitialConditions and (name+'_init' in self.indepParamNames):
                         if ICmarker is None: ICmarker = colorWheelFmt[1]
-                        Plotting.plot([0],[indepParamsList[j][i]],
+                        idx = self.indepParamNames.index(name+'_init')
+                        Plotting.plot([0],[indepParamsList[j][idx]],
                             marker=ICmarker,
                             clip_on=False,ms=markerSize,zorder=5,
                             mfc="None",mec=colorWheelFmt[0],mew=markerSize/3.)
@@ -1354,7 +1351,7 @@ class FittingModel:
                     if plotFittingData and (name in varsWithData):
                         # plot data points
 
-                        dataTimes = data[name].keys()
+                        dataTimes = list(data[name].keys())
                         dataVals = [ data[name][time][0]+yoffset for time in dataTimes ]
                         dataStds = [ data[name][time][1] for time in dataTimes ]
 
@@ -1364,7 +1361,7 @@ class FittingModel:
 
                     if (outData is not None) and (name in varsWithData):
                         # plot out-of-sample data points
-                        dataTimes = outData[name].keys()
+                        dataTimes = list(outData[name].keys())
                         dataVals = [ outData[name][time][0]+yoffset \
                                      for time in dataTimes ]
                         dataStds = [ outData[name][time][1] for time in dataTimes ]
@@ -1386,15 +1383,15 @@ class FittingModel:
             return axArray #returnList
 
     def initializeParameters(self,paramList):
-        print "Oops!  initializeParameters needs to be implemented!"
+        print("Oops!  initializeParameters needs to be implemented!")
         raise Exception
 
     def evaluate(self,time,indepParams):
-        print "Oops!  evaluate needs to be implemented!"
+        print("Oops!  evaluate needs to be implemented!")
         raise Exception
 
     def evaluateVec(self,times,var,indepParams):
-        print "Oops!  evaluateVec needs to be implemented!"
+        print("Oops!  evaluateVec needs to be implemented!")
         raise Exception
 
 class SloppyCellFittingModel(FittingModel):
@@ -1442,9 +1439,9 @@ class SloppyCellFittingModel(FittingModel):
         minimizerVerbose=False):
         self.net = SloppyCellNet
         if includeDerivs: # 9.2.2011
-          for speciesName in self.net.rateRules.keys():
+          for speciesName in list(self.net.rateRules.keys()):
             rateRule = self.net.rateRules.getByKey(speciesName)
-            defaultCompartment = self.net.species.values()[0].compartment
+            defaultCompartment = list(self.net.species.values())[0].compartment
             self.net.addSpecies('ddt_'+speciesName,defaultCompartment)
             self.net.addAssignmentRule('ddt_'+speciesName,rateRule)
         self.initialParameters = self.getParameters()
@@ -1508,7 +1505,7 @@ class SloppyCellFittingModel(FittingModel):
         upperRangeMultiple (1.)     : Each typical range is expanded by this
         factor by increasing the upper limit.
         """
-        ranges = copy.copy( scipy.array(self.indepParamRanges) )
+        ranges = copy.copy( np.array(self.indepParamRanges) )
         rangeLengths = ranges[:,1]-ranges[:,0]
 
         ranges[:,1] = ranges[:,0] + upperRangeMultiple*rangeLengths
@@ -1561,34 +1558,34 @@ class SloppyCellFittingModel(FittingModel):
             originalInitialParams = self.getParameters()
             preClampCost = self.currentCost(fittingData,indepParamsList)
             allClampedParams = KeyedList()
-            for speciesID in fittingData[0].keys():
-              if self.verbose: print "SloppyCellFittingModel.fitToData: "       \
-                "Clamped version, only fitting",speciesID,"..."
+            for speciesID in list(fittingData[0].keys()):
+              if self.verbose: print("SloppyCellFittingModel.fitToData: "       \
+                "Clamped version, only fitting",speciesID,"...")
               self.initializeParameters(originalInitialParams)
               clampedParams = self.fitToData(fittingData,indepParamsList,
                 _unclampedSpeciesID=speciesID)
-              for paramName,paramValue in clampedParams.items():
-                if not allClampedParams.has_key(paramName):
+              for paramName,paramValue in list(clampedParams.items()):
+                if paramName not in allClampedParams:
                   allClampedParams.setByKey(paramName,[])
                 allClampedParams.getByKey(paramName).append(paramValue)
             # use average value of all seen fit values for each parameter
             averageClampedParams = KeyedList()
-            for paramName,paramValueList in allClampedParams.items():
+            for paramName,paramValueList in list(allClampedParams.items()):
               averageClampedParams.setByKey(paramName,scipy.mean(paramValueList))
             # 10.3.2011 ******************
-            if self.verbose: print "SloppyCellFittingModel.fitToData: "         \
-                "allClampedParams =",allClampedParams
-            if self.verbose: print "SloppyCellFittingModel.fitToData: "         \
-                "averageClampedParams =",averageClampedParams
+            if self.verbose: print("SloppyCellFittingModel.fitToData: "         \
+                "allClampedParams =",allClampedParams)
+            if self.verbose: print("SloppyCellFittingModel.fitToData: "         \
+                "averageClampedParams =",averageClampedParams)
             # ****************************
             self.initializeParameters(averageClampedParams)
 
             # 10.31.2011 check that clamping hasn't made the fit worse
             postClampCost = self.currentCost(fittingData,indepParamsList)
             if postClampCost > preClampCost:
-                if self.verbose: print "SloppyCellFittingModel.fitToData: "     \
+                if self.verbose: print("SloppyCellFittingModel.fitToData: "     \
                     "clampedParams are worse than initial ones.  "              \
-                    "Using initial parameters."
+                    "Using initial parameters.")
                 self.initializeParameters(originalInitialParams)
 
         if (self.ensGen != None) or (fittingDataDerivs is None):
@@ -1605,16 +1602,16 @@ class SloppyCellFittingModel(FittingModel):
         # make ensemble
         initialParameters = self.getParameters()
         # 10.3.2011 *************************
-        if self.verbose: print "SloppyCellFittingModel.fitToData: "             \
-            "generating ensemble for these parameters:",initialParameters.keys()
+        if self.verbose: print("SloppyCellFittingModel.fitToData: "             \
+            "generating ensemble for these parameters:",list(initialParameters.keys()))
         # ***********************************
         if hasattr(self,'ensemble') and (not createEnsemble):
             ens = self.ensemble
             ratio = self.acceptanceRatio
-            if self.verbose: print "SloppyCellFittingModel.fitToData: "         \
-                "using ensemble stored in self.ensemble."
+            if self.verbose: print("SloppyCellFittingModel.fitToData: "         \
+                "using ensemble stored in self.ensemble.")
         elif self.ensGen != None:
-            startTimeEns = time.clock()
+            startTimeEns = time.time()
             if self.numprocs > 1:
                 ens,ratio = self.ensGen.generateEnsemble_parallel(self.numprocs,
                     dataModel,initialParameters,verbose=self.verbose)
@@ -1622,10 +1619,10 @@ class SloppyCellFittingModel(FittingModel):
                 ens,ratio = self.ensGen.generateEnsemble(dataModel,
                     initialParameters,verbose=self.verbose)
             if ens == [[]]: # 5.16.2012 we had weird error (see notes)
-                print "SloppyCellFittingModel.fitToData: Ensemble generation "  \
-                      "failed.  Using self.initialParameters."
+                print("SloppyCellFittingModel.fitToData: Ensemble generation "  \
+                      "failed.  Using self.initialParameters.")
                 ens = [self.initialParameters]
-            ensTimeSeconds = time.clock() - startTimeEns
+            ensTimeSeconds = time.time() - startTimeEns
             self.ensTimeSecondsList.append(ensTimeSeconds)
         else:
             ens = [initialParameters]
@@ -1634,7 +1631,7 @@ class SloppyCellFittingModel(FittingModel):
         # 4.17.2012
         if otherStartingPoint is not None:
             # ********
-            print "SloppyCellFittingModel.fitToData: Using otherStartingPoint"
+            print("SloppyCellFittingModel.fitToData: Using otherStartingPoint")
             #print "         with parameters",otherStartingPoint
             # ********
             if len(ens) == 1: # 5.16.2012 we had weird error (see notes)
@@ -1647,8 +1644,8 @@ class SloppyCellFittingModel(FittingModel):
 
         # 5.1.2013 warn if acceptance ratio is small
         if self.acceptanceRatio < 1./len(self.ensemble):
-            print "SloppyCellFittingModel.fitToData: WARNING: "                 \
-                "Small ensemble acceptance ratio ("+str(self.acceptanceRatio)+")"
+            print("SloppyCellFittingModel.fitToData: WARNING: "                 \
+                "Small ensemble acceptance ratio ("+str(self.acceptanceRatio)+")")
 
         bestCost = scipy.inf
         bestParams = initialParameters
@@ -1662,14 +1659,14 @@ class SloppyCellFittingModel(FittingModel):
           self.convFlagList,self.costList = [],[]
           for index,params in enumerate(ens):
             #self.initializeParameters(params)
-            startTime = time.clock()
+            startTime = time.time()
 
             if fittingDataDerivs is None:
               fitParams,convFlag,cost,numCostCalls,numGradCalls,Lmbda,j =       \
                 self.localFitToData(fittingData,dataModel,retall=True,          \
                 startParams=params)
             else: # 8.30.2012 XXX have arguments come from elsewhere
-              print "SloppyCellFittingModel.fitToData: Calling fitToDataDerivs"
+              print("SloppyCellFittingModel.fitToData: Calling fitToDataDerivs")
               self.initializeParameters(params)
               fitParams,afterMinCostList,afterExpCostList,convFlag =            \
                     self.fitToDataDerivs(fittingData,fittingDataDerivs,         \
@@ -1681,7 +1678,7 @@ class SloppyCellFittingModel(FittingModel):
               self.afterMinCostDict[index] = afterMinCostList
               self.afterExpCostDict[index] = afterExpCostList
 
-            minimizationTimeSeconds = time.clock() - startTime
+            minimizationTimeSeconds = time.time() - startTime
             self.minimizationTimeSecondsList.append(minimizationTimeSeconds)
 
             if fittingDataDerivs is not None:
@@ -1698,8 +1695,8 @@ class SloppyCellFittingModel(FittingModel):
                     fitCost = scipy.inf
 
             if self.verbose:
-                print "SloppyCellFittingModel.fitToData: Cost = ",              \
-                    fitCost,"(",convFlag,")"
+                print("SloppyCellFittingModel.fitToData: Cost = ",              \
+                    fitCost,"(",convFlag,")")
             self.ensembleAfterFit.append(fitParams)
             self.numCostCallsList.append(numCostCalls)
             self.numGradCallsList.append(numGradCalls)
@@ -1713,7 +1710,7 @@ class SloppyCellFittingModel(FittingModel):
         else: # run in parallel 3.21.2012
             outputDict = self.localFitToData_parallel(self.numprocs,fittingData,
                 dataModel,ens,indepParamsList)
-            indices = scipy.sort(outputDict.keys())
+            indices = np.sort(list(outputDict.keys()))
             self.costList = [ outputDict[i][2] for i in indices ]
             bestIndex = scipy.argsort(self.costList)[0]
             bestCost = self.costList[bestIndex]
@@ -1727,11 +1724,11 @@ class SloppyCellFittingModel(FittingModel):
             self.ensembleAfterFit = [ outputDict[i][0] for i in indices ]
             if self.verbose:
               for fitCost,convFlag in zip(self.costList,self.convFlagList):
-                print "SloppyCellFittingModel.fitToData: Cost =",               \
-                  fitCost,"(",convFlag,")"
+                print("SloppyCellFittingModel.fitToData: Cost =",               \
+                  fitCost,"(",convFlag,")")
 
         if self.verbose:
-            print "SloppyCellFittingModel.fitToData: Best-fit cost = ",bestCost
+            print("SloppyCellFittingModel.fitToData: Best-fit cost = ",bestCost)
         self.bestParams = bestParams
         self.net.setOptimizables(bestParams)
         self.convFlag = bestConvFlag
@@ -1769,8 +1766,8 @@ class SloppyCellFittingModel(FittingModel):
               raise
             # 3.21.2012 commented this out for debugging.
             except:
-              print "FittingProblem localFitToData:"
-              print "     Warning: Minimization failed. (flag 5)"
+              print("FittingProblem localFitToData:")
+              print("     Warning: Minimization failed. (flag 5)")
               fitParameters = initialParameters
               convFlag = 5
               cost = scipy.inf
@@ -1793,7 +1790,7 @@ class SloppyCellFittingModel(FittingModel):
         Uses mpi4py to run many local fits (localFitToData) in parallel.
         """
 
-        scipy.random.seed()
+        np.random.seed()
         prefix = "temporary_" + str(os.getpid()) + "_localFitToData_parallel_"
         inputDictFilename = prefix + "inputDict.data"
         outputFilename = prefix + "output.data"
@@ -1806,12 +1803,11 @@ class SloppyCellFittingModel(FittingModel):
         save(inputDict,inputDictFilename)
 
         # call mpi
-        stdoutFile = open(prefix+"stdout.txt",'w')
-        subprocess.call([ "mpirun","-np",str(numprocs),"python",
-                          os.path.join(SIRISAACDIR, "localFitParallel.py"),
-                          inputDictFilename ],
-                        stderr=stdoutFile,stdout=stdoutFile,env=os.environ)
-        stdoutFile.close()
+        with open(prefix+"stdout.txt",'w') as stdoutFile:
+            subprocess.call([ "mpirun","-np",str(numprocs),"python",
+                              os.path.join(SIRISAACDIR, "localFitParallel.py"),
+                              inputDictFilename ],
+                            stderr=stdoutFile,stdout=stdoutFile,env=os.environ)
         os.remove(inputDictFilename)
 
         try:
@@ -1819,13 +1815,13 @@ class SloppyCellFittingModel(FittingModel):
             os.remove(outputFilename)
             os.remove(prefix+"stdout.txt")
         except IOError:
-            print "localFitToData_parallel error:"
+            print("localFitToData_parallel error:")
             stdoutFile = open(prefix+"stdout.txt")
             stdout = stdoutFile.read()
-            print stdout
+            print(stdout)
             os.remove(prefix+"stdout.txt")
-            raise Exception, "localFitToData_parallel:"                            \
-                + " error in localFitParallel.py"
+            raise Exception("localFitToData_parallel:"                            \
+                + " error in localFitParallel.py")
 
         return output
 
@@ -1967,7 +1963,7 @@ class SloppyCellFittingModel(FittingModel):
         Test whether the model can be evaluated successfully at 
         the current parameters.
         """
-        tiny = scipy.finfo(scipy.float_).tiny
+        tiny = 1e-100 # scipy.finfo(scipy.float_).tiny
         try:
             traj = Dynamics.integrate(self.net,[0.,tiny])
         except Utility.SloppyCellException:
@@ -1995,31 +1991,31 @@ class SloppyCellFittingModel(FittingModel):
 
         try:
             singleVariable =                                                    \
-                isinstance(var,tuple) or ( len(scipy.shape(var)) == 0 )
-        except: # scipy.shape dies if there are tuples and strings
+                isinstance(var,tuple) or ( len(np.shape(var)) == 0 )
+        except: # np.shape dies if there are tuples and strings
             singleVariable = False
         try:
-            #traj = self.net.integrate(scipy.array( [0.]+list(times) ))
+            #traj = self.net.integrate(np.array( [0.]+list(times) ))
             eps = 1e-5 # in case you only want t=0, which SloppyCell doesn't like
-            allTimes = scipy.sort( [0.]+list(times)+[eps] )
+            allTimes = np.sort( [0.]+list(times)+[eps] )
             traj = Dynamics.integrate(self.net, allTimes, return_derivs=True)
         except Utility.SloppyCellException:
-            print "SloppyCellFittingModel.evaluateVec: "                        \
+            print("SloppyCellFittingModel.evaluateVec: "                        \
                   "WARNING: Exception in integration. "                         \
-                  "Returning default value for all requested times."
+                  "Returning default value for all requested times.")
             if singleVariable:
-                return scipy.array([ defaultValue for time in times ])
+                return np.array([ defaultValue for time in times ])
             else:
-                return scipy.array([                                            \
+                return np.array([                                            \
                     [ defaultValue for time in times ] for v in var ])
 
         for time in times:
             if time not in traj.get_times(): raise Exception
 
         if singleVariable:
-            return scipy.array([ traj.get_var_val(var,time) for time in times ])
+            return np.array([ traj.get_var_val(var,time) for time in times ])
         else:
-            return scipy.array([                                                \
+            return np.array([                                                \
                 [ traj.get_var_val(v,time) for time in times ] for v in var ])
 
     def _SloppyCellNet(self,indepParams=[],i=0):
@@ -2037,7 +2033,7 @@ class SloppyCellFittingModel(FittingModel):
         return newNet
 
     def _SloppyCellNetID(self,indepParams,i):
-        indepParamsID = str(zip(self.indepParamNames,indepParams))              \
+        indepParamsID = str(list(zip(self.indepParamNames,indepParams)))              \
             .replace("'","").replace(" ","").replace(",","_")                   \
             .replace(".","_").replace("[","_").replace("]","_")                 \
             .replace("(","_").replace(")","_")+str(i)
@@ -2095,7 +2091,7 @@ class SloppyCellFittingModel(FittingModel):
 
         # make a copy
         # of the SloppyCell network for each experimental condition
-        for i,indepParams,d in zip(range(len(data)),indepParamsList,data):
+        for i,indepParams,d in zip(list(range(len(data))),indepParamsList,data):
             newNet = self._SloppyCellNet(indepParams,i)
             newNetID = newNet.get_id()
             newExpt = Experiment(exptID+newNetID)
@@ -2107,14 +2103,14 @@ class SloppyCellFittingModel(FittingModel):
                 # set rates to zero, remove dynamic variables and
                 # things that refer to them, and add a dummy
                 # dynamic variable
-                keyList = d.keys()
-                for visibleSpecies in d.keys():
+                keyList = list(d.keys())
+                for visibleSpecies in list(d.keys()):
                     newNet.addRateRule(visibleSpecies,'0.')
-                for visibleSpecies in d.keys():
+                for visibleSpecies in list(d.keys()):
                     newNet.remove_component(visibleSpecies) #XXXXX
                     newNet.remove_component('ddt_'+visibleSpecies)
                 dName = 'dummy_variable'
-                newNet.addSpecies(dName,newNet.compartments.keys()[0],'0.')
+                newNet.addSpecies(dName,list(newNet.compartments.keys())[0],'0.')
                 newNet.addRateRule(dName,'0.')
                 newNet.compile()
 
@@ -2124,17 +2120,17 @@ class SloppyCellFittingModel(FittingModel):
                 exptData = {}
                 uniqueID = 0
                 # for each data point, add a variable that calculates that derivative
-                for speciesName in d.keys()[::-1]:
-                  for time in d[speciesName].keys():
+                for speciesName in list(d.keys())[::-1]:
+                  for time in list(d[speciesName].keys()):
                     uniqueID += 1
                     valueName = speciesName+'_deriv_'+str(uniqueID)
                     # add species that will calculate model value
-                    defaultCompartment = newNet.species.values()[0].compartment
+                    defaultCompartment = list(newNet.species.values())[0].compartment
                     newNet.addSpecies(valueName,defaultCompartment)
                     rateRule = rateRulesBefore.getByKey(speciesName)
                     # set visible species to known values
                     # 11.29.2012 [::-1] = quick hack for bug
-                    for visibleSpecies in d.keys()[::-1]:
+                    for visibleSpecies in list(d.keys())[::-1]:
                       curVal = d[visibleSpecies][time][0]
                       rateRule = rateRule.replace(visibleSpecies,str(curVal))
                     newNet.addAssignmentRule(valueName,rateRule)
@@ -2150,7 +2146,7 @@ class SloppyCellFittingModel(FittingModel):
 
             newExpt.update_data({newNetID: exptData})
             newExpt.set_fixed_sf( dict( [(speciesName, 1.)                      \
-                for speciesName in newNet.species.keys()] ))
+                for speciesName in list(newNet.species.keys())] ))
             netList.append(newNet)
             exptList.append(newExpt)
 
@@ -2161,17 +2157,15 @@ class SloppyCellFittingModel(FittingModel):
 
         # add priors
         if (self.priorSigma != None) and includePriors:
-            for paramName in netList[0].GetParameters().keys(): #self.getParameters().keys()
+            for paramName in list(netList[0].GetParameters().keys()): #self.getParameters().keys()
                 # Get width of prior from self.priorSigma
                 # 4.29.2013 priorSigma can be a list of length 2 tuples
                 if type(self.priorSigma) == list:
-                    l = filter(lambda n: paramName.startswith(n[0]),
-                               self.priorSigma)
+                    l = [n for n in self.priorSigma if paramName.startswith(n[0])]
                     if len(l) < 1:
-                        raise Exception,"No matching prior for "+str(paramName)
+                        raise Exception("No matching prior for "+str(paramName))
                     elif len(l) > 1:
-                        raise Exception,                                        \
-                            "Multiple matching priors for "+str(paramName)
+                        raise Exception("Multiple matching priors for "+str(paramName))
                     else:
                         sigma = l[0][1]
                 else:
@@ -2208,11 +2202,11 @@ class SloppyCellFittingModel(FittingModel):
 
         eventDict = {}
         # for any species with data that's not unclampedSpeciesID...
-        for dataSpeciesID in data.keys():
+        for dataSpeciesID in list(data.keys()):
           if dataSpeciesID != unclampedSpeciesID:
 
             # ...add events that update the clamped variables...
-            speciesData = data[dataSpeciesID].items()
+            speciesData = list(data[dataSpeciesID].items())
             speciesData.sort() # time order
             speciesDataTimes = [ dataPoint[0] for dataPoint in speciesData ]
             speciesDataVals = [ dataPoint[1][0] for dataPoint in speciesData ]
@@ -2230,7 +2224,7 @@ class SloppyCellFittingModel(FittingModel):
                   midpointTimeBefore =                                      \
                     0.5*(speciesDataTimes[i-1]+speciesDataTimes[i])
                 eventTrigger = "gt(time,"+str(midpointTimeBefore)+")" #geq(
-                if not eventDict.has_key(eventTrigger):
+                if eventTrigger not in eventDict:
                     eventDict[eventTrigger] = {}
                 val = speciesDataVals[i]
                 eventDict[eventTrigger].update({dataSpeciesID: val})
@@ -2238,9 +2232,9 @@ class SloppyCellFittingModel(FittingModel):
                 #    {dataSpeciesID: val})
 
             # ...and remove old rule.
-            if dataSpeciesID in clampedNet.rateRules.keys():
+            if dataSpeciesID in list(clampedNet.rateRules.keys()):
                 clampedNet.rateRules.removeByKey(dataSpeciesID)
-            if dataSpeciesID in clampedNet.assignmentRules.keys():
+            if dataSpeciesID in list(clampedNet.assignmentRules.keys()):
                 clampedNet.assignmentRules.removeByKey(dataSpeciesID)
 
             # (add assignment rule _before_ the rest)
@@ -2251,7 +2245,7 @@ class SloppyCellFittingModel(FittingModel):
             clampedNet.setInitialVariableValue(dataSpeciesID,0.)
 
         # add the events
-        for eventTrigger,assignmentDict in eventDict.items():
+        for eventTrigger,assignmentDict in list(eventDict.items()):
             id = eventTrigger
             clampedNet.add_event(id,eventTrigger,assignmentDict)
 
@@ -2270,7 +2264,7 @@ class SloppyCellFittingModel(FittingModel):
         Find all variable names used to calculate the variables in data.keys()
         in the given SloppyCell network 'net'.
         """
-        usedVariables = sets.Set(data.keys())
+        usedVariables = set(list(data.keys()))
         compList = [net.functionDefinitions,net.constraints,                    \
             net.assignmentRules,net.rateRules,net.algebraicRules]
 
@@ -2279,12 +2273,12 @@ class SloppyCellFittingModel(FittingModel):
         while len(usedVariables) > oldLen:
           oldLen = len(usedVariables)
           for comp in compList:
-            for id,expr in comp.items():
+            for id,expr in list(comp.items()):
               if id in usedVariables:
                 usedVariables.union_update(ExprManip.extract_vars(expr))
           # include initial values
           usedVarsSoFar = tuple(usedVariables)
-          for var in net.variables.keys():
+          for var in list(net.variables.keys()):
             #for var in usedVarsSoFar: # XXX why doesn't this work?
             #are we including too many initial variables as optimizable?
             initVarExpr = net.getInitialVariableValue(var)
@@ -2319,7 +2313,7 @@ class SloppyCellFittingModel(FittingModel):
         as an array)
         """
 
-        xStr = xVar #"scipy.array(["+xVar+"],float)" # 'scipy.array(['?
+        xStr = xVar #"np.array(["+xVar+"],float)" # 'np.array(['?
         string = "piecewise("
         #condlistStr = "["
         #funclistStr = "["
@@ -2330,7 +2324,7 @@ class SloppyCellFittingModel(FittingModel):
 
         for x0,x1,y0,y1 in zip(xvals[:-1],xvals[1:],yvals[:-1],yvals[1:]):
             x0,x1,y0,y1 = str(x0),str(x1),str(y0),str(y1)
-            #condlistStr += "scipy.logical_and("+xStr+">="+x0+","+xStr+"<="+x1+"),"
+            #condlistStr += "np.logical_and("+xStr+">="+x0+","+xStr+"<="+x1+"),"
             #funclistStr += "lambda t: "+y0+" + "                            \
             #    +"("+y1+"-"+y0+")/("+x1+"-"+x0+")*(t-"+x0+"),"
             string += y0+" + "+"("+y1+"-"+y0+")/("+x1+"-"+x0+")*("+xStr+"-"+x0+"),"
@@ -2360,8 +2354,8 @@ class SloppyCellFittingModel(FittingModel):
         """
         scm = self._SloppyCellDataModel(fittingData,indepParamsList,
             includePriors=False)
-        residualValues = scipy.array( scm.res(self.getParameters()) )
-        sigmas = scipy.array( [ r.ySigma for r in scm.residuals.values() ] )
+        residualValues = np.array( scm.res(self.getParameters()) )
+        sigmas = np.array( [ r.ySigma for r in list(scm.residuals.values()) ] )
         return scipy.average( (sigmas*residualValues)**2 )
 
 class yeastOscillatorFittingModel(FittingModel):
@@ -2380,7 +2374,7 @@ class yeastOscillatorFittingModel(FittingModel):
         allVarNames = ['S1','S2','S3','S4','N2','A3','S4_ex',
                        'ddt_S1','ddt_S2','ddt_S3','ddt_S4','ddt_N2',
                        'ddt_A3','ddt_S4_ex']
-        self.varIndexDict = dict(zip(allVarNames,range(len(allVarNames))))
+        self.varIndexDict = dict(list(zip(allVarNames,list(range(len(allVarNames))))))
         self.varIndexDict['S4ex'] = self.varIndexDict['S4_ex'] # compatibility
         for v in allVarNames[:7]:
             self.varIndexDict[(v,'time')] = self.varIndexDict[v] + 7
@@ -2391,7 +2385,7 @@ class yeastOscillatorFittingModel(FittingModel):
                               'S4_init','N2_init','A3_init',
                               'S4ex_init','temperature']
         indepParamIndexDict =                                                   \
-            dict(zip(allIndepParamNames,range(len(allIndepParamNames))))
+            dict(list(zip(allIndepParamNames,list(range(len(allIndepParamNames))))))
         # so I know which model parameter corresponds to each indepParam
         self.indepParamIndices =                                                \
             [ indepParamIndexDict[name] for name in self.indepParamNames ]
@@ -2400,7 +2394,7 @@ class yeastOscillatorFittingModel(FittingModel):
         # units: mM (except for the last one, in K)
         # 10.16.2013 default temperature changed from 288 to 286.5
         self.defaultIndepParams =                                               \
-                scipy.array([1.187,0.193,0.050,0.115,0.077,2.475,0.077,286.5])
+                np.array([1.187,0.193,0.050,0.115,0.077,2.475,0.077,286.5])
 
         self._savedEvalsFilename = 'yeast_savedEvalsDict.data'
         try:
@@ -2420,7 +2414,7 @@ class yeastOscillatorFittingModel(FittingModel):
         """
         includedIndices = self.indepParamIndices
         # taken from SchValJen11 Table 2
-        ICranges = scipy.array(
+        ICranges = np.array(
                    [[0.15,1.60],[0.19,2.16],
                     [0.04,0.20],[0.10,0.35],
                     [0.08,0.30],[0.14,2.67],[0.05,0.10]] )[includedIndices] # mM
@@ -2429,23 +2423,23 @@ class yeastOscillatorFittingModel(FittingModel):
         return ICranges
 
     def fitToData(self,fittingData,indepParamsList,verbose=verboseDefault):
-        print "Oops!  fitToData needs to be implemented!"
+        print("Oops!  fitToData needs to be implemented!")
         raise Exception
 
     def currentCost(self,fittingData,indepParamsList):
-        print "Oops!  currentCost needs to be implemented!"
+        print("Oops!  currentCost needs to be implemented!")
         raise Exception
 
     def currentHessian(self,fittingData,indepParamsList):
-        print "Oops!  currentHessian needs to be implemented!"
+        print("Oops!  currentHessian needs to be implemented!")
         raise Exception
 
     def initializeParameters(self,paramList):
-        print "Oops!  initializeParameters needs to be implemented!"
+        print("Oops!  initializeParameters needs to be implemented!")
         raise Exception
 
     def evaluate(self,time,indepParams):
-        print "Oops!  evaluate needs to be implemented!"
+        print("Oops!  evaluate needs to be implemented!")
         raise Exception
 
     def evaluateVec(self,times,var,indepParams,useMemoization=True):
@@ -2458,12 +2452,12 @@ class yeastOscillatorFittingModel(FittingModel):
 
         Note to debuggers: 'Memoizes' results for faster performance.
         """
-        if var in self.varIndexDict.keys(): # single var
+        if var in list(self.varIndexDict.keys()): # single var
             desiredVarIndices = self.varIndexDict[var]
         elif type(var) is not str: # iterable
             desiredVarIndices = [ self.varIndexDict[v] for v in var ]
         else:
-            raise Exception, "Unknown variable "+str(var)
+            raise Exception("Unknown variable "+str(var))
 
 
         params = self.defaultIndepParams
@@ -2473,7 +2467,7 @@ class yeastOscillatorFittingModel(FittingModel):
         temperature = params[7]
 
         key = (tuple(times),temperature,tuple(initialConditions))
-        if self.savedEvalsDict.has_key(key) and useMemoization:
+        if key in self.savedEvalsDict and useMemoization:
             returnedTimes,data,returnedParams = self.savedEvalsDict[key]
         else:
             returnedTimes,data,returnedParams =                                 \
@@ -2483,16 +2477,16 @@ class yeastOscillatorFittingModel(FittingModel):
             try:
                 save(self.savedEvalsDict,self._savedEvalsFilename)
             except:
-                print "FittingProblem.YeastOscillatorFittingModel."             \
-                    "evaluateVec: Unable to save memoization dictionary."
+                print("FittingProblem.YeastOscillatorFittingModel."             \
+                    "evaluateVec: Unable to save memoization dictionary.")
                 #pass
 
-        if len(times) != scipy.shape(data)[1]:
-            print "FittingProblem.YeastOscillatorFittingModel.evaluateVec "     \
+        if len(times) != np.shape(data)[1]:
+            print("FittingProblem.YeastOscillatorFittingModel.evaluateVec "     \
                 "WARNING: Returning different number of timepoints than "       \
-                "requested."
-            print "shape(times) =",scipy.shape(times)
-            print "shape(data) =",scipy.shape(data)
+                "requested.")
+            print("shape(times) =",np.shape(times))
+            print("shape(data) =",np.shape(data))
 
         return data[desiredVarIndices]
 
@@ -2553,8 +2547,8 @@ class EnsembleGenerator():
         Also includes the initialParameters as the last set of parameters.
         """
         if verbose:
-          print "generateEnsemble: Generating parameter ensemble with "         \
-            +str(self.totalSteps)+" total members, using 1 processor."
+          print("generateEnsemble: Generating parameter ensemble with "         \
+            +str(self.totalSteps)+" total members, using 1 processor.")
         ensembleFunc = Ensembles.ensemble
         if self.logParams:
             ensembleFunc = Ensembles.ensemble_log_params
@@ -2563,21 +2557,21 @@ class EnsembleGenerator():
         try:
             initialCost = dataModel.cost(initialParameters)
         except Utility.SloppyCellException:
-            print "generateEnsemble: SloppyCellException in evaluating cost "   \
-                  "for initial parameters.  Returning empty ensemble."
+            print("generateEnsemble: SloppyCellException in evaluating cost "   \
+                  "for initial parameters.  Returning empty ensemble.")
             initialCost = scipy.inf
             if returnCosts: return [[]],None,[None]
             else: return [[]],None
         try:
             if self.logParams:
                 initialHess = dataModel.GetJandJtJInLogParameters(              \
-                    scipy.log(initialParameters))[1]
+                    np.log(initialParameters))[1]
             else:
                 initialHess = dataModel.GetJandJtJ(initialParameters)[1]
             u, sing_vals, vh = scipy.linalg.svd(0.5 * initialHess)
         except (Utility.SloppyCellException,ValueError,scipy.linalg.LinAlgError):
-            print "generateEnsemble: Exception in evaluating JtJ "              \
-                  "for initial parameters.  Returning empty ensemble."
+            print("generateEnsemble: Exception in evaluating JtJ "              \
+                  "for initial parameters.  Returning empty ensemble.")
             if returnCosts: return [[]],None,[None]
             else: return [[]],None
 
@@ -2591,11 +2585,11 @@ class EnsembleGenerator():
                 temperature=self.temperature*dof,                               \
                 sing_val_cutoff=self.sing_val_cutoff,hess=initialHess)
         if verbose:
-            print "Ensemble done.  Acceptance ratio = "+str(ratio)
-        skip = int( scipy.floor(self.totalSteps/(self.keepSteps-1)) )
-        keptEns = scipy.concatenate( (ens[::-skip][:self.keepSteps-1],
+            print("Ensemble done.  Acceptance ratio = "+str(ratio))
+        skip = int( np.floor(self.totalSteps/(self.keepSteps-1)) )
+        keptEns = np.concatenate( (ens[::-skip][:self.keepSteps-1],
             [initialParameters]) )
-        keptCosts = scipy.concatenate( (costs[::-skip][:self.keepSteps-1],
+        keptCosts = np.concatenate( (costs[::-skip][:self.keepSteps-1],
             [initialCost]) )
         if returnCosts:
           return keptEns,ratio,keptCosts
@@ -2609,11 +2603,11 @@ class EnsembleGenerator():
           (generateEnsemble) in parallel.
           """
           if verbose:
-            print "generateEnsemble_parallel: Generating parameter ensemble with " \
+            print("generateEnsemble_parallel: Generating parameter ensemble with " \
               +str(self.totalSteps)+" total members, using "                    \
-              +str(numprocs)+" processors."
+              +str(numprocs)+" processors.")
 
-          scipy.random.seed()
+          np.random.seed()
           prefix = "temporary_" + str(os.getpid()) + "_generateEnsemble_parallel_"
           inputDictFilename = prefix + "inputDict.data"
           outputFilename = prefix + "output.data"
@@ -2629,12 +2623,11 @@ class EnsembleGenerator():
           # for info on "env=os.environ", see
           # https://stackoverflow.com/questions/60060142/strange-interaction-
           #         between-h5py-subprocess-and-mpirun
-          stdoutFile = open(prefix+"stdout.txt",'w')
-          subprocess.call([ "mpirun","-np",str(numprocs),"python",
-                os.path.join(SIRISAACDIR, "generateEnsembleParallel.py"),
-                inputDictFilename, "--disableC" ],
-                stderr=stdoutFile,stdout=stdoutFile,env=os.environ)
-          stdoutFile.close()
+          with open(prefix+"stdout.txt",'w') as stdoutFile:
+              subprocess.call([ "mpirun","-np",str(numprocs),"python",
+                    os.path.join(SIRISAACDIR, "generateEnsembleParallel.py"),
+                    inputDictFilename ],
+                    stderr=stdoutFile,stdout=stdoutFile,env=os.environ)
           os.remove(inputDictFilename)
 
           try:
@@ -2642,20 +2635,20 @@ class EnsembleGenerator():
               os.remove(outputFilename)
               os.remove(prefix+"stdout.txt")
           except IOError:
-              print "generateEnsemble_parallel error:"
+              print("generateEnsemble_parallel error:")
               stdoutFile = open(prefix+"stdout.txt")
               stdout = stdoutFile.read()
-              print stdout
+              print(stdout)
               os.remove(prefix+"stdout.txt")
-              raise Exception, "generateEnsemble_parallel:"                        \
-                  + " error in generateEnsembleParallel.py"
+              raise Exception("generateEnsemble_parallel:"                        \
+                  + " error in generateEnsembleParallel.py")
 
           return output
 
     def _dataModelNumDataPoints(self,dataModel):
-        return scipy.sum( [ [ [ len(varDat) for varDat in nameDat.values() ]    \
-            for nameDat in exptDat.GetData().values() ]                         \
-            for exptDat in dataModel.exptColl.values() ] )
+        return np.sum( [ [ [ len(varDat) for varDat in list(nameDat.values()) ]    \
+            for nameDat in list(exptDat.GetData().values()) ]                         \
+            for exptDat in list(dataModel.exptColl.values()) ] )
 
 
 class TranscriptionNetworkFittingModel(SloppyCellFittingModel):
@@ -2737,8 +2730,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
       #if indepParamNames is None:
       indepParamNames = self.indepParamNames
       nonICindepParamIndices =                                                  \
-        filter( lambda i: not indepParamNames[i].endswith('_init'),             \
-        range(len(indepParamNames)) )
+        [i for i in range(len(indepParamNames)) if not indepParamNames[i].endswith('_init')]
 
       # () generate random independent parameters and times
       if indepParamsRanges is None:
@@ -2747,15 +2739,15 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         timeRange = self.typicalTimeRange
 
       # generate random indepParams
-      scipy.random.seed(indepParamsSeed)
-      ipr = scipy.array(indepParamsRanges)
-      randomIndepParams = scipy.rand(numConditions,len(indepParamsRanges))*     \
+      np.random.seed(indepParamsSeed)
+      ipr = np.array(indepParamsRanges)
+      randomIndepParams = np.random.rand(numConditions,len(indepParamsRanges))*     \
         (ipr[:,1]-ipr[:,0]) + ipr[:,0]
 
       # generate random times
-      scipy.random.seed(timeAndNoiseSeed)
-      tr = scipy.array(timeRange)
-      randomTimes = scipy.rand(numConditions,timepointsPerCondition)*           \
+      np.random.seed(timeAndNoiseSeed)
+      tr = np.array(timeRange)
+      randomTimes = np.random.rand(numConditions,timepointsPerCondition)*           \
         (tr[1]-tr[0]) + tr[0]
 
       # () calculate species values and derivatives
@@ -2770,11 +2762,11 @@ class PowerLawFittingModel(SloppyCellFittingModel):
       typValsBefore = self.net.get_var_typical_vals()
       self.setInitialVariables( scipy.mean(self.typicalIndepParamRanges(),axis=1) )
       typVals = PerfectData.update_typical_vals([self.net],[self.typicalTimeRange])
-      for v in typValsBefore.keys():
+      for v in list(typValsBefore.keys()):
         self.net.set_var_typical_val(v,typValsBefore.get(v))
 
       # want same noise as we vary numConditions
-      scipy.random.seed(int(timeAndNoiseSeed*1e6))
+      np.random.seed(int(timeAndNoiseSeed*1e6))
       # loop over conditions
       for times,indepParams in zip(randomTimes,randomIndepParams):
           # keep track of (non-IC) independent parameters for each condition
@@ -2800,29 +2792,29 @@ class PowerLawFittingModel(SloppyCellFittingModel):
               #  derivatives, but I didn't do that.)
               if noiseFracSize > 0.:
                 if noiseInLog:
-                  valuesNoise = scipy.random.normal(0.,noiseFracSize,len(values))
-                  derivsNoise = scipy.random.normal(0.,noiseFracSize,len(derivs))
-                  valuesWithNoise = scipy.exp(valuesNoise) * values
-                  derivsWithNoise = scipy.exp(derivsNoise) * derivs
+                  valuesNoise = np.random.normal(0.,noiseFracSize,len(values))
+                  derivsNoise = np.random.normal(0.,noiseFracSize,len(derivs))
+                  valuesWithNoise = np.exp(valuesNoise) * values
+                  derivsWithNoise = np.exp(derivsNoise) * derivs
                   valueSigmas = abs(values)*noiseFracSize # XXX 2.28.2013 other factors?
                   derivSigmas = abs(derivs)*noiseFracSize # XXX 2.28.2013 other factors?
                 else:
                   typicalVarValue = typVals[v]
                   sigma = noiseFracSize*typicalVarValue
-                  valuesWithNoise = abs(values + scipy.random.normal(0.,sigma,len(values)))
-                  derivsWithNoise = derivs + scipy.random.normal(0.,sigma,len(derivs))
-                  valueSigmas = sigma*scipy.ones_like(values)*T
-                  derivSigmas = sigma*scipy.ones_like(derivs)*T
+                  valuesWithNoise = abs(values + np.random.normal(0.,sigma,len(values)))
+                  derivsWithNoise = derivs + np.random.normal(0.,sigma,len(derivs))
+                  valueSigmas = sigma*np.ones_like(values)*T
+                  derivSigmas = sigma*np.ones_like(derivs)*T
               else:
                   valuesWithNoise = values
                   derivsWithNoise = derivs
-                  valueSigmas = scipy.zeros_like(values)
-                  derivSigmas = scipy.zeros_like(derivs)
+                  valueSigmas = np.zeros_like(values)
+                  derivSigmas = np.zeros_like(derivs)
 
-              fittingDataI[v] = dict( zip(times, zip(valuesWithNoise,
-                                            valueSigmas) ) )
-              fittingDataDerivsI[v] = dict( zip(times, zip(derivsWithNoise,
-                                            derivSigmas) ) )
+              fittingDataI[v] = dict( list(zip(times, list(zip(valuesWithNoise,
+                                            valueSigmas)) )) )
+              fittingDataDerivsI[v] = dict( list(zip(times, list(zip(derivsWithNoise,
+                                            derivSigmas)) )) )
           fittingData.append(fittingDataI)
           fittingDataDerivs.append(fittingDataDerivsI)
 
@@ -2850,13 +2842,13 @@ class PowerLawFittingModel(SloppyCellFittingModel):
 
               # () calculate derivatives (9.27.2012 back to numerically...)
               fittingDataDerivs = []
-              scipy.random.seed(int(timeAndNoiseSeed*1e4+i))
+              np.random.seed(int(timeAndNoiseSeed*1e4+i))
               for runVals,conditionData in zip(runList,fakeDataRuns):
                 conditionDerivs = {}
-                for var in conditionData.keys():
+                for var in list(conditionData.keys()):
                     varDerivs = {}
                     typicalVarValue = originalFittingModel.net.get_var_typical_val(var)
-                    for time in conditionData[var].keys():
+                    for time in list(conditionData[var].keys()):
                         # do numerically
                         delta = 1e-5
                         val1,val2 = originalFittingModel.evaluateVec(                   \
@@ -2874,7 +2866,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                         #  derivatives, but I didn't do that.)
                         sigma = noiseFracSize*typicalVarValue
                         if sigma > 0.:
-                            derivWithNoise = deriv + scipy.random.normal(0.,sigma)
+                            derivWithNoise = deriv + np.random.normal(0.,sigma)
                         else:
                             derivWithNoise = deriv
 
@@ -2895,16 +2887,16 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                                   with _derivProblem_regression
         """
         # 8.29.2012 changed to include hidden node parameters
-        #Pg = scipy.zeros((numSpeciesTotal+1,numSpeciesNonHidden))
-        #Ph = scipy.zeros((numSpeciesTotal+1,numSpeciesNonHidden))
-        Pg = scipy.zeros((numSpeciesTotal+1+numInputs,numSpeciesTotal))
-        Ph = scipy.zeros((numSpeciesTotal+1+numInputs,numSpeciesTotal))
-        thetaG = scipy.ones_like(Pg)
-        thetaH = scipy.ones_like(Ph)
+        #Pg = np.zeros((numSpeciesTotal+1,numSpeciesNonHidden))
+        #Ph = np.zeros((numSpeciesTotal+1,numSpeciesNonHidden))
+        Pg = np.zeros((numSpeciesTotal+1+numInputs,numSpeciesTotal))
+        Ph = np.zeros((numSpeciesTotal+1+numInputs,numSpeciesTotal))
+        thetaG = np.ones_like(Pg)
+        thetaH = np.ones_like(Ph)
         currentParams = self.getParameters()
 
         def getVal(name):
-            if currentParams.has_key(name):
+            if name in currentParams:
                 if self.net.get_variable(name).is_optimizable:
                     return currentParams.get(name),1
                 else:
@@ -2949,14 +2941,14 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                                             fittingDataDerivs,indepParamsList)
         speciesDataTimeDerivSigmas = nonHiddenDataDerivSigmas
 
-        numSpeciesTotal,numTimes = scipy.shape(speciesData)
+        numSpeciesTotal,numTimes = np.shape(speciesData)
         numIndepParams = len(indepParamsMat)
 
         Pg,Ph = self._derivProblem_getParams(numSpeciesTotal,numIndepParams)
 
         predictedDerivs = self._derivProblem_predictedDerivs(Pg,Ph,
             speciesData,indepParamsMat,regStrength)
-        derivCost = scipy.sum(                                                  \
+        derivCost = np.sum(                                                  \
             ((speciesDataTimeDerivs - predictedDerivs)/speciesDataTimeDerivSigmas)**2 )
 
         return derivCost
@@ -2972,7 +2964,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         newParams = {}
 
         def setParam(name,val):
-            if currentParams.has_key(name):
+            if name in currentParams:
                 newParams[name] = val
 
         for i in range(numInputs):
@@ -2995,14 +2987,14 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                     Ph[i+1+numInputs,j]) #Ph[j,i]
 
         # sanity check that I'm not setting nonexistent parameters
-        oldParameterNames = scipy.sort(currentParams.keys())
-        newParameterNames = scipy.sort(newParams.keys())
-        if scipy.shape(oldParameterNames) != scipy.shape(newParameterNames):
-            raise Exception, "oldParameterNames != newParameterNames.\n"            \
-                "old = "+str(oldParameterNames)+",\nnew = "+str(newParameterNames)
+        oldParameterNames = np.sort(list(currentParams.keys()))
+        newParameterNames = np.sort(list(newParams.keys()))
+        if np.shape(oldParameterNames) != np.shape(newParameterNames):
+            raise Exception("oldParameterNames != newParameterNames.\n"            \
+                "old = "+str(oldParameterNames)+",\nnew = "+str(newParameterNames))
         if not scipy.all( oldParameterNames == newParameterNames ):
-            raise Exception, "oldParameterNames != newParameterNames.\n"            \
-                "old = "+str(oldParameterNames)+",\nnew = "+str(newParameterNames)
+            raise Exception("oldParameterNames != newParameterNames.\n"            \
+                "old = "+str(oldParameterNames)+",\nnew = "+str(newParameterNames))
 
         self.net.setOptimizables(newParams)
 
@@ -3028,24 +3020,24 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         logAlpha = Pg[numInputs,:] # logAlpha len #species
         g = Pg[numInputs+1:,:] # g (#species)x(#species)
 
-        logIP = scipy.log(indepParamsMat) # logIP (#IPs)x(#times)
-        logProdGIP = scipy.dot(gIP.T,logIP) # logProdGIP (#species)x(#times)
+        logIP = np.log(indepParamsMat) # logIP (#IPs)x(#times)
+        logProdGIP = np.dot(gIP.T,logIP) # logProdGIP (#species)x(#times)
 
-        logData = scipy.log(speciesData) # logData (#species)x(#times)
-        logProdG = scipy.dot(g.T,logData) # logProdG (#species)x(#times) # g or g.T?
+        logData = np.log(speciesData) # logData (#species)x(#times)
+        logProdG = np.dot(g.T,logData) # logProdG (#species)x(#times) # g or g.T?
 
-        logG = scipy.transpose([ logAlpha + lg + lgip for lgip,lg in            \
+        logG = np.transpose([ logAlpha + lg + lgip for lgip,lg in            \
             zip(logProdGIP.T,logProdG.T) ])
 
-        return scipy.exp(logG) # G (#species)x(#times)
+        return np.exp(logG) # G (#species)x(#times)
 
     # 6.28.2012
     def _derivProblem_predictedDerivs(self,Pg,Ph,speciesData,indepParamsMat,r,
         separateTerms=False):
         G = self._derivProblem_productTerm(Pg,speciesData,indepParamsMat) *     \
-            scipy.exp(r/speciesData)
+            np.exp(r/speciesData)
         H = self._derivProblem_productTerm(Ph,speciesData,indepParamsMat) *     \
-            scipy.exp(r*speciesData)
+            np.exp(r*speciesData)
         predictedDerivs = G - H
         if separateTerms: return G,H
         else: return predictedDerivs
@@ -3075,12 +3067,12 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                                      0 if j is not influenced by i.
                                   Defaults to all ones (fully connected).
         """
-        numSpecies,numTimes = scipy.shape(Y)
+        numSpecies,numTimes = np.shape(Y)
         numFactors = len(Design[0])
-        if weightMatrix is None: weightMatrix = scipy.ones_like(Y)
-        if includedIndices is None: includedIndices = range(numTimes)
-        if thetaMatrix is None: thetaMatrix = scipy.ones((numFactors,numSpecies))
-        W = scipy.transpose( (weightMatrix.T)[includedIndices] )
+        if weightMatrix is None: weightMatrix = np.ones_like(Y)
+        if includedIndices is None: includedIndices = list(range(numTimes))
+        if thetaMatrix is None: thetaMatrix = np.ones((numFactors,numSpecies))
+        W = np.transpose( (weightMatrix.T)[includedIndices] )
         D = Design[includedIndices]
         YT = scipy.real_if_close( (Y.T)[includedIndices] )
         YTTilde = W.T*YT
@@ -3088,48 +3080,48 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         for i in range(numSpecies):
             # 8.30.2012 XXX check next line; was repeat(numSpecies+1,axis=0)
             #           (now need to add more rows to Wi for indepParams)
-            Wi = scipy.array([W[i]]).repeat(len(D[0]),axis=0) # shape (#factors)x(#times)
-            thetai = scipy.array([thetaMatrix[:,i]]).repeat(numTimes,axis=0) # (#times)x(#factors)
+            Wi = np.array([W[i]]).repeat(len(D[0]),axis=0) # shape (#factors)x(#times)
+            thetai = np.array([thetaMatrix[:,i]]).repeat(numTimes,axis=0) # (#times)x(#factors)
             DiTilde = Wi.T*thetai*D
-            #Binv = scipy.linalg.inv(scipy.dot(DiTilde.T,DiTilde))
-            priorTerm = priorLambda*scipy.diag(scipy.ones(len(D[0])))
+            #Binv = scipy.linalg.inv(np.dot(DiTilde.T,DiTilde))
+            priorTerm = priorLambda*scipy.diag(np.ones(len(D[0])))
             thetaTerm = scipy.diag(1-thetaMatrix[:,i]) # 3.3.2013 to keep B non-singular
-            B = scipy.dot(DiTilde.T,DiTilde) + priorTerm + thetaTerm
+            B = np.dot(DiTilde.T,DiTilde) + priorTerm + thetaTerm
             # ******************************************************
             #print "_derivProblem_regression: fitting species number",i
-            #print "_derivProblem_regression: sum(Wi^2) =",scipy.sum(Wi**2)
+            #print "_derivProblem_regression: sum(Wi^2) =",np.sum(Wi**2)
             # ******************************************************
             try:
                 Binv = svdInverse(B,maxEig=self.maxSVDeig,minEig=self.minSVDeig)
             except ZeroDivisionError:
-                print "_derivProblem_regression: Singular matrix for species",i
+                print("_derivProblem_regression: Singular matrix for species",i)
                 # 2.25.2013 not 100% sure this is the correct thing to do,
                 # but it probably is if Wi is all zeros (which is what I'm
                 # trying to fix).  I'll raise an exception in other cases to
                 # be safe.
-                if scipy.sum(Wi**2) != 0: raise ValueError
-                Binv = scipy.zeros( ( len(DiTilde[0]),len(DiTilde[0]) ) )
+                if np.sum(Wi**2) != 0: raise ValueError
+                Binv = np.zeros( ( len(DiTilde[0]),len(DiTilde[0]) ) )
 
             # ***************
-            if scipy.sum(scipy.imag(Binv)**2) > 0.:
-                print "_derivProblem_regression: sum(imag(Binv)**2) =",             \
-                    scipy.sum(scipy.imag(Binv)**2)
+            if np.sum(scipy.imag(Binv)**2) > 0.:
+                print("_derivProblem_regression: sum(imag(Binv)**2) =",             \
+                    np.sum(scipy.imag(Binv)**2))
             # ***************
 
             YiTilde = YTTilde[:,i]
-            p2 = scipy.dot(DiTilde.T,YiTilde)
-            Pi = scipy.dot(Binv,p2)
+            p2 = np.dot(DiTilde.T,YiTilde)
+            Pi = np.dot(Binv,p2)
             P.append(Pi)
             # **********************************************************
             #print "_derivProblem_regression: fitting species number",i
             #print "_derivProblem_regression: param range =",(min(Pi),max(Pi))
             # **********************************************************
-        return scipy.transpose(P)
+        return np.transpose(P)
 
 
     def _derivProblem_setOptimizable(self,visibleIndices,optBool,verbose=False):
         # fix parameters that will be fit using log-linear fit to derivatives
-        allParamNames = self.net.get_var_vals().keys() #self.getParameters().keys()
+        allParamNames = list(self.net.get_var_vals().keys()) #self.getParameters().keys()
         for paramName in allParamNames:
             paramNameSplit = paramName.rsplit('_')
             if len(paramNameSplit) > 1:
@@ -3137,20 +3129,20 @@ class PowerLawFittingModel(SloppyCellFittingModel):
               if (paramNameSplit[0] == 'g') or (paramNameSplit[0] == 'h'):
                 if int(paramNameSplit[1]) in visibleIndices:
                     self.net.set_var_optimizable(paramName,optBool)
-                    if verbose: print "fitToDataDerivs: setting optimizability of",paramName,"to",optBool
+                    if verbose: print("fitToDataDerivs: setting optimizability of",paramName,"to",optBool)
               # any log_gamma or log_delta with index in speciesIndicesWithData
               elif (paramNameSplit[1] == 'gamma') or (paramNameSplit[1] == 'delta'):
                 if int(paramNameSplit[2]) in visibleIndices:
                     self.net.set_var_optimizable(paramName,optBool)
-                    if verbose: print "fitToDataDerivs: setting optimizability of",paramName,"to",optBool
+                    if verbose: print("fitToDataDerivs: setting optimizability of",paramName,"to",optBool)
 
     # 8.22.2012
     def _derivProblem_setRandomParams(self,seed=0):
         # set random initial parameters (for now, uniform on (0,1)...)
-        scipy.random.seed(seed)
-        paramNames = self.getParameters().keys()
-        randValues = scipy.rand(len(paramNames))
-        self.initializeParameters(dict( zip(paramNames,randValues) ))
+        np.random.seed(seed)
+        paramNames = list(self.getParameters().keys())
+        randValues = np.random.rand(len(paramNames))
+        self.initializeParameters(dict( list(zip(paramNames,randValues)) ))
 
     # 12.14.2012
     def _derivProblem_createDataMatrices(self,fittingData,fittingDataDerivs,
@@ -3170,34 +3162,30 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         """
         if not ( (len(indepParamsList) == len(fittingData))                         \
              and (len(fittingData) == len(fittingDataDerivs)) ):
-            raise Exception, "Lengths of fittingData, fittingDataDerivs, and "      \
-                "indepParamsList are not equal."
+            raise Exception("Lengths of fittingData, fittingDataDerivs, and "      \
+                "indepParamsList are not equal.")
 
         # copied from fitToDataDerivs
-        speciesNamesWithData = filter(                                              \
-            lambda name: name in fittingData[0].keys(),self.speciesNames)
+        speciesNamesWithData = [name for name in self.speciesNames if name in list(fittingData[0].keys())]
         speciesIndicesWithData = [ self.speciesNames.index(name)                    \
             for name in speciesNamesWithData ]
-        speciesNamesWithoutData = filter(                                           \
-            lambda name: (name not in fittingData[0].keys())                        \
-                    and (name not in self.indepParamNames),self.speciesNames)
+        speciesNamesWithoutData = [name for name in self.speciesNames if (name not in list(fittingData[0].keys()))                        \
+                    and (name not in self.indepParamNames)]
 
         # 9.5.2012 separate the initial conditions from the other independent params
-        indepParamICnames = filter(lambda name: name.endswith("_init"),             \
-                                   self.indepParamNames)
+        indepParamICnames = [name for name in self.indepParamNames if name.endswith("_init")]
         indepParamICindices = [ self.indepParamNames.index(name)                    \
                                for name in indepParamICnames ]
         if len(indepParamICindices) > 0:
-            initialConditionsList = scipy.array(indepParamsList)[:,indepParamICindices]
+            initialConditionsList = np.array(indepParamsList)[:,indepParamICindices]
         else:
             initialConditionsList = scipy.repeat([[]],len(indepParamsList),axis=0)
         # initialConditonsList (#conditions)x(#ICs)
-        indepParamOtherNames = filter(lambda name: not name.endswith("_init"),      \
-                                      self.indepParamNames)
+        indepParamOtherNames = [name for name in self.indepParamNames if not name.endswith("_init")]
         indepParamOtherIndices = [ self.indepParamNames.index(name)                 \
                                   for name in indepParamOtherNames ]
         if len(indepParamOtherIndices) > 0:
-            indepParamsListOther = scipy.array(indepParamsList)[:,indepParamOtherIndices]
+            indepParamsListOther = np.array(indepParamsList)[:,indepParamOtherIndices]
         else:
             indepParamsListOther = scipy.repeat([[]],len(indepParamsList),axis=0)
         # indepParamsListOther (#conditions)x(#indepParams)
@@ -3211,20 +3199,19 @@ class PowerLawFittingModel(SloppyCellFittingModel):
 
         if False: # 3.4.2013 not sure why I was worried about this
         # 9.5.2012 test whether there are visible species without initial conditions
-            visibleSpeciesWithoutICs = filter(lambda name:                              \
-                        name+"_init" not in indepParamICnames, speciesNamesWithData)
+            visibleSpeciesWithoutICs = [name for name in speciesNamesWithData if name+"_init" not in indepParamICnames]
             if len(visibleSpeciesWithoutICs) > 0:
-                print "PowerLawFittingModel.fitToDataDerivs WARNING:"
-                print "     These visible species have no ICs:",visibleSpeciesWithoutICs
+                print("PowerLawFittingModel.fitToDataDerivs WARNING:")
+                print("     These visible species have no ICs:",visibleSpeciesWithoutICs)
 
         # set up the (constant) independent parameters matrix
         numIndepParams = len(indepParamsListOther[0])
         indepParamsMat = scipy.repeat([[]],numIndepParams,axis=0)
         if len(indepParamsListOther) != len(fittingData) : raise Exception
         for indepParamsOther,data in zip(indepParamsListOther,fittingData):
-            numTimes = len(data.values()[0].keys())
+            numTimes = len(list(data.values())[0].keys())
             indepParamsRepeat = scipy.repeat([indepParamsOther],numTimes,axis=0).T
-            indepParamsMat = scipy.concatenate([indepParamsMat,indepParamsRepeat],axis=1)
+            indepParamsMat = np.concatenate([indepParamsMat,indepParamsRepeat],axis=1)
         #print "fitToDataDerivs: indepParamsMat =",indepParamsMat
 
 
@@ -3238,14 +3225,14 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         for indepParamsAll,data,derivData in                                        \
             zip(indepParamsList,fittingData,fittingDataDerivs):
                 # find relevant times
-                sortedTimes = scipy.sort(data.values()[0].keys())
-                sortedDerivTimes = scipy.sort(derivData.values()[0].keys())
+                sortedTimes = np.sort(list(data.values())[0].keys())
+                sortedDerivTimes = np.sort(list(derivData.values())[0].keys())
                 if not scipy.all(scipy.equal(sortedTimes,sortedDerivTimes)):
-                    raise Exception, "Data timepoints not the same as derivative timepoints"
+                    raise Exception("Data timepoints not the same as derivative timepoints")
                 # () integrate to find values of hidden variables
                 if len(speciesNamesWithoutData) > 0:
-                    hiddenData = scipy.concatenate((hiddenData.T, self.evaluateVec(sortedTimes,speciesNamesWithoutData,indepParamsAll).T )).T
-                    hiddenDataDerivs = scipy.concatenate((hiddenDataDerivs.T, self.evaluateVec(sortedTimes,[ (s,'time') for s in speciesNamesWithoutData ],indepParamsAll).T )).T
+                    hiddenData = np.concatenate((hiddenData.T, self.evaluateVec(sortedTimes,speciesNamesWithoutData,indepParamsAll).T )).T
+                    hiddenDataDerivs = np.concatenate((hiddenDataDerivs.T, self.evaluateVec(sortedTimes,[ (s,'time') for s in speciesNamesWithoutData ],indepParamsAll).T )).T
                 # () extract values and derivatives of non-hidden variables
                 nonHiddenDataOneIP,nonHiddenDataDerivsOneIP = [],[]
                 nonHiddenDataDerivSigmasOneIP = []
@@ -3258,23 +3245,23 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                     nonHiddenDataOneIP.append(dataRow)
                     nonHiddenDataDerivsOneIP.append(dataRowDerivs)
                     nonHiddenDataDerivSigmasOneIP.append(dataRowDerivSigmas)
-                nonHiddenData = scipy.concatenate((nonHiddenData.T,scipy.transpose(nonHiddenDataOneIP))).T
-                nonHiddenDataDerivs = scipy.concatenate((nonHiddenDataDerivs.T,scipy.transpose(nonHiddenDataDerivsOneIP))).T
-                nonHiddenDataDerivSigmas = scipy.concatenate((nonHiddenDataDerivSigmas.T,scipy.transpose(nonHiddenDataDerivSigmasOneIP))).T
+                nonHiddenData = np.concatenate((nonHiddenData.T,np.transpose(nonHiddenDataOneIP))).T
+                nonHiddenDataDerivs = np.concatenate((nonHiddenDataDerivs.T,np.transpose(nonHiddenDataDerivsOneIP))).T
+                nonHiddenDataDerivSigmas = np.concatenate((nonHiddenDataDerivSigmas.T,np.transpose(nonHiddenDataDerivSigmasOneIP))).T
 
         if len(speciesNamesWithoutData) > 0:
-            speciesData = scipy.concatenate((nonHiddenData,hiddenData))
-            speciesDataTimeDerivs = scipy.concatenate((nonHiddenDataDerivs,hiddenDataDerivs)) # added hidden 8.17.2012
+            speciesData = np.concatenate((nonHiddenData,hiddenData))
+            speciesDataTimeDerivs = np.concatenate((nonHiddenDataDerivs,hiddenDataDerivs)) # added hidden 8.17.2012
         else:
             speciesData = nonHiddenData
             speciesDataTimeDerivs = nonHiddenDataDerivs
 
-        #print "shape(nonHiddenData) =",scipy.shape(nonHiddenData)
-        #print "shape(nonHiddenDataDerivs) =",scipy.shape(nonHiddenDataDerivs)
-        #print "shape(hiddenData) =",scipy.shape(hiddenData)
-        #print "shape(hiddenDataDerivs) =",scipy.shape(hiddenDataDerivs)
-        #print "shape(speciesData) =",scipy.shape(speciesData)
-        #print "shape(speciesDataTimeDerivs) =",scipy.shape(speciesDataTimeDerivs)
+        #print "shape(nonHiddenData) =",np.shape(nonHiddenData)
+        #print "shape(nonHiddenDataDerivs) =",np.shape(nonHiddenDataDerivs)
+        #print "shape(hiddenData) =",np.shape(hiddenData)
+        #print "shape(hiddenDataDerivs) =",np.shape(hiddenDataDerivs)
+        #print "shape(speciesData) =",np.shape(speciesData)
+        #print "shape(speciesDataTimeDerivs) =",np.shape(speciesDataTimeDerivs)
 
         # throw ValueError if inf or nan shows up
         speciesData = scipy.asarray_chkfinite(speciesData)
@@ -3297,11 +3284,10 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             fittingDataDerivs,indepParamsList)
 
         # taken from fitToDataDerivs (count only non-initial-condition indepParams)
-        indepParamOtherNames = filter(lambda name: not name.endswith("_init"),
-                                      self.indepParamNames)
+        indepParamOtherNames = [name for name in self.indepParamNames if not name.endswith("_init")]
         numIndepParams = len(indepParamOtherNames)
 
-        numSpeciesTotal,numTimes = scipy.shape(speciesData)
+        numSpeciesTotal,numTimes = np.shape(speciesData)
 
         Pg,Ph = self._derivProblem_getParams(numSpeciesTotal,numIndepParams)
         predictedDerivs = self._derivProblem_predictedDerivs(Pg,Ph,speciesData,
@@ -3334,7 +3320,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                 varIndex = self.speciesNames.index(var)
             varIndices.append(varIndex)
 
-        if 'regStrength' in self.net.variables.keys():
+        if 'regStrength' in list(self.net.variables.keys()):
             if regStrength is None:
                 regStrength = self.net.get_var_val('regStrength')
         else:
@@ -3344,7 +3330,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
 
         predictedDerivsList,actualDerivsList = [],[]
 
-        flat = lambda a: scipy.reshape(a,scipy.prod(scipy.shape(a)))
+        flat = lambda a: scipy.reshape(a,scipy.prod(np.shape(a)))
 
         fittingData = outOfSampleFittingData
         fittingDataDerivs = outOfSampleFittingDataDerivs
@@ -3433,13 +3419,11 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         if regStrength is None:
             regStrength = self.net.get_var_val('regStrength')
 
-        speciesNamesWithData = filter(                                              \
-            lambda name: name in fittingData[0].keys(),self.speciesNames)
+        speciesNamesWithData = [name for name in self.speciesNames if name in list(fittingData[0].keys())]
         speciesIndicesWithData = [ self.speciesNames.index(name)                    \
             for name in speciesNamesWithData ]
-        speciesNamesWithoutData = filter(                                           \
-            lambda name: (name not in fittingData[0].keys())                        \
-                     and (name not in self.indepParamNames),self.speciesNames)
+        speciesNamesWithoutData = [name for name in self.speciesNames if (name not in list(fittingData[0].keys()))                        \
+                     and (name not in self.indepParamNames)]
 
         noHiddenSpecies = ( len(speciesNamesWithoutData) == 0 )
 
@@ -3469,8 +3453,8 @@ class PowerLawFittingModel(SloppyCellFittingModel):
 
             i += 1
             if verbose:
-                print ""
-                print "fitToDataDerivs: Iteration",i
+                print("")
+                print("fitToDataDerivs: Iteration",i)
 
             if False:
                 # (1) run nonlinear optimization for other parameters
@@ -3501,13 +3485,13 @@ class PowerLawFittingModel(SloppyCellFittingModel):
 
                 # 9.27.2012 calculate new cost before integrating hidden nodes
                 predictedDerivsVisible = predictedDerivs[:len(nonHiddenDataDerivs)]
-                numSpeciesTotal,numTimes = scipy.shape(speciesData)
+                numSpeciesTotal,numTimes = np.shape(speciesData)
                 numIndepParams = len(indepParamsMat)
                 priorCost = self._derivProblem_priorCost(priorLambda,numSpeciesTotal,
                                                          numIndepParams) # 5.29.2014
-                afterMinCost = 0.5 * scipy.sum( ((predictedDerivsVisible-nonHiddenDataDerivs)/nonHiddenDataDerivSigmas)**2 ) + priorCost
+                afterMinCost = 0.5 * np.sum( ((predictedDerivsVisible-nonHiddenDataDerivs)/nonHiddenDataDerivSigmas)**2 ) + priorCost
                 afterMinCostList.append( afterMinCost )
-                afterMinCostNoSigma = scipy.sum( (predictedDerivsVisible-nonHiddenDataDerivs)**2 )
+                afterMinCostNoSigma = np.sum( (predictedDerivsVisible-nonHiddenDataDerivs)**2 )
 
                 # (2c) 9.26.2012 calculate new cost after integrating hidden nodes
                 oldCost = scipy.copy(newCost)
@@ -3517,12 +3501,12 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                     except Utility.SloppyCellException:
                         #raise # for debugging
                         ## #(daeintException,ValueError,OverflowError):
-                        print "fitToDataDerivs: Exception in cost evaluation. "
+                        print("fitToDataDerivs: Exception in cost evaluation. ")
                         newCost = scipy.inf
                 else:
                     newCost = afterMinCost
-                    print "fitToDataDerivs: cost no sigma =",afterMinCostNoSigma
-                print "fitToDataDerivs: cost =",newCost
+                    print("fitToDataDerivs: cost no sigma =",afterMinCostNoSigma)
+                print("fitToDataDerivs: cost =",newCost)
                 afterExpCostList.append(newCost)
 
             except (ValueError, OverflowError):
@@ -3530,8 +3514,8 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                 if False: raise
 
                 # 8.30.2012 just return current parameters
-                print "fitToDataDerivs: Exception in optimization. "            \
-                      " Returning current parameters."
+                print("fitToDataDerivs: Exception in optimization. "            \
+                      " Returning current parameters.")
                 if retall:
                     convFlag = 1
                     return self.getParameters(),afterMinCostList,               \
@@ -3557,11 +3541,11 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             paramsList.append(currentParams)
 
         if i >= maxiter:
-            print "fitToDataDerivs: Reached maxiter."
+            print("fitToDataDerivs: Reached maxiter.")
             bestParams = paramsList[-1]
             convFlag = 0
         else:
-            print "fitTaDataDerivs: Cost increased at iteration "+str(i)
+            print("fitTaDataDerivs: Cost increased at iteration "+str(i))
             if len(paramsList) > 1: bestParams = paramsList[-2]
             else: bestParams = paramsList[-1]
             convFlag = 2
@@ -3575,7 +3559,7 @@ class PowerLawFittingModel(SloppyCellFittingModel):
     # 5.29.2014
     def _derivProblem_priorCost(self,priorLambda,numSpeciesTotal,numIndepParams):
         Pg,Ph = self._derivProblem_getParams(numSpeciesTotal,numIndepParams)
-        return 0.5*priorLambda*scipy.sum(Pg**2 + Ph**2)
+        return 0.5*priorLambda*np.sum(Pg**2 + Ph**2)
 
 
     # 6.27.2012
@@ -3605,9 +3589,8 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             regStrength = self.net.get_var_val('regStrength')
         r = regStrength
 
-        if scipy.shape(speciesData) != scipy.shape(speciesDataTimeDerivs):
-            raise Exception,                                                        \
-                "speciesData must have same shape as speciesDataTimeDerivs"
+        if np.shape(speciesData) != np.shape(speciesDataTimeDerivs):
+            raise Exception("speciesData must have same shape as speciesDataTimeDerivs")
 
         if indepParamsMat is None:
             numIndepParams = 0
@@ -3615,20 +3598,20 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             numIndepParams = len(indepParamsMat)
 
         if speciesDataTimeDerivSigmas is None:
-            speciesDataTimeDerivSigmas = scipy.ones_like(speciesDataTimeDerivs)
+            speciesDataTimeDerivSigmas = np.ones_like(speciesDataTimeDerivs)
 
         # (note that we now typically do NOT fit `hidden' derivatives in the
         #  EM framework, so numSpeciesNonHidden here is the same as
         #  the number of visible species in fitDataDerivs)
-        numSpeciesTotal,numTimes = scipy.shape(speciesData)
-        numSpeciesNonHidden,numTimes = scipy.shape(speciesDataTimeDerivs)
+        numSpeciesTotal,numTimes = np.shape(speciesData)
+        numSpeciesNonHidden,numTimes = np.shape(speciesDataTimeDerivs)
 
         # set up design matrix
-        D = scipy.zeros((numTimes,numSpeciesTotal+1+numIndepParams))
+        D = np.zeros((numTimes,numSpeciesTotal+1+numIndepParams))
         if numIndepParams > 0:
-            D[:,:numIndepParams] = scipy.transpose(indepParamsMat)
-        D[:,numIndepParams] = scipy.ones(numTimes)
-        D[:,numIndepParams+1:] = scipy.transpose(scipy.log(speciesData))
+            D[:,:numIndepParams] = np.transpose(indepParamsMat)
+        D[:,numIndepParams] = np.ones(numTimes)
+        D[:,numIndepParams+1:] = np.transpose(np.log(speciesData))
 
         # use model's current values for initial h parameters.
         # Pg and Ph store our parameters in a convenient form
@@ -3636,10 +3619,10 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             self._derivProblem_getParams(numSpeciesTotal,numIndepParams,            \
                 retTheta=True)
         if verbose:
-            freeParams = int(scipy.sum(thetaMatrixG) + scipy.sum(thetaMatrixH))
-            allParams = scipy.prod(scipy.shape(thetaMatrixG))                       \
-                      + scipy.prod(scipy.shape(thetaMatrixH))
-            print "_derivProblem_fit:",freeParams,"free parameters out of",allParams
+            freeParams = int(np.sum(thetaMatrixG) + np.sum(thetaMatrixH))
+            allParams = scipy.prod(np.shape(thetaMatrixG))                       \
+                      + scipy.prod(np.shape(thetaMatrixH))
+            print("_derivProblem_fit:",freeParams,"free parameters out of",allParams)
 
         #GnumIncludedIndicesList = []
         #HnumIncludedIndicesList = []
@@ -3651,77 +3634,77 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         # 2.25.2013
         def printParamSummary(Pg,Ph):
             if verbose:
-                f = lambda mat: mat.reshape(scipy.prod(scipy.shape(mat)))
-                print "_derivProblem_fit:  production params:",                 \
-                    min(f(Pg)),"to",max(f(Pg))
-                print "_derivProblem_fit: degradation params:",                 \
-                    min(f(Ph)),"to",max(f(Ph))
+                f = lambda mat: mat.reshape(scipy.prod(np.shape(mat)))
+                print("_derivProblem_fit:  production params:",                 \
+                    min(f(Pg)),"to",max(f(Pg)))
+                print("_derivProblem_fit: degradation params:",                 \
+                    min(f(Ph)),"to",max(f(Ph)))
 
         # need to be set for first iteration
         includedIndices = []
         predictedDerivs = self._derivProblem_predictedDerivs(Pg,Ph,speciesData,indepParamsMat,r)
-        oldPredYh = scipy.transpose(scipy.dot(D,Ph))
+        oldPredYh = np.transpose(np.dot(D,Ph))
         G = self._derivProblem_productTerm(Pg,speciesData,indepParamsMat)
-        Yh = scipy.log(G - speciesDataTimeDerivs)
+        Yh = np.log(G - speciesDataTimeDerivs)
 
         for i in range(numiter):
 
-            if verbose: print "_derivProblem_fit: Iteration",i+1,"of",numiter
+            if verbose: print("_derivProblem_fit: Iteration",i+1,"of",numiter)
 
             # check whether new fit is better than old one,
             # at least at the included time indices
-            predYh = scipy.transpose(scipy.dot(D,Ph))
+            predYh = np.transpose(np.dot(D,Ph))
 
-            #derivCostSubset0 = scipy.sum( (speciesDataTimeDerivs - predictedDerivs)[:,includedIndices]**2 )
+            #derivCostSubset0 = np.sum( (speciesDataTimeDerivs - predictedDerivs)[:,includedIndices]**2 )
             predG,predH = self._derivProblem_predictedDerivs(Pg,Ph,speciesData,indepParamsMat,r,True)
             predictedDerivs = predG - predH
 
-            #derivCostSubset1 = scipy.sum( (speciesDataTimeDerivs - predictedDerivs)[:,includedIndices]**2 )
+            #derivCostSubset1 = np.sum( (speciesDataTimeDerivs - predictedDerivs)[:,includedIndices]**2 )
             #derivCostSubsetDelta = derivCostSubset1 - derivCostSubset0
             #derivCostSubsetDeltaList.append(derivCostSubsetDelta)
-            priorCost = 0.5*priorLambda*scipy.sum(Pg**2 + Ph**2) # 5.29.2014
-            derivCost = 0.5*scipy.sum( ((speciesDataTimeDerivs - predictedDerivs)/speciesDataTimeDerivSigmas)**2 ) + priorCost
+            priorCost = 0.5*priorLambda*np.sum(Pg**2 + Ph**2) # 5.29.2014
+            derivCost = 0.5*np.sum( ((speciesDataTimeDerivs - predictedDerivs)/speciesDataTimeDerivSigmas)**2 ) + priorCost
             printParamSummary(Pg,Ph)
-            if verbose: print "_derivProblem_fit: current deriv cost =", derivCost
+            if verbose: print("_derivProblem_fit: current deriv cost =", derivCost)
             derivCostList.append(derivCost)
 
-            oldPredYg = scipy.transpose(scipy.dot(D,Pg))
+            oldPredYg = np.transpose(np.dot(D,Pg))
 
             # () Do fitting of production params while holding degradation fixed
             H = self._derivProblem_productTerm(Ph,speciesData,indepParamsMat)
-            Yg = scipy.log(H + speciesDataTimeDerivs) - r/speciesData
+            Yg = np.log(H + speciesDataTimeDerivs) - r/speciesData
             if True:
-                fittable = scipy.sum((H + speciesDataTimeDerivs)>0.)
-                total = scipy.prod(scipy.shape(H))
-                if verbose: print "_derivProblem_fit: production terms fit:",fittable,"of",total
+                fittable = np.sum((H + speciesDataTimeDerivs)>0.)
+                total = scipy.prod(np.shape(H))
+                if verbose: print("_derivProblem_fit: production terms fit:",fittable,"of",total)
             Wg = (H + speciesDataTimeDerivs) / speciesDataTimeDerivSigmas               \
-                 * scipy.exp(-r/speciesData) * ((H + speciesDataTimeDerivs)>0.)
+                 * np.exp(-r/speciesData) * ((H + speciesDataTimeDerivs)>0.)
             Pg = self._derivProblem_regression(D,Yg,weightMatrix=Wg,                    \
                 priorLambda=priorLambda,thetaMatrix=thetaMatrixG)
 
             # check whether new fit is better than old one,
             # at least at the included time indices
-            predYg = scipy.transpose(scipy.dot(D,Pg))
+            predYg = np.transpose(np.dot(D,Pg))
 
             predictedDerivs = self._derivProblem_predictedDerivs(Pg,Ph,speciesData,indepParamsMat,r)
-            priorCost = 0.5*priorLambda*scipy.sum(Pg**2 + Ph**2) # 5.29.2014
-            derivCost = 0.5*scipy.sum( ((speciesDataTimeDerivs - predictedDerivs)/speciesDataTimeDerivSigmas)**2 ) + priorCost
+            priorCost = 0.5*priorLambda*np.sum(Pg**2 + Ph**2) # 5.29.2014
+            derivCost = 0.5*np.sum( ((speciesDataTimeDerivs - predictedDerivs)/speciesDataTimeDerivSigmas)**2 ) + priorCost
             printParamSummary(Pg,Ph)
-            if verbose: print "_derivProblem_fit: current deriv cost =", derivCost
+            if verbose: print("_derivProblem_fit: current deriv cost =", derivCost)
             derivCostList.append(derivCost)
 
-            oldPredYh = scipy.transpose(scipy.dot(D,Ph))
+            oldPredYh = np.transpose(np.dot(D,Ph))
 
             # () Do fitting of degradation params while holding production fixed
             G = self._derivProblem_productTerm(Pg,speciesData,indepParamsMat)
-            Yh = scipy.log(G - speciesDataTimeDerivs) - r*speciesData
+            Yh = np.log(G - speciesDataTimeDerivs) - r*speciesData
             if True:
-                fittable = scipy.sum((G - speciesDataTimeDerivs)>0.)
-                total = scipy.prod(scipy.shape(G))
+                fittable = np.sum((G - speciesDataTimeDerivs)>0.)
+                total = scipy.prod(np.shape(G))
                 if verbose:
-                    print "_derivProblem_fit: degradation terms fit:",fittable,"of",total
+                    print("_derivProblem_fit: degradation terms fit:",fittable,"of",total)
             Wh = (G - speciesDataTimeDerivs) / speciesDataTimeDerivSigmas               \
-                 * scipy.exp(-r*speciesData) * ((G - speciesDataTimeDerivs)>0.)
+                 * np.exp(-r*speciesData) * ((G - speciesDataTimeDerivs)>0.)
             Ph = self._derivProblem_regression(D,Yh,weightMatrix=Wh,                    \
                 priorLambda=priorLambda,thetaMatrix=thetaMatrixH)
 
@@ -3756,31 +3739,31 @@ class PowerLawFittingModel(SloppyCellFittingModel):
                         self._derivProblem_createDataMatrices(fittingData,              \
                         fittingDataDerivs,indepParamsList)
         predictedDerivsVisible = self._derivProblem_calculateDerivs(fittingData,fittingDataDerivs,indepParamsList,r)
-        numSpeciesTotal,numTimes = scipy.shape(speciesData)
+        numSpeciesTotal,numTimes = np.shape(speciesData)
         numIndepParams = len(indepParamsMat)
         priorCost = self._derivProblem_priorCost(priorLambda,numSpeciesTotal,
                                                  numIndepParams) # 5.29.2014
-        cost = 0.5 * scipy.sum( ((predictedDerivsVisible-nonHiddenDataDerivs)/nonHiddenDataDerivSigmas)**2 ) + priorCost
+        cost = 0.5 * np.sum( ((predictedDerivsVisible-nonHiddenDataDerivs)/nonHiddenDataDerivSigmas)**2 ) + priorCost
 
         # calculate complexity penalty
         H = self._derivProblem_Hessian(fittingData,fittingDataDerivs,
                                        indepParamsList,priorLambda)
         try:
             u,singVals,vt = scipy.linalg.svd( H )
-            priorSingVals = priorLambda * scipy.ones(len(H))
+            priorSingVals = priorLambda * np.ones(len(H))
         except (scipy.linalg.LinAlgError,ValueError):
-            singVals = scipy.inf * scipy.ones(len(H))
-            priorSingVals = -scipy.inf * scipy.ones(len(H))
-            print "_derivProblem_logLikelihood: Error in Hessian SVD.  "            \
-                "Setting logLikelihood to negative infinity."
+            singVals = scipy.inf * np.ones(len(H))
+            priorSingVals = -scipy.inf * np.ones(len(H))
+            print("_derivProblem_logLikelihood: Error in Hessian SVD.  "            \
+                "Setting logLikelihood to negative infinity.")
 
-        print "_derivProblem_logLikelihood: cost =",-cost
-        print "_derivProblem_logLikelihood: penalty =",                             \
-                      -(0.5*scipy.sum( scipy.log(singVals) )                        \
-                      - 0.5*scipy.sum( scipy.log(priorSingVals) ) )
+        print("_derivProblem_logLikelihood: cost =",-cost)
+        print("_derivProblem_logLikelihood: penalty =",                             \
+                      -(0.5*np.sum( np.log(singVals) )                        \
+                      - 0.5*np.sum( np.log(priorSingVals) ) ))
 
-        L = -(cost + 0.5*scipy.sum( scipy.log(singVals) )                           \
-                      - 0.5*scipy.sum( scipy.log(priorSingVals) ) )
+        L = -(cost + 0.5*np.sum( np.log(singVals) )                           \
+                      - 0.5*np.sum( np.log(priorSingVals) ) )
 
         if retall:
             return L,singVals,priorSingVals
@@ -3803,11 +3786,11 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         """
         J = self._derivProblem_Jacobian(fittingData,fittingDataDerivs,
             indepParamsList)
-        HnoPrior = scipy.dot(J.T,J)
+        HnoPrior = np.dot(J.T,J)
 
         # add parameter prior to diagonal
-        numResiduals,numParameters = scipy.shape(J)
-        priorDiag = scipy.diag(scipy.ones(numParameters)*priorLambda)
+        numResiduals,numParameters = np.shape(J)
+        priorDiag = scipy.diag(np.ones(numParameters)*priorLambda)
         H = HnoPrior + priorDiag
 
         return H
@@ -3838,13 +3821,12 @@ class PowerLawFittingModel(SloppyCellFittingModel):
             self._derivProblem_createDataMatrices(fittingData,                      \
             fittingDataDerivs,indepParamsList)
 
-        numSpeciesTotal,numTimes = scipy.shape(speciesData)
-        numIndepParams,numTimes2 = scipy.shape(indepParamsMat)
+        numSpeciesTotal,numTimes = np.shape(speciesData)
+        numIndepParams,numTimes2 = np.shape(indepParamsMat)
         assert numTimes == numTimes2
         numResiduals = numSpeciesTotal*numTimes
         if numIndepParams > 0:
-            raise Exception, \
-                "_derivProblem_Jacobian has not been tested with numIndepParams > 0."
+            raise Exception("_derivProblem_Jacobian has not been tested with numIndepParams > 0.")
 
         Pg,Ph,thetaG,thetaH = self._derivProblem_getParams(numSpeciesTotal,
                                     numIndepParams,retTheta=True)
@@ -3857,15 +3839,15 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         numParams = len(flatTheta)
         numParamsUsed = sum(flatTheta)
 
-        J = scipy.zeros((numResiduals,numParamsUsed))
+        J = np.zeros((numResiduals,numParamsUsed))
 
-        paramsShape = scipy.shape(thetaG)
+        paramsShape = np.shape(thetaG)
         assert paramsShape == (numIndepParams+numSpeciesTotal+1,numSpeciesTotal)
         i = 0 # residual index
         for t in range(numTimes):
           for iSpecies in range(numSpeciesTotal):
-            JGi = scipy.zeros(paramsShape)
-            JHi = scipy.zeros(paramsShape)
+            JGi = np.zeros(paramsShape)
+            JHi = np.zeros(paramsShape)
 
             # derivs wrt alpha and beta
             Gi, Hi = G[iSpecies,t], H[iSpecies,t]
@@ -3874,11 +3856,11 @@ class PowerLawFittingModel(SloppyCellFittingModel):
 
             # derivs wrt g and h
             xEll = speciesData[:,t]
-            JGi[(numIndepParams+1):,iSpecies] = scipy.log(xEll)*Gi
-            JHi[(numIndepParams+1):,iSpecies] =-scipy.log(xEll)*Hi
+            JGi[(numIndepParams+1):,iSpecies] = np.log(xEll)*Gi
+            JHi[(numIndepParams+1):,iSpecies] =-np.log(xEll)*Hi
 
             fullJi = self._derivProblem_flatten(JGi,JHi)
-            assert scipy.shape(fullJi) == scipy.shape(flatTheta)
+            assert np.shape(fullJi) == np.shape(flatTheta)
 
             # only fill in values with flatTheta > 0
             jReduced = 0
@@ -3899,8 +3881,8 @@ class PowerLawFittingModel(SloppyCellFittingModel):
         Takes two matrices of shape (# indepParams + # species + 1)x(# species)
         and returns a single flat array of length (total # params).
         """
-        a = scipy.concatenate((Gparams,Hparams))
-        return a.reshape(scipy.prod(scipy.shape(a)))
+        a = np.concatenate((Gparams,Hparams))
+        return a.reshape(scipy.prod(np.shape(a)))
 
 
 
@@ -3919,15 +3901,15 @@ class PowerLawFittingModel_Complexity(PowerLawFittingModel):
 
         if inputNames is None:
             # 2.22.2012 don't include indepParams ending in "_init" as inputs
-            inputNames = filter(lambda name: name[-5:]!="_init",indepParamNames)
+            inputNames = [name for name in indepParamNames if name[-5:]!="_init"]
         else:
             for inputName in inputNames:
               if inputName not in indepParamNames:
-                raise Exception, "inputName %s not in indepParamNames"%inputName
+                raise Exception("inputName %s not in indepParamNames"%inputName)
 
         # output species whose initial conditions are not set by indepParams
         # should have optimizable initial conditions
-        optimizableICs = filter(lambda n: n+"_init" not in indepParamNames,outputNames)
+        optimizableICs = [n for n in outputNames if n+"_init" not in indepParamNames]
 
         self.complexity = complexity
         self.numInputs = len(inputNames)
@@ -3974,17 +3956,17 @@ class PowerLawFittingModel_FullyConnected(PowerLawFittingModel_Complexity):
         outputNames=[],inputNames=None,**kwargs):
 
         if len(outputNames) > numSpecies:
-            raise Exception, "len(outputNames) > numSpecies"
+            raise Exception("len(outputNames) > numSpecies")
         if (fracParams>1.) or (fracParams<0.):
-            raise Exception, "fracParams must be between 0 and 1."
+            raise Exception("fracParams must be between 0 and 1.")
 
         if inputNames is None:
             # 2.22.2012 don't include indepParams ending in "_init" as inputs
-            inputNames = filter(lambda name: name[-5:]!="_init",indepParamNames)
+            inputNames = [name for name in indepParamNames if name[-5:]!="_init"]
         else:
             for inputName in inputNames:
               if inputName not in indepParamNames:
-                raise Exception, "inputName %s not in indepParamNames"%inputName
+                raise Exception("inputName %s not in indepParamNames"%inputName)
 
         numSpecies = numSpecies
         numInputs = len(inputNames)
@@ -4003,7 +3985,7 @@ class PowerLawFittingModel_FullyConnected(PowerLawFittingModel_Complexity):
             + (maxConnection*(numSpecies - 1))*numSpecies
         # 3.4.2013
         complexity = int( fracParams*fullComplexity )
-        print "PowerLawFittingModel_FullyConnected: complexity =",complexity
+        print("PowerLawFittingModel_FullyConnected: complexity =",complexity)
 
         PowerLawFittingModel_Complexity.__init__(self,complexity,
             indepParamNames=indepParamNames,outputNames=outputNames,**kwargs)
@@ -4036,7 +4018,7 @@ class PowerLawFittingModel_FullyConnected(PowerLawFittingModel_Complexity):
         # set exponents
         for species,exponent in exponentList:
             # expand if needed
-            if species in self.definitionDict.keys():
+            if species in list(self.definitionDict.keys()):
                 nameList = self.definitionDict[species]
             else:
                 nameList = [(species,1)]
@@ -4054,7 +4036,7 @@ class PowerLawFittingModel_FullyConnected(PowerLawFittingModel_Complexity):
         """
         net = self.net
         removedParameters = []
-        for speciesLHS in net.species.keys():
+        for speciesLHS in list(net.species.keys()):
           rhs = net.rateRules.get(speciesLHS)
           for i,speciesI in enumerate(self.speciesNames):
             for j,speciesJ in enumerate(self.speciesNames):
@@ -4081,7 +4063,7 @@ class PowerLawFittingModel_planetary(PowerLawFittingModel_FullyConnected):
         """
         Planetary network set up as a powerLawNetwork.
         """
-        self.speciesNames = scipy.array(['r','drdt','theta'])
+        self.speciesNames = np.array(['r','drdt','theta'])
         self.ICnames = [ name+"init" for name in self.speciesNames ]
 
         # () set up a fully-connected 19-dimensional model
@@ -4128,12 +4110,12 @@ def _createNetworkList(complexity,numInputs,numOutputs,
         typeOrders = ['last','first','random']
         connectionOrders = ['nearest','node','random']
         if typeOrder not in typeOrders:
-            raise Exception, "Unrecognized typeOrder = "+str(typeOrder)
+            raise Exception("Unrecognized typeOrder = "+str(typeOrder))
         if connectionOrder not in connectionOrders:
-            raise Exception, "Unrecognized connectionOrder = "+str(connectionOrder)
-        if (typeOrder is "random") and (connectionOrder is not "random"):
-            raise Exception, "random typeOrder with non-random connectionOrder " \
-                "is not currently supported"
+            raise Exception("Unrecognized connectionOrder = "+str(connectionOrder))
+        if (typeOrder == "random") and (connectionOrder != "random"):
+            raise Exception("random typeOrder with non-random connectionOrder " \
+                "is not currently supported")
 
         #complexity,numInputs,numOutputs =                                       \
         #    self.complexity,self.numInputs,self.numOutputs
@@ -4181,17 +4163,17 @@ def _createNetworkList(complexity,numInputs,numOutputs,
         if done(curComplexity): return networkList
 
         # upgrade each input->output connection to 2
-        if maxConnection is 2:
+        if maxConnection == 2:
           for i in range(numOutputs):
             for j in range(numInputs):
                 addConnection(numInputs+i,j,2)
                 if done(curComplexity): return networkList
 
-        if typeOrder is "first":
+        if typeOrder == "first":
             n = upgradeOutputNodes()
             if n is not None: return n
 
-        if connectionOrder is "node":
+        if connectionOrder == "node":
             # add connections among output nodes
             # fully connect each node before moving to next node
             for connectionType in range(1,maxConnection+1):
@@ -4201,7 +4183,7 @@ def _createNetworkList(complexity,numInputs,numOutputs,
                   if done(curComplexity): return networkList
                   addConnection(numInputs+j,numInputs+i,connectionType)
                   if done(curComplexity): return networkList
-        elif connectionOrder is "nearest":
+        elif connectionOrder == "nearest":
             # add connections among output nodes
             # order by 'length' of connection
             for connectionType in range(1,maxConnection+1):
@@ -4217,34 +4199,34 @@ def _createNetworkList(complexity,numInputs,numOutputs,
                   if done(curComplexity): return networkList
                   addConnection(numInputs+j,numInputs+i,connectionType)
                   if done(curComplexity): return networkList
-        elif connectionOrder is "random": # 12.4.2014
+        elif connectionOrder == "random": # 12.4.2014
             # add connection parameters in random order
             # (note that this is different from other connectionOrders
             #  both because it connects nodes in a random order and
             #  because it doesn't require all connections of a given
             #  connectionType before moving on)
-            nodes = range(numInputs,numInputs+numOutputs)
+            nodes = list(range(numInputs,numInputs+numOutputs))
             # Make flat list of possible ordered pairs of nodes
             nodePairs = scipy.reshape([ [ (i,j) for i in nodes ] for j in nodes ],
                                       [len(nodes)**2,2])
             # Don't include self connections
-            nodePairs = filter(lambda pair: pair[0] != pair[1],nodePairs)
+            nodePairs = [pair for pair in nodePairs if pair[0] != pair[1]]
             # Each nodePair appears maxConnection times
             connections = list( scipy.repeat(nodePairs,maxConnection,axis=0) )
             # Optionally include node parameters in list
-            if typeOrder is "random": # 4.25.2015
+            if typeOrder == "random": # 4.25.2015
                 for nodeType in range(defaultOutputType,maxType):
                     for i in range(numInputs,numInputs+numOutputs):
-                        connections.append( scipy.array((i,)) )
+                        connections.append( np.array((i,)) )
             # Shuffle list of connections
-            scipy.random.seed(seed)
+            np.random.seed(seed)
             pylab.shuffle(connections)
             # Add connections in shuffled order
             for connection in connections:
               addConnectionOrParam(connection)
               if done(curComplexity): return networkList
 
-        if typeOrder is "last":
+        if typeOrder == "last":
             n = upgradeOutputNodes()
             if n is not None: return n
 
@@ -4255,14 +4237,14 @@ def _createNetworkList(complexity,numInputs,numOutputs,
             numHidden += 1
             curHidden = len(networkList)-1
 
-            if typeOrder is "first":
+            if typeOrder == "first":
                 # upgrade type
                 for nodeType in range(defaultType+1,maxType+1):
                     networkList[curHidden][0] = nodeType
                     if done(curComplexity): return networkList
 
             # add connections to and from new hidden node
-            if connectionOrder is "node":
+            if connectionOrder == "node":
 
                 # add connections to, then from, output nodes
                 for connectionType in range(1,maxConnection+1):
@@ -4288,35 +4270,35 @@ def _createNetworkList(complexity,numInputs,numOutputs,
                     addConnection(curHidden,numInputs+numOutputs+i,connectionType)
                     if done(curComplexity): return networkList
 
-            elif connectionOrder is "random":
+            elif connectionOrder == "random":
                 # 4.24.2015
                 # add connection parameters in random order
                 # (note that this is different from other connectionOrders
                 #  both because it connects nodes in a random order and
                 #  because it doesn't require all connections of a given
                 #  connectionType before moving on)
-                nodes = range(curHidden)
-                nodesExceptInput = range(numInputs,curHidden)
+                nodes = list(range(curHidden))
+                nodesExceptInput = list(range(numInputs,curHidden))
                 # Make flat list of possible ordered pairs of nodes
                 nodePairs = [ (i,curHidden) for i in nodesExceptInput ] \
                           + [ (curHidden,j) for j in nodes ]
                 # Each nodePair appears maxConnection times
                 connections = list( scipy.repeat(nodePairs,maxConnection,axis=0) )
                 # Optionally include node parameters in list
-                if typeOrder is "random": # 4.25.2015
+                if typeOrder == "random": # 4.25.2015
                     for nodeType in range(defaultType,maxType):
-                        connections.append( scipy.array((curHidden,)) )
+                        connections.append( np.array((curHidden,)) )
                 # Shuffle list of connections
-                scipy.random.seed(seed+curHidden)
+                np.random.seed(seed+curHidden)
                 pylab.shuffle(connections)
                 # Add connections in shuffled order
                 for connection in connections:
                     addConnectionOrParam(connection)
                     if done(curComplexity): return networkList
             else:
-                raise Exception, "Unsupported connectionOrder with hidden nodes: "+str(connectionOrder)
+                raise Exception("Unsupported connectionOrder with hidden nodes: "+str(connectionOrder))
 
-            if typeOrder is "last":
+            if typeOrder == "last":
                 # upgrade type
                 for nodeType in range(defaultType+1,maxType+1):
                     networkList[curHidden][0] = nodeType
@@ -4357,26 +4339,26 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,
     if speciesColors is None: speciesColors = Plotting.ColorWheel()
 
     # 2.22.2012 don't include indepParams ending in "_init" as inputs
-    inputNames = filter(lambda name: name[-5:]!="_init",indepParamNames)
+    inputNames = [name for name in indepParamNames if name[-5:]!="_init"]
 
     # 2.22.2012 don't include indepParamNames in speciesNames
     speciesNamesFiltered =                                                      \
-        filter(lambda name: name not in indepParamNames,speciesNames)
+        [name for name in speciesNames if name not in indepParamNames]
 
     G = AGraph(strict=False,margin=0,**kwargs)
     allNames = inputNames + speciesNamesFiltered
     num = len(allNames)
     if num != len(networkList):
-        raise Exception, "total number of names ("+str(num)+") different "      \
-            "than number of nodes in networkList ("+str(len(networkList))+")."
+        raise Exception("total number of names ("+str(num)+") different "      \
+            "than number of nodes in networkList ("+str(len(networkList))+").")
     allColors = list(scipy.repeat(indepParamColor,len(inputNames)))
-    for i,color in zip(range(len(speciesNamesFiltered)),speciesColors):
+    for i,color in zip(list(range(len(speciesNamesFiltered))),speciesColors):
         # in case it's from Plotting.ColorWheel
         if type(color) is tuple: color = color[0]
         allColors.append(color)
     nodeWidth,nodeHeight = nodeDiameter,nodeDiameter
     ignoreIndices = []
-    positionIndices = range(num)
+    positionIndices = list(range(num))
     positionNum = num
 
     if skipIndependentNodes:
@@ -4385,18 +4367,18 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,
         #allNames = allNames[len(inputNames):]
         #allColors = allColors[len(inputNames):]
         #networkList = networkList[len(inputNames):]
-        ignoreIndices = range(len(inputNames))
-        positionIndices = range(-len(inputNames),num-len(inputNames))
+        ignoreIndices = list(range(len(inputNames)))
+        positionIndices = list(range(-len(inputNames),num-len(inputNames)))
 
     twoPi = 2.*scipy.pi
     radius = plotDiameter/2.
-    xList = [ str(radius*scipy.cos(startAngle - twoPi*i/positionNum)) \
+    xList = [ str(radius*np.cos(startAngle - twoPi*i/positionNum)) \
               for i in positionIndices ]
-    yList = [ str(radius*scipy.sin(startAngle - twoPi*i/positionNum)) \
+    yList = [ str(radius*np.sin(startAngle - twoPi*i/positionNum)) \
               for i in positionIndices ]
 
     # add nodes
-    for i,name,color,x,y in zip(range(num),allNames,allColors,xList,yList):
+    for i,name,color,x,y in zip(list(range(num)),allNames,allColors,xList,yList):
 
       # color stuff
       if (name[0] == "X") and (Xcolor is not None):
@@ -4417,11 +4399,11 @@ def networkList2DOT(networkList,speciesNames,indepParamNames,
     # add edges
     for i in range(num):
       if i not in ignoreIndices:
-          for nodeIamAffectedBy in networkList[i][1].keys():
+          for nodeIamAffectedBy in list(networkList[i][1].keys()):
 
             if nodeIamAffectedBy not in ignoreIndices:
                 weightList = networkList[i][1][nodeIamAffectedBy]
-                if len(scipy.shape(weightList)) == 0: weightList = [weightList]
+                if len(np.shape(weightList)) == 0: weightList = [weightList]
                 weight = scipy.mean( weightList )
                 if weight < 0.: arrowhead = 'odot'
                 else: arrowhead = 'normal'
@@ -4554,14 +4536,14 @@ class PhosphorylationFittingModel(SloppyCellFittingModel):
 
         phosModel = phosphorylationFit_netModel.netModel(n,rules,endTime,nSteps,\
             MichaelisMenten=MichaelisMenten)
-        params = scipy.ones( phosModel.numParams )
+        params = np.ones( phosModel.numParams )
         SloppyCellNet = IO.from_SBML_file(phosModel.writeSBML(params))
         SloppyCellNet.set_id('PhosphorylationNet')
 
         # The output measures the total phosphorylation.
         offsetName = outputName+'_offset'
         sum = ''.join( [ 'Group_P'+str(i)+' + ' for i in range(1,n+1) ] )
-        SloppyCellNet.addSpecies( outputName, SloppyCellNet.compartments.keys()[0] )
+        SloppyCellNet.addSpecies( outputName, list(SloppyCellNet.compartments.keys())[0] )
         SloppyCellNet.addParameter( offsetName, totalOffset, isOptimizable=False)
         SloppyCellNet.addAssignmentRule( outputName, offsetName+'+'+sum[:-3] )
 
@@ -4594,11 +4576,11 @@ class CTSNFittingModel(SloppyCellFittingModel):
 
         if inputNames is None:
             # 2.22.2012 don't include indepParams ending in "_init" as inputs
-            inputNames = filter(lambda name: name[-5:]!="_init",indepParamNames)
+            inputNames = [name for name in indepParamNames if name[-5:]!="_init"]
         else:
             for inputName in inputNames:
               if inputName not in indepParamNames:
-                raise Exception, "inputName %s not in indepParamNames"%inputName
+                raise Exception("inputName %s not in indepParamNames"%inputName)
 
         self.complexity = complexity
         self.numInputs = len(inputNames)
@@ -4682,6 +4664,4 @@ class SimpleSinusoidalFittingModel(SloppyCellFittingModel):
 
         # generalSetup should be run by all daughter classes
         self.generalSetup(net,indepParamNames,**kwargs)
-
-
 

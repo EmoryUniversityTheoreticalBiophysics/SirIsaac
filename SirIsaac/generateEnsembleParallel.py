@@ -11,7 +11,7 @@ from numpy import *
 import time
 
 #from generateFightData import *
-from fittingProblem import *
+from SirIsaac.fittingProblem import *
 import sys
 
 # use parallel computation supported by SloppyCell
@@ -20,7 +20,7 @@ import SloppyCell.ReactionNetworks.RunInParallel as Par
 
 # read in arguments from command line file name
 if len(sys.argv) < 2:
-    print "Usage: python generateEnsembleParallel.py inputDictFile.data [SloppyCell options]"
+    print("Usage: python generateEnsembleParallel.py inputDictFile.data [SloppyCell options]")
     exit()
 inputDictFile = sys.argv[1]
 inputDict = load(inputDictFile)

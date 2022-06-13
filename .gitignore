@@ -78,3 +78,6 @@ wheels/
 .installed.cfg
 *.egg
 
+# backup files
+*.bak
+

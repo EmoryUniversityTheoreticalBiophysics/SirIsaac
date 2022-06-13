@@ -28,7 +28,8 @@ https://doi.org/10.1371/journal.pone.0119821
 Dependencies
 ============
 
-Python 2.6 or later (not Python 3)  
+Python 3  
+Numpy  
 Scipy  
 Matplotlib  
 (One way to install the above is with Anaconda or Sage.  See Installation.md.)
@@ -49,9 +50,10 @@ ipython (for reading ipython notebook file describing example usage)
 Contributors
 ============
 
-Bryan Daniels, Ilya Nemenman
-
-
+Bryan Daniels  
+Ilya Nemenman  
+hashknot  
+sudheerad9  
 
 
 

@@ -9,9 +9,9 @@
 
 import scipy
 import time, copy, os
-from simplePickle import load,save
-from sloppyCellTest import testCcompiling
-from fittingProblemMultipleCondition import *
+from .simplePickle import load,save
+from .sloppyCellTest import testCcompiling
+from .fittingProblemMultipleCondition import *
 
 def directoryPrefix(fileNumString,conditioni,numTimepoints):
     return fileNumString+'_fitProbs/N'+str(numTimepoints)+'/condition'+str(conditioni)+'/'
@@ -46,8 +46,8 @@ def loadFitProbData(fileNumString):
     try:
         fitProbData = load(fileNumString+'_fitProbData.dat')
     except (IOError, EOFError):
-        print "loadFitProbData: WARNING Unable to load fitProbData file."\
-              "Returning None."
+        print("loadFitProbData: WARNING Unable to load fitProbData file."\
+              "Returning None.")
         fitProbData = None
     return fitProbData
 
@@ -55,7 +55,7 @@ def saveFitProbData(fitProbData,fileNumString):
     try:
         save(fitProbData,fileNumString+'_fitProbData.dat')
     except IOError:
-        print "saveFitProbData: WARNING Unable to save fitProbData file."
+        print("saveFitProbData: WARNING Unable to save fitProbData file.")
 
 def setLock(fileNumString):
     save(1,fileNumString+'_fileLocked.dat')
@@ -67,13 +67,13 @@ def waitForUnlocked(fileNumString,maxIter=100):
     lockFilename = fileNumString+'_fileLocked.dat'
     i = 0
     while lockFilename in os.listdir('.'):
-        print "waitForUnlocked: Waiting for another process to unlock fitProbData file..."
+        print("waitForUnlocked: Waiting for another process to unlock fitProbData file...")
         # wait a bit
         time.sleep(1.+5.*scipy.rand())
 
         i += 1
         if i > maxIter:
-            raise Exception, "Waiting too long for lock on fitProbData file."
+            raise Exception("Waiting too long for lock on fitProbData file.")
 
 def lockAndLoadFitProbData(fileNumString):
     waitForUnlocked(fileNumString)
@@ -111,7 +111,7 @@ def updateFitProbData(fitProb,fileNumString,conditioni,numTimepoints,modelj):
             orderedLs = []
             stopFittingN = pDataMultiple['stopFittingN']
             for n in pDataMultiple['fittingModelNames']:
-                if pDataMultiple['logLikelihoodDict'].has_key(n):
+                if n in pDataMultiple['logLikelihoodDict']:
                         orderedLs.append(pDataMultiple['logLikelihoodDict'][n])
                 if (len(orderedLs) > stopFittingN):
                     if max(orderedLs[-stopFittingN:]) < max(orderedLs):
@@ -124,14 +124,14 @@ def updateFitProbData(fitProb,fileNumString,conditioni,numTimepoints,modelj):
 
 # note: getState and setState are somewhat slow due to sorting
 def getState(fitProbData,conditioni,numTimepointsi,modelj):
-    numTimepoints = scipy.sort(fitProbData.keys())[numTimepointsi]
+    numTimepoints = scipy.sort(list(fitProbData.keys()))[numTimepointsi]
     pData = fitProbData[numTimepoints]['fitProbDataList'][conditioni]
     modelName = pData['fittingModelNames'][modelj]
     return pData['fittingStateDict'][modelName]
 
 # note: getState and setState are somewhat slow due to sorting
 def setState(fitProbData,conditioni,numTimepointsi,modelj,state):
-    numTimepoints = scipy.sort(fitProbData.keys())[numTimepointsi]
+    numTimepoints = scipy.sort(list(fitProbData.keys()))[numTimepointsi]
     pData = fitProbData[numTimepoints]['fitProbDataList'][conditioni]
     modelName = pData['fittingModelNames'][modelj]
     pData['fittingStateDict'][modelName] = state
@@ -146,7 +146,7 @@ def assignWork(fileNumString):
         # load current fitProbData
         fitProbData = lockAndLoadFitProbData(fileNumString)
         if fitProbData is None:
-            print "assignWork: Error loading fitProbData"
+            print("assignWork: Error loading fitProbData")
             removeLock(fileNumString)
         else:
             # find unstarted work to be done
@@ -162,7 +162,7 @@ def assignWork(fileNumString):
     return conditioni,numTimepointsi,modelj
 
 def findWork(fitProbData):
-    numTimepointsList = scipy.sort( fitProbData.keys() )
+    numTimepointsList = scipy.sort( list(fitProbData.keys()) )
     # loop over numTimepoints
     for numTimepointsi,numTimepoints in enumerate(numTimepointsList):
         
@@ -179,7 +179,7 @@ def findWork(fitProbData):
             # pick the first model for which there's work to be done
             modelj = 0
             modelName = pDataMultiple['fittingModelNames'][modelj]
-            while pDataMultiple['logLikelihoodDict'].has_key(modelName):
+            while modelName in pDataMultiple['logLikelihoodDict']:
               modelj += 1
               modelName = pDataMultiple['fittingModelNames'][modelj]
             # loop over conditions
@@ -199,7 +199,7 @@ def findWork(fitProbData):
                         # then this is a model that needs to be fit
                         return conditioni,numTimepointsi,modelj
         
-    print "findWork: No work found."
+    print("findWork: No work found.")
     return None,None,None
 
 def resetFitProbData(fileNumString):
@@ -207,9 +207,9 @@ def resetFitProbData(fileNumString):
     Set all 'started' work to 'unstarted'.  (Leave 'finished' alone.)
     """
     fitProbData = lockAndLoadFitProbData(fileNumString)
-    for pMultiple in fitProbData.values():
+    for pMultiple in list(fitProbData.values()):
         for p in pMultiple['fitProbDataList']:
-            for name in p['fittingStateDict'].keys():
+            for name in list(p['fittingStateDict'].keys()):
                 if p['fittingStateDict'][name] == 'started':
                     p['fittingStateDict'][name] = 'unstarted'
     saveAndUnlockFitProbData(fitProbData,fileNumString)
@@ -222,7 +222,7 @@ def setStopFittingN(fileNumString,stopFittingN,resetFitAllDone=True):
                               If False, leave all fitAllDone alone.
     """
     fitProbData = lockAndLoadFitProbData(fileNumString)
-    for pMultiple in fitProbData.values():
+    for pMultiple in list(fitProbData.values()):
         pMultiple['stopFittingN'] = stopFittingN
         if resetFitAllDone: pMultiple['fitAllDone'] = False
     saveAndUnlockFitProbData(fitProbData,fileNumString)
@@ -232,10 +232,10 @@ def countFitProbData(fileNumString,printReport=True,printAll=False):
     Print the current status of model fitting.
     """
     fitProbData = loadFitProbData(fileNumString)
-    totalSubsets = len(fitProbData.values())
+    totalSubsets = len(list(fitProbData.values()))
     finishedSubsets = []
     finished,started,unstarted = 0,0,0
-    for numTimepoints in scipy.sort(fitProbData.keys()):
+    for numTimepoints in scipy.sort(list(fitProbData.keys())):
         line = str(numTimepoints) + ' '
         pMultiple = fitProbData[numTimepoints]
         if pMultiple['fitAllDone']:
@@ -263,16 +263,16 @@ def countFitProbData(fileNumString,printReport=True,printAll=False):
             else:
                 line += '    '
         if (not subsetUnstarted) or printAll:
-            if printReport: print line
+            if printReport: print(line)
 
     if printReport:
-        print ""
-        print "Data subsets:"
-        print "  ",len(finishedSubsets),"of",totalSubsets,"finished"
-        print "Individual models:"
-        print "  ",finished,"finished"
-        print "  ",started,"running"
-        print "  ",unstarted,"unstarted"
+        print("")
+        print("Data subsets:")
+        print("  ",len(finishedSubsets),"of",totalSubsets,"finished")
+        print("Individual models:")
+        print("  ",finished,"finished")
+        print("  ",started,"running")
+        print("  ",unstarted,"unstarted")
     else:
         return finishedSubsets
 
@@ -281,7 +281,7 @@ def makeFpdLean(fpd):
     Modify in place to create a stripped-down version of fpd 
     that doesn't include the models.
     """
-    for N in scipy.sort(fpd.keys()):
+    for N in scipy.sort(list(fpd.keys())):
         fp = fpd[N]
         for f in fp.fittingProblemList:
             f.fittingModelDict = {}
@@ -298,15 +298,15 @@ def subsetsWithFits(fileNumString,onlyNew=False):
                               combined fitProbs.
     """
     fpd = loadFitProbData(fileNumString)
-    saveFilename = fpd.values()[0]['saveFilename']
+    saveFilename = list(fpd.values())[0]['saveFilename']
     
     Nlist = []
-    for N in scipy.sort(fpd.keys()):
+    for N in scipy.sort(list(fpd.keys())):
         # find models that have been fit to all conditions
         if len(fpd[N]['fitProbDataList']) == 1:
-            fitModels = fpd[N]['fitProbDataList'][0]['logLikelihoodDict'].keys()
+            fitModels = list(fpd[N]['fitProbDataList'][0]['logLikelihoodDict'].keys())
         else:
-            fitModels = scipy.intersect1d([ fp['logLikelihoodDict'].keys() \
+            fitModels = scipy.intersect1d([ list(fp['logLikelihoodDict'].keys()) \
                                             for fp in fpd[N]['fittingProblemList'] ])
         if onlyNew:
             Nfilename = directoryPrefixNonly(fileNumString,N)+'/'+saveFilename
@@ -316,7 +316,7 @@ def subsetsWithFits(fileNumString,onlyNew=False):
                     Nlist.append(N)
             else: # check which fit models are currently included in the saved file
                 fpMultiple = load(Nfilename)
-                fitModelsSaved = fpMultiple.logLikelihoodDict.keys()
+                fitModelsSaved = list(fpMultiple.logLikelihoodDict.keys())
                 if len(scipy.intersect1d(fitModels,fitModelsSaved)) < len(fitModels):
                     Nlist.append(N)
         else:
@@ -343,7 +343,7 @@ def combineFitProbs(fileNumString,saveCombined=True,combinedLean=True,
                           outOfSampleCost information.
     """
     fitProbData = loadFitProbData(fileNumString)
-    saveFilename = fitProbData.values()[0]['saveFilename']
+    saveFilename = list(fitProbData.values())[0]['saveFilename']
     #save({},saveFilename)
     
     if saveCombined: fpdMultiple = {}
@@ -360,7 +360,7 @@ def combineFitProbs(fileNumString,saveCombined=True,combinedLean=True,
           # then an old combined file exists -- erase it to reset
           os.remove(Nfilename)
           fileExists = False
-          print "combineFitProbs: Reset removed file for numTimepoints =",numTimepoints
+          print("combineFitProbs: Reset removed file for numTimepoints =",numTimepoints)
       
       if numTimepoints in subsetsToCombine: # combine
           oldOutOfSampleCostDict = {}
@@ -391,12 +391,12 @@ def combineFitProbs(fileNumString,saveCombined=True,combinedLean=True,
           
           save(fpMultiple,Nfilename)
           
-          print "combineFitProbs: Done with numTimepoints =",numTimepoints
+          print("combineFitProbs: Done with numTimepoints =",numTimepoints)
       
       else: # no new fits to combine; just load from file
       
           if saveCombined: fpdMultiple[numTimepoints] = load(Nfilename)
-          print "combineFitProbs: Done with numTimepoints =",numTimepoints
+          print("combineFitProbs: Done with numTimepoints =",numTimepoints)
       
 
 
@@ -420,10 +420,10 @@ def dataSubset(fittingData,numDatapoints,seed=345,maxNumIndepParams=None):
     if maxNumIndepParams is None: maxNumIndepParams = numIndepParams
     numDatapoints = int(numDatapoints)
     for i in range(min(numDatapoints,maxNumIndepParams)):
-        varNames = scipy.sort( fittingData[i].keys() )
-        allTimes = scipy.sort( fittingData[i][varNames[0]].keys() )
+        varNames = scipy.sort( list(fittingData[i].keys()) )
+        allTimes = scipy.sort( list(fittingData[i][varNames[0]].keys()) )
         
-        possibleIndices = range(len(allTimes))
+        possibleIndices = list(range(len(allTimes)))
         scipy.random.shuffle(possibleIndices)
         
         N = numDatapoints/maxNumIndepParams
@@ -493,7 +493,7 @@ def initializeFitAllParallel(fullFittingProblem,fileNumString,
     for fittingProblem in fittingProblemList:
         numIndepParamsList.append(len(fittingProblem.fittingData))
         for d in fittingProblem.fittingData:
-            numTimepointsList.append(len(d.values()[0]))
+            numTimepointsList.append(len(list(d.values())[0]))
     if numIndepParams is None:
         numIndepParams = min(numIndepParamsList)
     elif numIndepParams > min(numIndepParamsList):
@@ -503,7 +503,7 @@ def initializeFitAllParallel(fullFittingProblem,fileNumString,
         minNumTimepoints = min(minNumTimepoints,maxTimesPerIndepParam)
     maxN = numIndepParams*minNumTimepoints
 
-    Nlist = range(deltaNumDatapoints,maxN,deltaNumDatapoints)
+    Nlist = list(range(deltaNumDatapoints,maxN,deltaNumDatapoints))
     Nlist = Nlist + [maxN]
 
     createDirectoryStructure(fileNumString,len(fittingProblemList),Nlist)
@@ -560,7 +560,7 @@ def initializeFitAllParallel(fullFittingProblem,fileNumString,
         save(fitProbData,fileNumString+'_fitProbData.dat')
 
         if verbose:
-            print "initializeFitAllParallel: Done initializing N =", N
+            print("initializeFitAllParallel: Done initializing N =", N)
 
 
 
@@ -577,11 +577,11 @@ def runFitAllParallelWorker(fileNumString,endTime=None,verbose=True):
 
     # check that the fitProbData file exists
     if not fileNumString+"_fitProbData.dat" in os.listdir('.'):
-        raise Exception, "fitProbData database file not found: "+str(fitProbDatFilename)
+        raise Exception("fitProbData database file not found: "+str(fitProbDatFilename))
 
     # 9.24.2013 make sure SloppyCell C compiling is working
     if not testCcompiling():
-        raise Exception, "SloppyCell C compiling not working."
+        raise Exception("SloppyCell C compiling not working.")
 
     if endTime is None: endTime = scipy.inf
     startWallTime = time.time()
@@ -589,9 +589,9 @@ def runFitAllParallelWorker(fileNumString,endTime=None,verbose=True):
 
     while elapsedTimeHours < endTime:
       fitProbData = loadFitProbData(fileNumString)
-      saveFilename = fitProbData.values()[0]['saveFilename']
+      saveFilename = list(fitProbData.values())[0]['saveFilename']
 
-      numTimepointsList = scipy.sort(fitProbData.keys())
+      numTimepointsList = scipy.sort(list(fitProbData.keys()))
 
       # () find a (condition,Np,model) triplet to work on
       conditioni,numTimepointsi,modelj = assignWork(fileNumString)
@@ -599,8 +599,8 @@ def runFitAllParallelWorker(fileNumString,endTime=None,verbose=True):
       fitProb = loadFitProb(saveFilename,fileNumString,conditioni,numTimepoints)
       
       if verbose:
-          print "runFitAllParallelWorker: Assigned work: condition",conditioni,\
-            ", numTimepoints",numTimepoints,", model index",modelj
+          print("runFitAllParallelWorker: Assigned work: condition",conditioni,\
+            ", numTimepoints",numTimepoints,", model index",modelj)
       
       # set up smallerBestSeenParams
       if (numTimepointsi > 0) and \
@@ -619,7 +619,7 @@ def runFitAllParallelWorker(fileNumString,endTime=None,verbose=True):
       updateFitProbData(fitProb,fileNumString,conditioni,numTimepoints,modelj)
 
       if verbose:
-          print "runFitAllParallelWorker: Finished work."
+          print("runFitAllParallelWorker: Finished work.")
 
       elapsedTimeHours = (time.time() - startWallTime)/3600.
 

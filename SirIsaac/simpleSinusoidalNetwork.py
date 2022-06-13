@@ -30,7 +30,7 @@ def SimpleSinusoidalNetwork(outputNameList=[],
     """
     
     if len(outputNameList) != 3:
-        raise Exception, "Only 3-dimensional network currently supported."
+        raise Exception("Only 3-dimensional network currently supported.")
     
     net = Network(netid, name='Simple sinusoidal network')
     net.addCompartment('Comp',name='Compartment')

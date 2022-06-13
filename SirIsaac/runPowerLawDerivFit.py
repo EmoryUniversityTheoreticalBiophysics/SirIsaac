@@ -15,9 +15,9 @@
 # ********************************************
 #
 
-import fittingProblem
-from simulateYeastOscillator import *
-from simplePickle import load,save
+from . import fittingProblem
+from .simulateYeastOscillator import *
+from .simplePickle import load,save
 import pylab
 
 # taken from runFittingProblem.yeastDataFunction
@@ -70,7 +70,7 @@ if useYeast:
     i = 0
     for ICs,time in zip(ICsList,randTimes):
         i += 1
-        print "runPowerLawDerivFit: Running yeast simulation",i,"of",len(ICsList)
+        print("runPowerLawDerivFit: Running yeast simulation",i,"of",len(ICsList))
         T = 288 # K
         initialConditions = defaultICs
         initialConditions[:numSpecies] = ICs[:numSpecies]
@@ -102,13 +102,13 @@ if useYeast:
   
   # (one data point for each IC)
   sigmas = 0.1*scipy.ones_like(speciesData)
-  fittingData =       [ dict( zip( visibleSpeciesNames,                         \
+  fittingData =       [ dict( list(zip( visibleSpeciesNames,                         \
       [ dict( [(randTime,(data,sigma))] )                                       \
-                for data,sigma in zip(dataRow,sigmaRow)] ) )                    \
+                for data,sigma in zip(dataRow,sigmaRow)] )) )                    \
             for randTime,dataRow,sigmaRow in zip(randTimes,speciesData,sigmas) ]
-  fittingDataDerivs = [ dict( zip( visibleSpeciesNames,                         \
+  fittingDataDerivs = [ dict( list(zip( visibleSpeciesNames,                         \
       [ dict( [(randTime,data)] )                                               \
-                for data in dataRow ] ) )                                       \
+                for data in dataRow ] )) )                                       \
             for randTime,dataRow in zip(randTimes,derivsData) ]
 
 elif not useYeast:
@@ -142,9 +142,9 @@ elif not useYeast:
         fittingDataDerivs = []
         for indepParams,conditionData in zip(fp.indepParamsList,fittingData):
             conditionDerivs = {}
-            for var in conditionData.keys():
+            for var in list(conditionData.keys()):
                 varDerivs = {}
-                for time in conditionData[var].keys():
+                for time in list(conditionData[var].keys()):
                     delta = 1e-5
                     val1,val2 = fp.perfectModel.evaluateVec(                    \
                         [time-delta,time+delta],var,indepParams)
@@ -156,11 +156,11 @@ elif not useYeast:
     if makeFittingData:
         # (many data points for a single IC)
         sigmas = 0.1*scipy.ones_like(speciesData)
-        fittingData =       [ dict( zip( visibleSpeciesNames,                       \
-            [ dict( zip(times,zip(data,sigma)) )                                    \
-                for data,sigma in zip(speciesData,sigmas)] ) ) ]
-        fittingDataDerivs = [ dict( zip( visibleSpeciesNames,                       \
-            [ dict( zip(times,data) ) for data in derivsData ] ) ) ]
+        fittingData =       [ dict( list(zip( visibleSpeciesNames,                       \
+            [ dict( list(zip(times,list(zip(data,sigma)))) )                                    \
+                for data,sigma in zip(speciesData,sigmas)] )) ) ]
+        fittingDataDerivs = [ dict( list(zip( visibleSpeciesNames,                       \
+            [ dict( list(zip(times,data)) ) for data in derivsData ] )) ) ]
 
     
 #speciesNames = visibleSpeciesNames + [ 'X_'+str(i) for i in range(numSpecies-len(visibleSpeciesNames)) ]
@@ -189,10 +189,10 @@ T = 288 #K
 pylab.figure()
 if useYeast: # for yeast
     # set initial conditions to the last example
-    p.net.set_var_ics(dict(zip(p.speciesNames,indepParamsList[-1])))
+    p.net.set_var_ics(dict(list(zip(p.speciesNames,indepParamsList[-1]))))
     times,yeastRawData,params = simulateYeastOscillator([0,10],T,initialConditions=ICsList[-1])
     #pylab.plot(times,speciesData[0])
-    for i,color in zip(range(numVisibleSpecies),colors):
+    for i,color in zip(list(range(numVisibleSpecies)),colors):
         pylab.plot(times,yeastRawData[i]+offset,color=color,ls=':')
 elif usePhosphorylation:
     # 8.23.2012 how should I set the initial condition more generally?
@@ -204,8 +204,8 @@ elif usePhosphorylation:
     #    pylab.plot(times,perfectData[i],color=color,ls=':')
     p.plotResults(fittingData,indepParamsList)
 else: # simple examples
-    p.net.set_var_ics(dict(zip(p.speciesNames,speciesData[:,0])))
-    for i,color in zip(range(len(speciesData)),colors):
+    p.net.set_var_ics(dict(list(zip(p.speciesNames,speciesData[:,0]))))
+    for i,color in zip(list(range(len(speciesData))),colors):
         pylab.plot(times,speciesData[i],color=color,ls=':',label=p.speciesNames[i]+" data")
     times = scipy.linspace(0,10,100)
 for speciesName,color in zip(p.speciesNames,colors): #range(numSpecies)

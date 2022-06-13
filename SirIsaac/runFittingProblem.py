@@ -8,19 +8,19 @@
     
 import scipy
 from SloppyCell.ReactionNetworks import *
-import fakeData as FakeData
+from . import fakeData as FakeData
 import os,sys,copy
-from outputTag import nextFileNumString
-import sloppyCellTest
+from .outputTag import nextFileNumString
+from . import sloppyCellTest
 
-print "This computer's name is",os.uname()[1]
+print("This computer's name is",os.uname()[1])
 if (os.uname()[1][:4] == 'node'): # 4.4.2012 emory machines
-    print "The current directory is",os.getcwd()
+    print("The current directory is",os.getcwd())
     if os.getcwd().startswith('/star'):
         os.chdir('/star/physics/nemenman/daniels/SirIsaac')
     elif os.getcwd().startswith('/spark'):
         os.chdir('/spark/physics/nemenman/daniels/SirIsaac')
-    print "Now the current directory is",os.getcwd()
+    print("Now the current directory is",os.getcwd())
     
 def paramsDict(fittingProblem):
     d = {}
@@ -42,7 +42,7 @@ else:
 
 # 9.24.2013 make sure SloppyCell C compiling is working
 if not sloppyCellTest.testCcompiling():
-    raise Exception, "SloppyCell C compiling not working."
+    raise Exception("SloppyCell C compiling not working.")
 
 noiseInLog = False # 3.6.2013
 usePreviousParams = True #False # 3.6.2013
@@ -220,7 +220,7 @@ elif originalString is 'PhosphorylationNet':
         randomParamsSeed = 12345
         scipy.random.seed(randomParamsSeed)
         newParams = {}
-        for var in originalFittingModel.getParameters().keys():
+        for var in list(originalFittingModel.getParameters().keys()):
             if var.startswith('k'):
                 newParams.update({var: abs(scipy.random.normal(scale=nonratePriorSigma))})
             if var.startswith('Km'):
@@ -249,7 +249,7 @@ elif originalString is 'yeastOscillator':
   nonzeroMin = True # True
   # *****************
     
-  includedIndices = range(3) #range(7) # range(3) 
+  includedIndices = list(range(3)) #range(7) # range(3) 
   allNames = scipy.array(['S1','S2','S3','S4','N2','A3','S4ex']) 
   names = allNames[includedIndices]
   outputVars = names
@@ -284,7 +284,7 @@ elif originalString is 'yeastOscillator':
   def yeastDataFunction(numICs,useDerivs,                                   \
     names=names,timesSeed=timesSeed,noiseSeed=noiseSeed,ICseed=ICseed):
     if (os.uname()[1] != 'star'): # can't do if MATLAB isn't installed
-        from simulateYeastOscillator import *
+        from .simulateYeastOscillator import *
             
     timeInterval = [0.,5.] #[0.,10.] #[0.,1e-5] #[0.,10.] # minutes #
             
@@ -300,7 +300,7 @@ elif originalString is 'yeastOscillator':
     return fittingData,inputVars,inputList,useDerivs,fittingDataDerivs
     
 else:
-    raise Exception, "Unrecognized originalString"
+    raise Exception("Unrecognized originalString")
 
 
 # for Laguerre polynomials
@@ -331,7 +331,7 @@ elif (fittingType is 'SimplePhosphorylation')                               \
   or (fittingType is 'SimpleSinusoidal'):
     pass # we don't include priors for these models
 else:
-    raise Exception, "Unrecognized fittingType"
+    raise Exception("Unrecognized fittingType")
 # make priorSigma list using ratePriorSigma and nonratePriorSigma
 priorSigma = []
 for v in rateVars: priorSigma.append( (v,ratePriorSigma) )
@@ -367,7 +367,7 @@ if restartDictName is not None:
 
 # () set up filename for output
 fileNumString = prefix
-print "runFittingProblem: Output files will start with",fileNumString
+print("runFittingProblem: Output files will start with",fileNumString)
 configString = '_fitProb_varying_numInputs'                                 \
    +'_'+originalString                                                      \
    +'_'+fittingType                                                         \
@@ -399,16 +399,16 @@ smallerBestParamsDict = {}
 if originalString is "PhosphorylationNet":
     deltaNumIndepParams = 5 #2
     maxNumIndepParams = 54
-    numIndepParamsList = range(deltaNumIndepParams,maxNumIndepParams,deltaNumIndepParams)
+    numIndepParamsList = list(range(deltaNumIndepParams,maxNumIndepParams,deltaNumIndepParams))
     numIndepParamsList.extend([52,100,200,300,400,500])
 elif originalString is "yeastOscillator":
     deltaNumIndepParams = 2
     maxNumIndepParams = 52 #25
-    numIndepParamsList = range(deltaNumIndepParams,maxNumIndepParams,deltaNumIndepParams)
+    numIndepParamsList = list(range(deltaNumIndepParams,maxNumIndepParams,deltaNumIndepParams))
 elif originalString is "PlanetaryNet":
     deltaNumIndepParams = 10
     maxNumIndepParams = 200
-    numIndepParamsList = range(deltaNumIndepParams,maxNumIndepParams,deltaNumIndepParams)
+    numIndepParamsList = list(range(deltaNumIndepParams,maxNumIndepParams,deltaNumIndepParams))
 else: raise Exception
 
 # () set up complexityList, specifying which models to test in the model class
@@ -441,7 +441,7 @@ for numIndepParams in numIndepParamsList:
     key = numIndepParams
 
     # () Create fittingData
-    if (originalFittingModel is not None) and (not fitProbDict.has_key(key)):
+    if (originalFittingModel is not None) and (key not in fitProbDict):
       # the following need to be set above:
       #     outputVars
       #     inputVars,inputListFull
@@ -466,7 +466,7 @@ for numIndepParams in numIndepParamsList:
       for i,runVals in enumerate(runList):
         newNet = originalNet.copy()
         for runVar,runVal in zip(runVars,runVals):
-          if runVar in newNet.parameters.keys():
+          if runVar in list(newNet.parameters.keys()):
             newNet.setInitialVariableValue(runVar,runVal)
           else:
             pass # 5.3.2013 runVal will still be passed on to the fittingModels
@@ -488,12 +488,12 @@ for numIndepParams in numIndepParamsList:
         fakeData.append( fakeDataSingleRun )
 
     elif originalString == 'yeastOscillator':
-      print "Using yeast oscillator data."
+      print("Using yeast oscillator data.")
       fakeData,inputVars,inputList,includeDerivs,fittingDataDerivs =           \
           yeastDataFunction(numIndepParams,useDerivs)
 
     # () Create fittingProblem p
-    if fitProbDict.has_key(key): 
+    if key in fitProbDict: 
         p = fitProbDict[key]
         p.saveFilename = saveFilename # in case it has changed
     else: # we haven't started 
@@ -548,7 +548,7 @@ for numIndepParams in numIndepParamsList:
             outputNames=outputVars,priorSigma=priorSigma,                       
             inputNames=inputNames,**kwargs)
         else:
-            raise Exception, 'No valid fittingType specified.'
+            raise Exception('No valid fittingType specified.')
         
         fitProbDict[key] = p
 
@@ -582,7 +582,7 @@ for numIndepParams in numIndepParamsList:
     # 4.17.2012
     smallerBestParamsDict = paramsDict(p)
         
-    print "runFittingProblem: Done with key", key
+    print("runFittingProblem: Done with key", key)
 
 
 

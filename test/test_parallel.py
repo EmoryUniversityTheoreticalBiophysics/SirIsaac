@@ -57,12 +57,13 @@ class TestParallel(unittest.TestCase):
         
         input_data = {'test':123,'output_filename':temp_output_filename}
         save(input_data,temp_input_filename)
-        stdoutFile = open(temp_stdout_filename,'w')
-        subprocess.call([ "mpirun","-np",str(NUMPROCS),"python",
-                          os.path.join(SIRISAACDIR, "mpi_basic.py"),
-                          temp_input_filename ],
-                          stderr=stdoutFile,stdout=stdoutFile,
-                          env=os.environ)
+        with open(temp_stdout_filename,'w') as stdoutFile:
+            subprocess.call([ "mpirun","-np",str(NUMPROCS),"python",
+                              os.path.join(SIRISAACDIR, "mpi_basic.py"),
+                              temp_input_filename ],
+                              stderr=stdoutFile,stdout=stdoutFile,
+                              env=os.environ,
+                              cwd=SIRISAACDIR)
         output_data = load(temp_output_filename)
         os.remove(temp_input_filename)
         os.remove(temp_output_filename)
@@ -88,10 +89,10 @@ class TestParallel(unittest.TestCase):
             m.localFitToData_parallel(NUMPROCS,data,dataModel,ens,indepParamsList)
         
         # check that we get the same answer from each parallel instance
-        testVar = fitParamsSerial.keys()[0] # just check the first parameter
+        testVar = list(fitParamsSerial.keys())[0] # just check the first parameter
         varSerial = fitParamsSerial.getByKey(testVar)
         varParallelList = [ result[0].getByKey(testVar) \
-                            for result in outputDictParallel.values() ]
+                            for result in list(outputDictParallel.values()) ]
         for varParallel in varParallelList:
             self.assertAlmostEqual(varSerial,varParallel)
 
@@ -120,6 +121,7 @@ class TestParallel(unittest.TestCase):
             self.assertAlmostEqual(ensSerial[0][paramIndex],
                                    ensParallel[0][paramIndex])
 
-    
+if __name__ == '__main__':
+    unittest.main()
         
         
