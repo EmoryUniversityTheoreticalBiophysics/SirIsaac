@@ -4,4 +4,3 @@ scipy
 # pygraphviz
 # python-libsbml
 file:../sloppycell#egg=SloppyCell
-file:../pypar#egg=pypar
