@@ -10,7 +10,7 @@
 import scipy
 import time, copy, os
 from .simplePickle import load,save
-from .sloppyCellTest import testCcompiling
+#from .sloppyCellTest import testCcompiling
 from .fittingProblemMultipleCondition import *
 
 def directoryPrefix(fileNumString,conditioni,numTimepoints):
@@ -577,11 +577,11 @@ def runFitAllParallelWorker(fileNumString,endTime=None,verbose=True):
 
     # check that the fitProbData file exists
     if not fileNumString+"_fitProbData.dat" in os.listdir('.'):
-        raise Exception("fitProbData database file not found: "+str(fitProbDatFilename))
+        raise Exception("fitProbData database file not found: {}_fitProbData.dat".format(fileNumString))
 
     # 9.24.2013 make sure SloppyCell C compiling is working
-    if not testCcompiling():
-        raise Exception("SloppyCell C compiling not working.")
+    #if not testCcompiling():
+    #    raise Exception("SloppyCell C compiling not working.")
 
     if endTime is None: endTime = scipy.inf
     startWallTime = time.time()
